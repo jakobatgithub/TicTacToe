@@ -56,31 +56,36 @@ def check_winner(board, player):
 def check_draw(board):
     return ' ' not in board
 
-def q_update(Q, board, action, next_board, reward, alpha, gamma):
+def q_update(Q, board, action, player, next_board, reward, alpha, gamma):
     old_value = Q.get(board, action)
     if next_board:
         # Calculate max Q-value for the next state over all possible actions
         next_actions = get_empty_positions(next_board)
         future_qs = [Q.get(next_board, next_action) for next_action in next_actions]
-        max_future_q = max(future_qs)
+        if player == 'X':
+            future_q = max(future_qs)
+        else:
+            future_q = min(future_qs)
     else:
-        max_future_q = 0.0
+        future_q = 0.0
 
-    new_value = (1 - alpha) * old_value + alpha * (reward + gamma * max_future_q)
+    new_value = (1 - alpha) * old_value + alpha * (reward + gamma * future_q)
+    # print(f"{new_value}, {old_value}, {alpha}, {gamma}, {reward}, {future_q}")
     Q.set(board, action, new_value)
     return abs(old_value - new_value)
 
 # Update Q-values based on the game's outcome, with correct max_future_q
-def q_update_backward(Q, history, terminal_reward, alpha, gamma):
+def q_update_backward(Q, history, player, terminal_reward, alpha, gamma):
     diff = 0
     for i in reversed(range(len(history))):
         board, action = history[i]
         if i == len(history) - 1:
             # Update the last state-action pair with the terminal reward
-            diff += q_update(Q, board, action, None, terminal_reward, alpha, gamma)
+            diff += q_update(Q, board, action, player, None, terminal_reward, alpha, gamma)
         else:
             next_board, _ = history[i + 1]
-            diff += q_update(Q, board, action, next_board, 0.0, alpha, gamma)
+            diff += q_update(Q, board, action, player, next_board, 0.0, alpha, gamma)
+        
     return diff
 
 # Choose an action based on Q-values
@@ -91,7 +96,7 @@ def choose_action(Q, board, player, epsilon=0.1):
         return random.choice(empty_positions)
     else:
         # Exploitation: Choose the best known move
-        return Q.best_action(board, player)
+        return int(Q.best_action(board, player))
 
 # Main game loop for two random agents
 def play_game(matrices, params, flags):
@@ -112,6 +117,7 @@ def play_game(matrices, params, flags):
     nr_of_episodes = params['nr_of_episodes']
     epsilon = max(params['epsilon_min'], params['epsilon_start'] / (1 + episode/nr_of_episodes))
     alpha = max(params['alpha_min'], params['alpha_start'] / (1 + episode/nr_of_episodes))
+    rewards = params['rewards']
 
     if interactive:
         while human_player is None:
@@ -141,25 +147,28 @@ def play_game(matrices, params, flags):
                 else:
                     action = choose_action(Q, board, current_player, epsilon=params['eps'][current_player])
 
+            old_board = board[:]
+            
+            # Update board
             board[action] = current_player
             number_of_actions += 1
-            
+
             # Update Visits
-            visits = Visits.get(board, action)
-            Visits.set(board, action, visits + 1)
+            visits = Visits.get(old_board, action)
+            Visits.set(old_board, action, visits + 1)
 
         # Check for winner
         if check_winner(board, current_player):
-            terminal_reward = 1.0 if current_player == 'X' else -1.0  # Reward for 'X', penalty for 'O'
+            terminal_reward = rewards[current_player]# if current_player == 'X' else -1.0  # Reward for 'X', penalty for 'O'
             if display:
                 display_board(board)
                 print(f"Player {current_player} wins!\n")
 
             if training:
-                q_update_backward(Q, history, terminal_reward, alpha, gamma)
+                q_update_backward(Q, history, current_player, terminal_reward, alpha, gamma)
 
             # Update Rewards
-            Rewards.set(board, action, terminal_reward)
+            Rewards.set(old_board, action, terminal_reward)
 
             # Update outcomes
             outcome = current_player
@@ -167,16 +176,16 @@ def play_game(matrices, params, flags):
         
         # Check for draw
         if check_draw(board):
-            terminal_reward = 0.5
+            terminal_reward = rewards['D']
             if display:
                 display_board(board)
                 print("It's a draw!\n")
 
             if training:
-                q_update_backward(Q, history, terminal_reward, alpha, gamma)
+                q_update_backward(Q, history, current_player, terminal_reward, alpha, gamma)
 
             # Update Rewards
-            Rewards.set(board, action, terminal_reward)
+            Rewards.set(old_board, action, terminal_reward)
 
             # Update outcomes
             outcome = 'D'
@@ -186,3 +195,5 @@ def play_game(matrices, params, flags):
         current_player = 'O' if current_player == 'X' else 'X'
 
     params['outcomes'][outcome] += 1
+    if training:
+        params['history'] = history

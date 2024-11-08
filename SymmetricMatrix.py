@@ -6,25 +6,6 @@ from collections import defaultdict
 
 class SymmetricMatrix:
     def __init__(self, file=None, default_value=None):
-        """
-        Initialize a SymmetricMatrix object.
-
-        Parameters
-        ----------
-        file : str, optional
-            File name to load the matrix from. If None, the matrix is
-            initialized with the given default value.
-        default_value : object, optional
-            Default value to use for initializing the matrix. If None,
-            the matrix is loaded from the given file.
-
-        Notes
-        -----
-        The matrix is stored in a dictionary where the keys are tuples of
-        length 9 representing the state of the board. The values are
-        dictionaries where the keys are the actions (0-8) and the values
-        are the q-values.
-        """
         self.default_value = 0.0
         # Matrix storing canonical state-action pairs
         if default_value is None and file is None:

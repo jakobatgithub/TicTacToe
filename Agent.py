@@ -96,8 +96,12 @@ class LearningAgent(Agent):
             history = total_history[1::2]
 
         terminal_reward = self.rewards[outcome]
+        board, action = history[-1]
+        self.Rewards.set(board, action, terminal_reward)
         if self.debug:
             print(f"outcome = {outcome}, terminal_reward = {terminal_reward}")
+            board, action = history[-1]
+            print(f"board = {board}, action = {action}")
 
         diff = self.q_update_backward(history, terminal_reward)
         if self.evaluation:
@@ -173,8 +177,7 @@ class LearningAgent(Agent):
                 next_board, _ = history[i + 1]
                 diff += self.q_update(board, action, next_board, 0.0)
             
-        return diff
-
+        return diff/(len(history) * self.alpha)
 
 class PlayingAgent(Agent):
     def __init__(self, Q, player='X', switching=False):

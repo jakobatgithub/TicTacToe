@@ -38,7 +38,7 @@ class Agent:
 class LearningAgent(Agent):
     def __init__(self, params):
         # Initialize matrices
-        # Q = QMatrix(file='Q.pkl')
+        # # Q = QMatrix(file='Q.pkl')
         # Q = QMatrix(default_value=params['Q_initial_value'])
         # Visits = Matrix(default_value=0)
         # Rewards = Matrix(default_value=0)
@@ -52,6 +52,12 @@ class LearningAgent(Agent):
         Q = QTotallySymmetricMatrix(default_value=params['Q_initial_value'])
         Visits = TotallySymmetricMatrix(default_value=0)
         Rewards = TotallySymmetricMatrix(default_value=0.0)
+
+        if params['Q_optimal']:
+            self.evaluation = True
+            self.Q_optimal = QTotallySymmetricMatrix(file=params['Q_optimal'])
+        else:
+            self.evaluation = False
 
         self.Q = Q
         self.Visits = Visits
@@ -71,6 +77,9 @@ class LearningAgent(Agent):
         self.nr_of_episodes = params['nr_of_episodes']
         self.episode = 0
 
+    def is_optimal(self, board, action):
+        return action in self.Q_optimal.best_actions(board)
+
     def initialize(self):
         self.set_rewards()
 
@@ -89,8 +98,11 @@ class LearningAgent(Agent):
         terminal_reward = self.rewards[outcome]
         if self.debug:
             print(f"outcome = {outcome}, terminal_reward = {terminal_reward}")
-        
-        self.q_update_backward(history, terminal_reward)
+
+        diff = self.q_update_backward(history, terminal_reward)
+        if self.evaluation:
+            self.params['diffs'].append(diff)
+
         self.episode += 1
         self.update_rates(self.episode)
         self.params['history'] = history
@@ -111,7 +123,14 @@ class LearningAgent(Agent):
             return random.choice(valid_actions)
         else:
             # Exploitation: Choose the best known move
-            return int(self.Q.best_action(board))
+            action = int(self.Q.best_action(board))            
+            if self.evaluation:
+                if self.is_optimal(board, action):
+                    self.params['optimal_actions'].append(1)
+                else:
+                    self.params['optimal_actions'].append(0)
+
+            return action
 
     # Generate all empty positions on the board
     def get_valid_actions(self, board):

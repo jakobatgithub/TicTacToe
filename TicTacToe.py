@@ -2,13 +2,11 @@ import time
 from IPython.display import clear_output
 
 class TicTacToe:
-    def __init__(self, agent_x, agent_o, display=None):
+    def __init__(self, agent1, agent2, display=None):
         self.display = display
-        self.agent_x = agent_x
-        self.agent_o = agent_o
-        self.board = self.initialize_board()
-        self.current_player = 'X'
-        self.history = []  # To store state-action pairs
+        self.agent1 = agent1
+        self.agent2 = agent2
+        self.initialize()
 
     # Initialize the Tic-Tac-Toe board
     def initialize_board(self):
@@ -23,6 +21,9 @@ class TicTacToe:
     
     def get_history(self):
         return self.history
+
+    def get_current_player(self):
+        return self.current_player
 
     def make_move(self, action):
         if action in self.get_valid_actions():
@@ -74,20 +75,23 @@ class TicTacToe:
         elif self.is_draw():
             return 'D'
 
-    # Main game loop
-    def play(self):
+    def initialize(self):
         self.board = self.initialize_board()
         self.current_player = 'X'
-        self.history = []  # To store state-action pairs        
+        self.history = []  # To store state-action pairs
+        assert self.agent1.player != self.agent2.player
 
+    # Main game loop
+    def play(self):
+        self.initialize()
         while not self.is_game_over():
             if self.display:
                 self.display_board()  # Optional: Display the board after each move
                 time.sleep(0.25)  # Wait a bit before the next move for readability
-            if self.current_player == 'X':
-                action = self.agent_x.get_action(self)
+            if self.current_player == self.agent1.player:
+                action = self.agent1.get_action(self)
             else:
-                action = self.agent_o.get_action(self)
+                action = self.agent2.get_action(self)
             
             self.history.append((self.board[:], action))
             if self.make_move(action):
@@ -97,8 +101,9 @@ class TicTacToe:
                 continue
 
         outcome = self.get_outcome()
-        self.agent_x.notify_result(self, outcome)
-        self.agent_o.notify_result(self, outcome)
+        self.agent1.notify_result(self, outcome)
+        self.agent2.notify_result(self, outcome)
+
         if self.display:
             self.display_board()  # Optional: Display the board after each move
             time.sleep(0.25)  # Wait a bit before the next move for readability

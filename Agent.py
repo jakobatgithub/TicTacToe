@@ -5,10 +5,18 @@ from SymmetricMatrix import SymmetricMatrix, QSymmetricMatrix
 from SymmetricMatrix import TotallySymmetricMatrix, QTotallySymmetricMatrix
 
 class Agent:
-    def __init__(self, player):
-        players = ['X', 'O']
+    def __init__(self, player='X', switching=False):
+        """
+        Base class for all agents.
+        :param player: 'X', 'O', or None (to be assigned later).
+        """
+        self.players = ['X', 'O']
         self.player = player
-        self.opponent = players[1] if player == players[0] else players[0]
+        self.opponent = self.get_opponent(player)
+        self.switching = switching
+
+    def get_opponent(self, player):
+        return self.players[1] if player == self.players[0] else self.players[0]
 
     def get_action(self, game):
         """
@@ -24,15 +32,13 @@ class Agent:
         :param result: A string, e.g., "win", "loss", or "draw".
         :param outcome: The symbol ('X' or 'O' or 'D') of the outcome.
         """
-        raise NotImplementedError("This method should be overridden by subclasses")
+        pass
 
 
 class LearningAgent(Agent):
-    def __init__(self, player, params):
-        super().__init__(player)
+    def __init__(self, params):
         # Initialize matrices
-
-        # # Q = QMatrix(file='Q.pkl')
+        # Q = QMatrix(file='Q.pkl')
         # Q = QMatrix(default_value=params['Q_initial_value'])
         # Visits = Matrix(default_value=0)
         # Rewards = Matrix(default_value=0)
@@ -52,22 +58,50 @@ class LearningAgent(Agent):
         self.Rewards = Rewards
 
         self.params = params
+        super().__init__(player=params['player'], switching=params['switching'])
+        self.set_rewards()
+        self.debug = params['debug']
+        if self.debug:
+            print(f"Player: {self.player}, opponent: {self.opponent}")
+    
         self.gamma = params['gamma']
         self.epsilon = params['epsilon_start']
         self.alpha = params['alpha_start']
 
-        self.rewards = {}        
-        self.rewards[self.player] = params['rewards']['W']
-        self.rewards[self.opponent] = params['rewards']['L']
-        self.rewards['D'] = params['rewards']['D']
-
         self.nr_of_episodes = params['nr_of_episodes']
         self.episode = 0
+
+    def initialize(self):
+        self.set_rewards()
 
     def get_action(self, game):
         board = game.get_board()
         action = self.choose_action(board, epsilon=self.epsilon)
         return action
+
+    def notify_result(self, game, outcome):
+        total_history = game.get_history()
+        if self.player == 'X':
+            history = total_history[0::2]
+        else:
+            history = total_history[1::2]
+
+        terminal_reward = self.rewards[outcome]
+        if self.debug:
+            print(f"outcome = {outcome}, terminal_reward = {terminal_reward}")
+        
+        self.q_update_backward(history, terminal_reward)
+        self.episode += 1
+        self.update_rates(self.episode)
+        self.params['history'] = history
+        if self.switching:
+            self.player, self.opponent = self.opponent, self.player
+            self.set_rewards()
+            if self.debug:
+                print(f"Player: {self.player}, opponent: {self.opponent}")
+
+    def set_rewards(self):
+        self.rewards = self.params['rewards'][self.player]
 
     # Choose an action based on Q-values
     def choose_action(self, board, epsilon):
@@ -78,13 +112,6 @@ class LearningAgent(Agent):
         else:
             # Exploitation: Choose the best known move
             return int(self.Q.best_action(board))
-
-    def notify_result(self, game, outcome):
-        history = game.get_history()
-        terminal_reward = self.rewards[outcome]
-        self.q_update_backward(history, terminal_reward)
-        self.episode += 1
-        self.update_rates(self.episode)
 
     # Generate all empty positions on the board
     def get_valid_actions(self, board):
@@ -100,17 +127,24 @@ class LearningAgent(Agent):
             # Calculate max Q-value for the next state over all possible actions
             next_actions = self.get_valid_actions(next_board)
             future_qs = [self.Q.get(next_board, next_action) for next_action in next_actions]
+            if self.debug:
+                print(f"future_qs = {future_qs}")
+            
             future_q = max(future_qs)
         else:
             future_q = 0.0
 
         new_value = (1 - self.alpha) * old_value + self.alpha * (reward + self.gamma * future_q)
         self.Q.set(board, action, new_value)
+        if self.debug:
+            print(f"{old_value}, {new_value}, {new_value - old_value}")
+    
         return abs(old_value - new_value)
 
     # Update Q-values based on the game's outcome, with correct max_future_q
     def q_update_backward(self, history, terminal_reward):
         diff = 0
+        # print(f"terminal_reward = {terminal_reward}")
         for i in reversed(range(len(history))):
             board, action = history[i]
             if i == len(history) - 1:
@@ -123,22 +157,35 @@ class LearningAgent(Agent):
         return diff
 
 
-class RandomAgent(Agent):
-    def __init__(self, player):
-        super().__init__(player)
+class PlayingAgent(Agent):
+    def __init__(self, Q, player='X', switching=False):
+        super().__init__(player=player, switching=switching)
+        self.Q = Q
 
+    def get_action(self, game):
+        board = game.get_board()
+        action = self.choose_action(board)
+        return action
+    
+    def notify_result(self, game, outcome):
+        if self.switching:
+            self.player, self.opponent = self.opponent, self.player
+
+    # Choose an action based on Q-values
+    def choose_action(self, board):
+        return int(self.Q.best_action(board))
+
+
+class RandomAgent(Agent):
     def get_action(self, game):
         valid_actions = game.get_valid_actions()
         return random.choice(valid_actions)
     
     def notify_result(self, game, outcome):
-        pass
-
-
+        if self.switching:
+            self.player, self.opponent = self.opponent, self.player
+    
 class HumanAgent(Agent):
-    def __init__(self, player):
-        super().__init__(player)
-
     def get_action(self, game):
         valid_actions = game.get_valid_actions()
         action = None
@@ -149,6 +196,3 @@ class HumanAgent(Agent):
                 action = None
 
         return action
-    
-    def notify_result(self, game, outcome):
-        pass

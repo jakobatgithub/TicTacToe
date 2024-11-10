@@ -17,8 +17,10 @@ class LazyComputeDict(dict):
 
 
 class SymmetricMatrix:
-    def __init__(self, file=None, default_value=None, lazy=True):
+    def __init__(self, file=None, default_value=None, lazy=True, width=3):
         self.default_value = 0.0
+        self.width = width
+
         if default_value is None and file is None:
             self.qMatrix = defaultdict(self._initialize_q_matrix)
         elif default_value is None and file is not None:
@@ -50,7 +52,7 @@ class SymmetricMatrix:
             lambda x: np.transpose(x),           # Diagonal reflection (TL-BR) inverse
         ]
 
-        self.original_actions = np.array(range(9)).reshape(3, 3)
+        self.original_actions = np.array(range(self.width * self.width)).reshape(self.width, self.width)
         for i, transform in enumerate(self.transformations):
             assert self.inverse_transformations[i](transform(self.original_actions)).flatten().tolist() == self.original_actions.flatten().tolist()
 
@@ -71,7 +73,7 @@ class SymmetricMatrix:
 
     def _generate_all_dicts(self):
         all_valid_boards = self._generate_all_valid_boards()
-        all_canonical_boards = set()
+        self.all_canonical_boards = set()
         self.dict_canonical_board = {}
         self.dict_transform = {}
         self.dict_inverse_transform = {}
@@ -79,16 +81,16 @@ class SymmetricMatrix:
         self.dict_inverse_canonical_actions = {}
         for board in all_valid_boards:
             canonical_board, transform_idx = self._get_canonical_representation(board)
-            all_canonical_boards.add(canonical_board)
+            self.all_canonical_boards.add(canonical_board)
             self.dict_canonical_board[board] = canonical_board
             self.dict_transform[board] = self.transformations[transform_idx]
             self.dict_inverse_transform[board] = self.inverse_transformations[transform_idx]
             self.dict_canonical_actions[board] = self.dict_inverse_transform[board](self.original_actions).flatten().tolist()
             self.dict_inverse_canonical_actions[board] = self.dict_transform[board](self.original_actions).flatten().tolist()
 
-        all_canonical_boards = list(all_canonical_boards)
+        self.all_canonical_boards = list(self.all_canonical_boards)
         self.all_canonical_actions = {}
-        for board in all_canonical_boards:
+        for board in self.all_canonical_boards:
             empty_positions = self.get_empty_positions(board)
             self.all_canonical_actions[board] = empty_positions
 
@@ -98,19 +100,19 @@ class SymmetricMatrix:
 
     def _board_to_matrix(self, board):
         """
-        Convert a linear board to a 3x3 matrix for easier manipulation
+        Convert a linear board to a width x width matrix for easier manipulation
         """
-        return np.array(board).reshape(3, 3)
+        return np.array(board).reshape(self.width, self.width)
 
     def _matrix_to_board(self, matrix):
         """
-        Convert a 3x3 matrix back to a linear board representation.
+        Convert a width x width matrix back to a linear board representation.
         """
         return matrix.flatten().tolist()
 
     def _generate_all_valid_boards(self):
         symbols = [' ', 'X', 'O']
-        all_boards = list(product(symbols, repeat=9))  # Generate all 3^9 combinations
+        all_boards = list(product(symbols, repeat=self.width*self.width))  # Generate all 3^(width^2) combinations
         # print(f"Total number of boards: {len(all_boards)}")
         all_valid_boards = []
 
@@ -219,9 +221,9 @@ class QSymmetricMatrix(SymmetricMatrix):
 
 
 class TotallySymmetricMatrix(SymmetricMatrix):
-    def __init__(self, file=None, default_value=None, lazy=True):
+    def __init__(self, file=None, default_value=None, lazy=True, width=3):
         # Call the parent initializer first
-        super().__init__(file=file, default_value=default_value, lazy=lazy)
+        super().__init__(file=file, default_value=default_value, lazy=lazy, width=width)
 
         # Override q_matrix initialization for TotallySymmetricMatrix
         if file is not None:

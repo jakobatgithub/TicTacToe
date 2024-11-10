@@ -35,34 +35,17 @@ class Agent:
         pass
 
 
-class LearningAgent(Agent):
+class QLearningAgent(Agent):
     def __init__(self, params):
         # Initialize matrices
-        # # Q = QMatrix(file='Q.pkl')
         # Q = QMatrix(default_value=params['Q_initial_value'])
-        # Visits = Matrix(default_value=0)
-        # Rewards = Matrix(default_value=0)
-
-        # # Q = QSymmetricMatrix(file='SymmetricQ.pkl')
-        # Q = QSymmetricMatrix(default_value=params['Q_initial_value'], lazy=False)
-        # Visits = SymmetricMatrix(default_value=0)
-        # Rewards = SymmetricMatrix(default_value=0.0)
-
-        # Q = QTotallySymmetricMatrix(file='TotallySymmetricQ.pkl')
-        self.lazy = params['lazy_evaluation']
-        Q = QTotallySymmetricMatrix(default_value=params['Q_initial_value'], lazy=self.lazy, width=params['width'])
-        Visits = TotallySymmetricMatrix(default_value=0, lazy=self.lazy, width=params['width'])
-        Rewards = TotallySymmetricMatrix(default_value=0.0, lazy=self.lazy, width=params['width'])
-
+        # Q = QSymmetricMatrix(default_value=params['Q_initial_value'], lazy=params['lazy_evaluation'], width=params['width'])
+        self.Q = QTotallySymmetricMatrix(default_value=params['Q_initial_value'], lazy=params['lazy_evaluation'], width=params['width'])
         if params['Q_optimal']:
             self.evaluation = True
             self.Q_optimal = QTotallySymmetricMatrix(file=params['Q_optimal'])
         else:
             self.evaluation = False
-
-        self.Q = Q
-        self.Visits = Visits
-        self.Rewards = Rewards
 
         self.params = params
         super().__init__(player=params['player'], switching=params['switching'])
@@ -98,7 +81,6 @@ class LearningAgent(Agent):
 
         terminal_reward = self.rewards[outcome]
         board, action = history[-1]
-        self.Rewards.set(board, action, terminal_reward)
         if self.debug:
             print(f"outcome = {outcome}, terminal_reward = {terminal_reward}")
             board, action = history[-1]

@@ -161,7 +161,7 @@ class QLearningAgent(Agent):
             
         return diff/(len(history) * self.alpha)
 
-class PlayingAgent(Agent):
+class QPlayingAgent(Agent):
     def __init__(self, Q, player='X', switching=False):
         super().__init__(player=player, switching=switching)
         self.Q = Q

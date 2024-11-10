@@ -6,23 +6,35 @@ from collections import deque
 import tensorflow as tf
 from tensorflow.keras import layers, models
 
-from Agent import QLearningAgent
+from Agent import QLearningAgent, Agent
 from Matrix import QMatrix
 
 
 class DeepQLearningAgent(QLearningAgent):
     def __init__(self, params):
-        super().__init__(params)
-        self.Q = QMatrix(default_value=params['Q_initial_value'])
-
-        self.model = models.Sequential([
+        self.Qmodel = models.Sequential([
             layers.Input(shape=(9,)),
             layers.Dense(16, activation='relu'),
             layers.Dense(16, activation='relu'),
             layers.Dense(9)  # Q-values for 9 actions
         ])
-        self.model.compile(optimizer='adam', loss='mse')
-        self.model.summary()
+        self.Qmodel.compile(optimizer='adam', loss='mse')
+        self.Qmodel.summary()
+
+        self.evaluation = True
+        self.params = params
+        Agent.__init__(self, player=params['player'], switching=params['switching'])
+        self.set_rewards()
+        self.debug = params['debug']
+        if self.debug:
+            print(f"Player: {self.player}, opponent: {self.opponent}")
+    
+        self.gamma = params['gamma']
+        self.epsilon = params['epsilon_start']
+        self.alpha = params['alpha_start']
+
+        self.nr_of_episodes = params['nr_of_episodes']
+        self.episode = 0
 
         self.replay_buffer = deque(maxlen=10000)
         self.batch_size = params['batch_size']
@@ -55,7 +67,7 @@ class DeepQLearningAgent(QLearningAgent):
             valid_actions = self.get_valid_actions(board)
             state = self.board_to_state(board)
 
-            q_values = self.model.predict(state)
+            q_values = self.Qmodel.predict(state)
             q_values = q_values[0]
             if self.debug:
                 print(f"valid_actions = {valid_actions}, state = {state}, q_values = {q_values}")
@@ -87,8 +99,8 @@ class DeepQLearningAgent(QLearningAgent):
             print(f"dones = {dones}")
 
         all_valid_actions = [self.get_valid_actions(self.state_to_board(state)) for state in states]
-        q_values = self.model.predict(states)
-        next_q_values = self.model.predict(next_states)
+        q_values = self.Qmodel.predict(states)
+        next_q_values = self.Qmodel.predict(next_states)
 
         if self.debug:
             print(f"q_values = {q_values}")
@@ -106,9 +118,9 @@ class DeepQLearningAgent(QLearningAgent):
             q_values[i][action] = target
 
         if self.debug:
-            history = self.model.fit(states, q_values, epochs=1, verbose=2)
+            history = self.Qmodel.fit(states, q_values, epochs=1, verbose=2)
         else:
-            history = self.model.fit(states, q_values, epochs=1, verbose='none')
+            history = self.Qmodel.fit(states, q_values, epochs=1, verbose='none')
 
         loss = history.history['loss'][0]
         return loss
@@ -159,3 +171,47 @@ class DeepQLearningAgent(QLearningAgent):
             self.set_rewards()
             if self.debug:
                 print(f"Player: {self.player}, opponent: {self.opponent}")
+
+
+class DeepQPlayingAgent(Agent):
+    def __init__(self, Qmodel, player='X', switching=False):
+        super().__init__(player=player, switching=switching)
+        self.Qmodel = Qmodel
+
+        self.state_to_board_translation = {'X': 1, 'O': -1, ' ': 0}
+        self.board_to_state_translation = {1: 'X', -1: 'O', 0: ' '}
+
+    def board_to_state(self, board):
+        return np.array([self.state_to_board_translation[cell] for cell in board]).reshape(1, -1)
+    
+    def state_to_board(self, state):
+        flat_state = state.flatten()
+        board = [self.board_to_state_translation[cell] for cell in flat_state]
+        return board
+
+    # Generate all empty positions on the board
+    def get_valid_actions(self, board):
+        return [i for i, cell in enumerate(board) if cell == ' ']
+    
+    def mask_invalid_actions(self, q_values, valid_actions):
+        masked_q_values = np.full_like(q_values, -np.inf)  # Initialize with -inf
+        masked_q_values[valid_actions] = q_values[valid_actions]  # Keep only valid actions
+        return masked_q_values
+
+    def choose_action(self, board):
+        valid_actions = self.get_valid_actions(board)
+        state = self.board_to_state(board)
+        q_values = self.Qmodel.predict(state)
+        q_values = q_values[0]
+        masked_q_values = self.mask_invalid_actions(q_values, valid_actions)
+        action = np.argmax(masked_q_values)
+        return action
+    
+    def get_action(self, game):
+        board = game.get_board()
+        action = self.choose_action(board)
+        return action
+    
+    def notify_result(self, game, outcome):
+        if self.switching:
+            self.player, self.opponent = self.opponent, self.player

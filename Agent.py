@@ -38,8 +38,8 @@ class Agent:
 class QLearningAgent(Agent):
     def __init__(self, params):
         # Initialize matrices
-        # Q = QMatrix(default_value=params['Q_initial_value'])
-        # Q = QSymmetricMatrix(default_value=params['Q_initial_value'], lazy=params['lazy_evaluation'], width=params['width'])
+        # self.Q = QMatrix(default_value=params['Q_initial_value'])
+        # self.Q = QSymmetricMatrix(default_value=params['Q_initial_value'], lazy=params['lazy_evaluation'], width=params['width'])
         self.Q = QTotallySymmetricMatrix(default_value=params['Q_initial_value'], lazy=params['lazy_evaluation'], width=params['width'])
         if params['Q_optimal']:
             self.evaluation = True
@@ -80,7 +80,6 @@ class QLearningAgent(Agent):
             history = total_history[1::2]
 
         terminal_reward = self.rewards[outcome]
-        board, action = history[-1]
         if self.debug:
             print(f"outcome = {outcome}, terminal_reward = {terminal_reward}")
             board, action = history[-1]

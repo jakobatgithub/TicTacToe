@@ -1,16 +1,21 @@
 import time
-from IPython.display import clear_output
 
 class TicTacToe:
-    def __init__(self, agent1, agent2, display=None):
+    def __init__(self, agent1, agent2, display=None, waiting_time=0.25, width=3, height=3, win_length=3):
         self.display = display
+        self.waiting_time = waiting_time
+        assert height == width
         self.agent1 = agent1
         self.agent2 = agent2
+        self.width = width
+        self.height = height
+        self.win_length = win_length
+        self.generate_win_conditions()
         self.initialize()
 
     # Initialize the Tic-Tac-Toe board
     def initialize_board(self):
-        return [' ' for _ in range(9)]
+        return [' ' for _ in range(self.width * self.height)]
     
     # Generate all empty positions on the board
     def get_valid_actions(self):
@@ -35,30 +40,68 @@ class TicTacToe:
     def switch_player(self):
         self.current_player = 'O' if self.current_player == 'X' else 'X'        
 
-    # Display the board in a 3x3 format
+    
+    # Display the board in a width x height format
     def display_board(self):
+        from IPython.display import clear_output  # Importing here for standalone function clarity
         clear_output(wait=True)
         board = self.board
-        # print("\n")
-        print(f" {board[0]}  |  {board[1]}  |  {board[2]} ")
-        print("----+-----+----")
-        print(f" {board[3]}  |  {board[4]}  |  {board[5]} ")
-        print("----+-----+----")
-        print(f" {board[6]}  |  {board[7]}  |  {board[8]} ")
+        width = self.width
+        height = self.height
+        row_divider = "-" * (6 * width - 1)  # Dynamic row divider based on board width
+        
+        for row in range(height):
+            row_content = " | ".join(
+                f" {board[col + row * width]} " for col in range(width)
+            )
+            print(row_content)
+            if row < height - 1:  # Print dividers only between rows
+                print(row_divider)
         print("\n")
 
-    # Check for a winning condition
+    def generate_win_conditions(self):
+        width = self.width
+        height = self.height
+        win_length = self.win_length
+        self.win_conditions = []
+
+        # Rows
+        for row in range(height):
+            for start_col in range(width - win_length + 1):  # Ensure win_length-length sequence fits
+                self.win_conditions.append(
+                    [start_col + row * width + offset for offset in range(win_length)]
+                )
+
+        # Columns
+        for col in range(width):
+            for start_row in range(height - win_length + 1):  # Ensure win_length-length sequence fits
+                self.win_conditions.append(
+                    [col + (start_row + offset) * width for offset in range(win_length)]
+                )
+
+        # Diagonals (top-left to bottom-right)
+        for row in range(height - win_length + 1):
+            for col in range(width - win_length + 1):  # Ensure win_length-length sequence fits
+                self.win_conditions.append(
+                    [(col + offset) + (row + offset) * width for offset in range(win_length)]
+                )
+
+        # Diagonals (top-right to bottom-left)
+        for row in range(height - win_length + 1):
+            for col in range(win_length - 1, width):  # Ensure win_length-length sequence fits
+                self.win_conditions.append(
+                    [(col - offset) + (row + offset) * width for offset in range(win_length)]
+                )
+
+
     def is_won(self, player):
-        win_conditions = [
-            [0, 1, 2], [3, 4, 5], [6, 7, 8],  # rows
-            [0, 3, 6], [1, 4, 7], [2, 5, 8],  # columns
-            [0, 4, 8], [2, 4, 6]              # diagonals
-        ]
-        for condition in win_conditions:
+        # Check if any win condition is satisfied
+        for condition in self.win_conditions:
             if all(self.board[pos] == player for pos in condition):
                 return True
 
         return False
+
 
     # Check for a draw (no empty spaces)
     def is_draw(self):
@@ -87,7 +130,7 @@ class TicTacToe:
         while not self.is_game_over():
             if self.display:
                 self.display_board()  # Optional: Display the board after each move
-                time.sleep(0.25)  # Wait a bit before the next move for readability
+                time.sleep(self.waiting_time)  # Wait a bit before the next move for readability
             if self.current_player == self.agent1.player:
                 action = self.agent1.get_action(self)
             else:
@@ -106,7 +149,7 @@ class TicTacToe:
 
         if self.display:
             self.display_board()  # Optional: Display the board after each move
-            time.sleep(0.25)  # Wait a bit before the next move for readability
+            time.sleep(self.waiting_time)  # Wait a bit before the next move for readability
             if outcome == 'X' or outcome == 'O':
                 print(f"Player {outcome} wins!")
             else:

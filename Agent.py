@@ -44,7 +44,7 @@ class LearningAgent(Agent):
         # Rewards = Matrix(default_value=0)
 
         # # Q = QSymmetricMatrix(file='SymmetricQ.pkl')
-        # Q = QSymmetricMatrix(default_value=params['Q_initial_value'])
+        # Q = QSymmetricMatrix(default_value=params['Q_initial_value'], lazy=False)
         # Visits = SymmetricMatrix(default_value=0)
         # Rewards = SymmetricMatrix(default_value=0.0)
 

@@ -49,7 +49,7 @@ class LearningAgent(Agent):
         # Rewards = SymmetricMatrix(default_value=0.0)
 
         # Q = QTotallySymmetricMatrix(file='TotallySymmetricQ.pkl')
-        Q = QTotallySymmetricMatrix(default_value=params['Q_initial_value'])
+        Q = QTotallySymmetricMatrix(default_value=params['Q_initial_value'], lazy=True)
         Visits = TotallySymmetricMatrix(default_value=0)
         Rewards = TotallySymmetricMatrix(default_value=0.0)
 

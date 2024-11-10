@@ -4,19 +4,30 @@ from itertools import product
 from collections import defaultdict
 
 
+class LazyComputeDict(dict):
+    def __init__(self, compute_func, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.compute_func = compute_func
+    
+    def __getitem__(self, key):
+        if key not in self:
+            # Compute and store the value if it doesn't exist
+            self[key] = self.compute_func(key)
+        return super().__getitem__(key)
+
+
 class SymmetricMatrix:
-    def __init__(self, file=None, default_value=None):
+    def __init__(self, file=None, default_value=None, lazy=True):
         self.default_value = 0.0
-        # Matrix storing canonical state-action pairs
         if default_value is None and file is None:
-            self.q_matrix = defaultdict(self._initialize_q_matrix)
+            self.qMatrix = defaultdict(self._initialize_q_matrix)
         elif default_value is None and file is not None:
             with open(file, 'rb') as f:
-                self.q_matrix = dill.load(f)
+                self.qMatrix = dill.load(f)
 
         elif file is None and default_value is not None:
             self.default_value = default_value
-            self.q_matrix = defaultdict(self._initialize_q_matrix)
+            self.qMatrix = defaultdict(self._initialize_q_matrix)
 
         # Precompute symmetries and their inverses
         self.transformations = [
@@ -48,26 +59,36 @@ class SymmetricMatrix:
             for j in range(i + 1, len(transformed_actions)):
                 assert transformed_actions[i] != transformed_actions[j]
 
-        # Generate all valid Tic-Tac-Toe boards
-        self.all_valid_boards = self._generate_all_valid_boards()
-        self.all_canonical_boards = set()
-        self.get_canonical_boards = {}
-        self.get_transform = {}
-        self.get_inverse_transform = {}
-        self.get_canonical_actions = {}
-        self.get_inverse_canonical_actions = {}
-        for board in self.all_valid_boards:
-            canonical_board, transform_idx = self._get_canonical_representation(board)
-            self.all_canonical_boards.add(canonical_board)
-            self.get_canonical_boards[board] = canonical_board
-            self.get_transform[board] = self.transformations[transform_idx]
-            self.get_inverse_transform[board] = self.inverse_transformations[transform_idx]
-            self.get_inverse_canonical_actions[board] = self.get_transform[board](self.original_actions).flatten().tolist()
-            self.get_canonical_actions[board] = self.get_inverse_transform[board](self.original_actions).flatten().tolist()
+        if lazy:
+            self.dict_canonical_board = LazyComputeDict(self._get_canonical_board)
+            self.dict_transform = LazyComputeDict(self._get_canonical_symmetry_transform)
+            self.dict_inverse_transform = LazyComputeDict(self._get_inverse_canonical_symmetry_transform)
+            self.dict_canonical_actions = LazyComputeDict(lambda board : self.dict_inverse_transform[board](self.original_actions).flatten().tolist())
+            self.dict_inverse_canonical_actions = LazyComputeDict(lambda board : self.dict_transform[board](self.original_actions).flatten().tolist())
+        else:
+            self._generate_all_dicts()
 
-        self.all_canonical_boards = list(self.all_canonical_boards)
+
+    def _generate_all_dicts(self):
+        all_valid_boards = self._generate_all_valid_boards()
+        all_canonical_boards = set()
+        self.dict_canonical_board = {}
+        self.dict_transform = {}
+        self.dict_inverse_transform = {}
+        self.dict_canonical_actions = {}
+        self.dict_inverse_canonical_actions = {}
+        for board in all_valid_boards:
+            canonical_board, transform_idx = self._get_canonical_representation(board)
+            all_canonical_boards.add(canonical_board)
+            self.dict_canonical_board[board] = canonical_board
+            self.dict_transform[board] = self.transformations[transform_idx]
+            self.dict_inverse_transform[board] = self.inverse_transformations[transform_idx]
+            self.dict_canonical_actions[board] = self.dict_inverse_transform[board](self.original_actions).flatten().tolist()
+            self.dict_inverse_canonical_actions[board] = self.dict_transform[board](self.original_actions).flatten().tolist()
+
+        all_canonical_boards = list(all_canonical_boards)
         self.all_canonical_actions = {}
-        for board in self.all_canonical_boards:
+        for board in all_canonical_boards:
             empty_positions = self.get_empty_positions(board)
             self.all_canonical_actions[board] = empty_positions
 
@@ -109,19 +130,36 @@ class SymmetricMatrix:
         symmetries = [transform(matrix) for transform in self.transformations]
         return [self._matrix_to_board(sym) for sym in symmetries]
 
+    def _get_canonical_board(self, board):
+        symmetries = self._generate_symmetries(board)
+        min_symmetry = min(symmetries)
+        return tuple(min_symmetry)
+
+    def _get_canonical_symmetry_transform(self, board):
+        symmetries = self._generate_symmetries(board)
+        min_symmetry = min(symmetries)
+        transform_idx = symmetries.index(min_symmetry)
+        return self.transformations[transform_idx]
+
+    def _get_inverse_canonical_symmetry_transform(self, board):
+        symmetries = self._generate_symmetries(board)
+        min_symmetry = min(symmetries)
+        transform_idx = symmetries.index(min_symmetry)
+        return self.inverse_transformations[transform_idx]
+
     def _get_canonical_representation(self, board):
         symmetries = self._generate_symmetries(board)
         min_symmetry = min(symmetries)
         return tuple(min_symmetry), symmetries.index(min_symmetry)
 
     def get_canonical_action(self, board, action):
-            return self.get_canonical_actions[tuple(board)][action]
+            return self.dict_canonical_actions[tuple(board)][action]
 
     def get_canonical_board(self, board):
-            return self.get_canonical_boards[tuple(board)]
+            return self.dict_canonical_board[tuple(board)]
 
     def get_inverse_canonical_action(self, board, canonical_action):
-        return self.get_inverse_canonical_actions[tuple(board)][canonical_action]
+        return self.dict_inverse_canonical_actions[tuple(board)][canonical_action]
     
     def canonicalize(self, board, action):
         canonical_board = self.get_canonical_board(board)
@@ -137,19 +175,19 @@ class SymmetricMatrix:
         Retrieve the value for a state-action pair.
         """
         if board is None and action is None:
-            return self.q_matrix
+            return self.qMatrix
         if action is None and board is not None:
-            return self.q_matrix[self.get_canonical_board(board)]
+            return self.qMatrix[self.get_canonical_board(board)]
         if action is not None and board is not None:
             canonical_board, canonical_action = self.canonicalize(board, action)
-            return self.q_matrix[canonical_board][canonical_action]
+            return self.qMatrix[canonical_board][canonical_action]
 
     def set(self, board, action, value):
         """
         Set the value for a state-action pair.
         """
         canonical_board, canonical_action = self.canonicalize(board, action)
-        self.q_matrix[canonical_board][canonical_action] = value
+        self.qMatrix[canonical_board][canonical_action] = value
 
 
 class QSymmetricMatrix(SymmetricMatrix):
@@ -181,9 +219,8 @@ class QSymmetricMatrix(SymmetricMatrix):
     
 
 class TotallySymmetricMatrix:
-    def __init__(self, file=None, default_value=None):
+    def __init__(self, file=None, default_value=None, lazy=True):
         self.default_value = 0.0
-        # Matrix storing canonical state-action pairs
         if default_value is None and file is None:
             self.qMatrix = defaultdict(lambda: self.default_value)
         elif default_value is None and file is not None:
@@ -224,22 +261,32 @@ class TotallySymmetricMatrix:
             for j in range(i + 1, len(transformed_actions)):
                 assert transformed_actions[i] != transformed_actions[j]
 
-        # Generate all valid Tic-Tac-Toe boards
+        if lazy:
+            self.dict_canonical_board = LazyComputeDict(self._get_canonical_board)
+            self.dict_transform = LazyComputeDict(self._get_canonical_symmetry_transform)
+            self.dict_inverse_transform = LazyComputeDict(self._get_inverse_canonical_symmetry_transform)
+            self.dict_canonical_actions = LazyComputeDict(lambda board : self.dict_inverse_transform[board](self.original_actions).flatten().tolist())
+            self.dict_inverse_canonical_actions = LazyComputeDict(lambda board : self.dict_transform[board](self.original_actions).flatten().tolist())
+            self.canonical_board_to_next_canonical_board = self._create_level2_lazy_dict(self._get_next_canonical_board)
+        else:
+            self._generate_all_dicts()
+
+    def _generate_all_dicts(self):
         self.all_valid_boards = self._generate_all_valid_boards()
         self.all_canonical_boards = set()
-        self.get_canonical_boards = {}
-        self.get_transform = {}
-        self.get_inverse_transform = {}
-        self.get_canonical_actions = {}
-        self.get_inverse_canonical_actions = {}
+        self.dict_canonical_board = {}
+        self.dict_transform = {}
+        self.dict_inverse_transform = {}
+        self.dict_canonical_actions = {}
+        self.dict_inverse_canonical_actions = {}
         for board in self.all_valid_boards:
             canonical_board, transform_idx = self._get_canonical_representation(board)
             self.all_canonical_boards.add(canonical_board)
-            self.get_canonical_boards[board] = canonical_board
-            self.get_transform[board] = self.transformations[transform_idx]
-            self.get_inverse_transform[board] = self.inverse_transformations[transform_idx]
-            self.get_inverse_canonical_actions[board] = self.get_transform[board](self.original_actions).flatten().tolist()
-            self.get_canonical_actions[board] = self.get_inverse_transform[board](self.original_actions).flatten().tolist()
+            self.dict_canonical_board[board] = canonical_board
+            self.dict_transform[board] = self.transformations[transform_idx]
+            self.dict_inverse_transform[board] = self.inverse_transformations[transform_idx]
+            self.dict_canonical_actions[board] = self.dict_inverse_transform[board](self.original_actions).flatten().tolist()
+            self.dict_inverse_canonical_actions[board] = self.dict_transform[board](self.original_actions).flatten().tolist()
 
         self.all_canonical_boards = list(self.all_canonical_boards)
         self.all_canonical_actions = {}
@@ -259,6 +306,33 @@ class TotallySymmetricMatrix:
 
             self.canonical_board_to_next_canonical_board[canonical_board] = canonical_actions_to_next_canonical_board
 
+    def _create_level2_lazy_dict(self, compute_func):
+        def level1_compute(outer_key):
+            return LazyComputeDict(lambda inner_key: compute_func(outer_key, inner_key))
+        
+        return LazyComputeDict(level1_compute)
+    
+    def _get_next_canonical_board(self, canonical_board, canonical_action):
+        next_board = self._get_next_board(canonical_board, canonical_action)
+        next_canonical_board = self.get_canonical_board(next_board)
+        return next_canonical_board
+    
+    def _get_canonical_board(self, board):
+        symmetries = self._generate_symmetries(board)
+        min_symmetry = min(symmetries)
+        return tuple(min_symmetry)
+
+    def _get_canonical_symmetry_transform(self, board):
+        symmetries = self._generate_symmetries(board)
+        min_symmetry = min(symmetries)
+        transform_idx = symmetries.index(min_symmetry)
+        return self.transformations[transform_idx]
+
+    def _get_inverse_canonical_symmetry_transform(self, board):
+        symmetries = self._generate_symmetries(board)
+        min_symmetry = min(symmetries)
+        transform_idx = symmetries.index(min_symmetry)
+        return self.inverse_transformations[transform_idx]
 
     def _initialize_q_matrix(self):
         state_dict = defaultdict(lambda: self.default_value)
@@ -316,13 +390,13 @@ class TotallySymmetricMatrix:
         return tuple(min_symmetry), symmetries.index(min_symmetry)
 
     def get_canonical_action(self, board, action):
-            return self.get_canonical_actions[tuple(board)][action]
+            return self.dict_canonical_actions[tuple(board)][action]
 
     def get_canonical_board(self, board):
-            return self.get_canonical_boards[tuple(board)]
+            return self.dict_canonical_board[tuple(board)]
 
     def get_inverse_canonical_action(self, board, canonical_action):
-        return self.get_inverse_canonical_actions[tuple(board)][canonical_action]
+        return self.dict_inverse_canonical_actions[tuple(board)][canonical_action]
     
     def canonicalize(self, board, action):
         canonical_board = self.get_canonical_board(board)

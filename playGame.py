@@ -196,4 +196,4 @@ def play_game(matrices, params, flags):
 
     params['outcomes'][outcome] += 1
     if training:
-        params['history'] = history
+        params['histories'] = history

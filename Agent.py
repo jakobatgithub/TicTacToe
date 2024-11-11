@@ -59,7 +59,7 @@ class QLearningAgent(Agent):
         self.alpha = params['alpha_start']
 
         self.nr_of_episodes = params['nr_of_episodes']
-        self.episode = 0
+        self.episode_count = 0
 
     def is_optimal(self, board, action):
         return action in self.Q_optimal.best_actions(board)
@@ -85,12 +85,12 @@ class QLearningAgent(Agent):
             board, action = history[-1]
             print(f"board = {board}, action = {action}")
 
-        diff = self.q_update_backward(history, terminal_reward)
+        loss = self.q_update_backward(history, terminal_reward)
         if self.evaluation:
-            self.params['diffs'].append(diff)
+            self.params['loss'].append(loss)
 
-        self.episode += 1
-        self.update_rates(self.episode)
+        self.episode_count += 1
+        self.update_rates(self.episode_count)
         self.params['history'] = history
         if self.switching:
             self.player, self.opponent = self.opponent, self.player
@@ -148,18 +148,18 @@ class QLearningAgent(Agent):
 
     # Update Q-values based on the game's outcome, with correct max_future_q
     def q_update_backward(self, history, terminal_reward):
-        diff = 0
+        loss = 0
         # print(f"terminal_reward = {terminal_reward}")
         for i in reversed(range(len(history))):
             board, action = history[i]
             if i == len(history) - 1:
                 # Update the last state-action pair with the terminal reward
-                diff += self.q_update(board, action, None, terminal_reward)
+                loss += self.q_update(board, action, None, terminal_reward)
             else:
                 next_board, _ = history[i + 1]
-                diff += self.q_update(board, action, next_board, 0.0)
+                loss += self.q_update(board, action, next_board, 0.0)
             
-        return diff/(len(history) * self.alpha)
+        return loss/(len(history) * self.alpha)
 
 class QPlayingAgent(Agent):
     def __init__(self, Q, player='X', switching=False):

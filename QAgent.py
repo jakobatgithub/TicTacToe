@@ -1,5 +1,6 @@
-from Agent import Agent
+import random
 
+from Agent import Agent
 from Matrix import Matrix, QMatrix
 from SymmetricMatrix import SymmetricMatrix, QSymmetricMatrix
 from SymmetricMatrix import TotallySymmetricMatrix, QTotallySymmetricMatrix
@@ -7,40 +8,48 @@ from SymmetricMatrix import TotallySymmetricMatrix, QTotallySymmetricMatrix
 
 class QLearningAgent(Agent):
     def __init__(self, params):
+        super().__init__(player=params['player'], switching=params['switching'])
+
         # Initialize matrices
         # self.Q = QMatrix(default_value=params['Q_initial_value'])
         # self.Q = QSymmetricMatrix(default_value=params['Q_initial_value'], lazy=params['lazy_evaluation'], width=params['width'])
         self.Q = QTotallySymmetricMatrix(default_value=params['Q_initial_value'], lazy=params['lazy_evaluation'], width=params['width'])
-        if params['Q_optimal']:
-            self.evaluation = True
-            self.Q_optimal = QTotallySymmetricMatrix(file=params['Q_optimal'])
-        else:
-            self.evaluation = False
 
         self.params = params
-        super().__init__(player=params['player'], switching=params['switching'])
-        self.set_rewards()
         self.debug = params['debug']
-        if self.debug:
-            print(f"Player: {self.player}, opponent: {self.opponent}")
-    
+        self.evaluation = params['evaluation']
         self.gamma = params['gamma']
         self.epsilon = params['epsilon_start']
         self.alpha = params['alpha_start']
-
         self.nr_of_episodes = params['nr_of_episodes']
+
         self.episode_count = 0
+        self.games_moves_count = 0
+        self.train_step_count = 0
+        self.q_update_count = 0
+        self.target_update_count = 0
+
+        self.set_rewards()
+
+        if self.debug:
+            print(f"Player: {self.player}, opponent: {self.opponent}")
+
+        self.evaluation_data = {'loss': [], 'avg_action_value': [], 'histories' : [], 'rewards': []}
+        if self.evaluation and params['Q_optimal']:
+            self.Q_optimal = QTotallySymmetricMatrix(file=params['Q_optimal'])
+
 
     def is_optimal(self, board, action):
         return action in self.Q_optimal.best_actions(board)
-
-    def initialize(self):
-        self.set_rewards()
 
     def get_action(self, game):
         board = game.get_board()
         action = self.choose_action(board, epsilon=self.epsilon)
         return action
+
+    def update_rates(self, episode):
+        self.epsilon = max(self.params['epsilon_min'], self.params['epsilon_start'] / (1 + episode/self.nr_of_episodes))
+        self.alpha = max(self.params['alpha_min'], self.params['alpha_start'] / (1 + episode/self.nr_of_episodes))
 
     def notify_result(self, game, outcome):
         total_history = game.get_history()
@@ -57,11 +66,11 @@ class QLearningAgent(Agent):
 
         loss = self.q_update_backward(history, terminal_reward)
         if self.evaluation:
-            self.params['loss'].append(loss)
+            self.evaluation_data['loss'].append(loss)
+            self.evaluation_data['histories'] = history
 
         self.episode_count += 1
         self.update_rates(self.episode_count)
-        self.params['histories'] = history
         if self.switching:
             self.player, self.opponent = self.opponent, self.player
             self.set_rewards()
@@ -70,6 +79,9 @@ class QLearningAgent(Agent):
 
     def set_rewards(self):
         self.rewards = self.params['rewards'][self.player]
+
+    def get_valid_actions(self, board):
+        return [i for i, cell in enumerate(board) if cell == ' ']
 
     # Choose an action based on Q-values
     def choose_action(self, board, epsilon):
@@ -87,15 +99,7 @@ class QLearningAgent(Agent):
                     self.params['optimal_actions'].append(0)
 
             return action
-
-    # Generate all empty positions on the board
-    def get_valid_actions(self, board):
-        return [i for i, cell in enumerate(board) if cell == ' ']
     
-    def update_rates(self, episode):
-        self.epsilon = max(self.params['epsilon_min'], self.params['epsilon_start'] / (1 + episode/self.nr_of_episodes))
-        self.alpha = max(self.params['alpha_min'], self.params['alpha_start'] / (1 + episode/self.nr_of_episodes))
-
     def q_update(self, board, action, next_board, reward):
         old_value = self.Q.get(board, action)
         if next_board:

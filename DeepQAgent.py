@@ -6,7 +6,8 @@ from collections import deque
 import tensorflow as tf
 from tensorflow.keras import layers, models
 
-from Agent import QLearningAgent, Agent
+from Agent import Agent
+from QAgent import QLearningAgent
 
 class DeepQLearningAgent(QLearningAgent):
     def __init__(self, params):
@@ -51,8 +52,7 @@ class DeepQLearningAgent(QLearningAgent):
         self.board_to_state_translation = {1: 'X', -1: 'O', 0: ' '}
 
         self.evaluation = True
-        self.evaluation_data = {'loss': [], 'avg_action_value': [], 'history' : []}
-
+        self.evaluation_data = {'loss': [], 'avg_action_value': [], 'histories' : [], 'rewards': []}
 
     def board_to_state(self, board):
         return np.array([self.state_to_board_translation[cell] for cell in board]).reshape(1, -1)
@@ -144,14 +144,14 @@ class DeepQLearningAgent(QLearningAgent):
         new_board[action] = self.player
         return tuple(new_board)
 
-    def store_history(self, history, outcome):
+    def store_history(self, history, terminal_reward):
         for i in range(len(history)):
             board, action = history[i]
             state = self.board_to_state(board)
             next_board = self.get_next_board(board, action)
             next_state = self.board_to_state(next_board)
             if i == len(history) - 1:
-                reward = self.rewards[outcome]
+                reward = terminal_reward
                 done = True
             else:
                 reward = 0.0
@@ -187,19 +187,20 @@ class DeepQLearningAgent(QLearningAgent):
         else:
             history = total_history[1::2]
 
-        self.store_history(history, outcome)
+        terminal_reward = self.rewards[outcome]
+        self.store_history(history, terminal_reward)
+        self.update_rates(self.episode_count)
+        self.episode_count += 1
 
         if self.debug:
             board, action = history[-1]
-            terminal_reward = self.rewards[outcome]
             print(f"outcome = {outcome}, terminal_reward = {terminal_reward}")
             board, action = history[-1]
             print(f"board = {board}, action = {action}")
 
-        self.episode_count += 1
-        self.update_rates(self.episode_count)
         if self.evaluation:
-            self.evaluation_data['history'].append(history)
+            self.evaluation_data['histories'].append(history)
+            self.evaluation_data['rewards'].append(terminal_reward)             
 
         if self.switching:
             self.player, self.opponent = self.opponent, self.player

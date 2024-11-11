@@ -22,8 +22,12 @@ class DeepQLearningAgent(QLearningAgent):
         self.target_model.set_weights(self.Qmodel.get_weights())
 
         self.target_update_frequency = params['target_update_frequency']
-        self.target_update_counter = 0
-        self.train_step_counter = 0
+
+        self.episode_count = 0
+        self.games_moves_count = 0
+        self.train_step_count = 0
+        self.q_update_count = 0
+        self.target_update_count = 0
 
         self.evaluation = True
         self.params = params
@@ -41,7 +45,6 @@ class DeepQLearningAgent(QLearningAgent):
         self.alpha = params['alpha_start']
 
         self.nr_of_episodes = params['nr_of_episodes']
-        self.episode = 0
 
         self.replay_buffer = deque(maxlen=10000)
         self.batch_size = params['batch_size']
@@ -87,8 +90,8 @@ class DeepQLearningAgent(QLearningAgent):
         self.replay_buffer.append((state, action, reward, next_state, done))
 
     def train_step(self, batch_size, gamma=0.99):
-        if len(self.replay_buffer) < 1.5 * batch_size:
-            return None
+        if len(self.replay_buffer) < batch_size:
+            return (None, None)
         
         batch = self.sample_experiences(batch_size)
         states, actions, rewards, next_states, dones = zip(*batch)
@@ -114,21 +117,25 @@ class DeepQLearningAgent(QLearningAgent):
             print(f"q_values = {q_values}")
             print(f"next_q_values = {next_q_values}")
         
+        avg_action_value = 0
         for i, action in enumerate(actions):
             # Mask invalid actions in next_q_values
             masked_next_q_values = [next_q_values[i][a] if a in all_valid_actions[i] else -float('inf') for a in range(len(next_q_values[i]))]
-
+            q_max_predicted = np.max(masked_next_q_values)
+            avg_action_value += q_max_predicted
             if not dones[i]:
-                target = rewards[i] + gamma * np.max(masked_next_q_values)
+                target = rewards[i] + gamma * q_max_predicted
             else:
                 target = rewards[i]
         
             q_values[i][action] = target
+            self.q_update_count += 1
 
         history = self.Qmodel.fit(states, q_values, epochs=1, verbose=self.verbose_level)
-        self.train_step_counter += 1
+        self.train_step_count += 1
         loss = history.history['loss'][0]
-        return loss
+        avg_action_value /= len(states)
+        return (loss, avg_action_value)
 
     def get_next_board(self, board, action):
         new_board = list(board)
@@ -153,10 +160,21 @@ class DeepQLearningAgent(QLearningAgent):
     def get_action(self, game):
         board = game.get_board()
         action = self.choose_action(board, epsilon=self.epsilon)
-        diff = self.train_step(self.batch_size, self.gamma)
+        (loss, avg_action_value) = self.train_step(self.batch_size, self.gamma)
+        self.games_moves_count += 1
+
+        # Update target network
+        if self.train_step_count % self.target_update_frequency == 0 and len(self.replay_buffer) >= self.batch_size:
+            self.target_model.set_weights(self.Qmodel.get_weights())
+            self.target_update_count += 1
+            print(f"target_update_count = {self.target_update_count}, train_step_count = {self.train_step_count}, "
+                   "episode_count = {self.episode_count}, games_moves_count = {self.games_moves_count}, q_update_count = {self.q_update_count}")
+
         if self.evaluation:
-            if diff:
-                self.params['diffs'].append(diff)
+            if loss:
+                self.params['loss'].append(loss)
+            if avg_action_value:
+                self.params['avg_action_value'].append(avg_action_value)
 
         return action
 
@@ -176,19 +194,9 @@ class DeepQLearningAgent(QLearningAgent):
             board, action = history[-1]
             print(f"board = {board}, action = {action}")
 
-        # diff = self.train_step(self.batch_size, self.gamma)
-        # if self.evaluation:
-        #     if diff:
-        #         self.params['diffs'].append(diff)
-
-        self.episode += 1
-        self.update_rates(self.episode)
+        self.episode_count += 1
+        self.update_rates(self.episode_count)
         self.params['history'] = history
-
-        # Update target network every N episodes
-        if self.episode % self.target_update_frequency == 0:
-            self.target_model.set_weights(self.Qmodel.get_weights())
-            self.target_update_counter += 1
 
         if self.switching:
             self.player, self.opponent = self.opponent, self.player

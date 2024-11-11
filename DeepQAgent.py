@@ -3,6 +3,7 @@ import random
 import numpy as np
 from collections import deque
 
+import tensorflow as tf
 from tensorflow.keras import layers, models
 
 from Agent import QLearningAgent, Agent
@@ -17,6 +18,12 @@ class DeepQLearningAgent(QLearningAgent):
         ])
         self.Qmodel.compile(optimizer='adam', loss='mse')
         self.Qmodel.summary()
+        self.target_model = tf.keras.models.clone_model(self.Qmodel)
+        self.target_model.set_weights(self.Qmodel.get_weights())
+
+        self.target_update_frequency = params['target_update_frequency']
+        self.target_update_counter = 0
+        self.train_step_counter = 0
 
         self.evaluation = True
         self.params = params
@@ -25,6 +32,9 @@ class DeepQLearningAgent(QLearningAgent):
         self.debug = params['debug']
         if self.debug:
             print(f"Player: {self.player}, opponent: {self.opponent}")
+            self.verbose_level = 2 # verbose level for tensorflow
+        else:
+            self.verbose_level = 0
     
         self.gamma = params['gamma']
         self.epsilon = params['epsilon_start']
@@ -38,9 +48,6 @@ class DeepQLearningAgent(QLearningAgent):
         self.state_to_board_translation = {'X': 1, 'O': -1, ' ': 0}
         self.board_to_state_translation = {1: 'X', -1: 'O', 0: ' '}
 
-
-    def sample_experiences(self, batch_size):
-        return random.sample(self.replay_buffer, batch_size)
 
     def board_to_state(self, board):
         return np.array([self.state_to_board_translation[cell] for cell in board]).reshape(1, -1)
@@ -64,7 +71,7 @@ class DeepQLearningAgent(QLearningAgent):
             valid_actions = self.get_valid_actions(board)
             state = self.board_to_state(board)
 
-            q_values = self.Qmodel.predict(state)
+            q_values = self.Qmodel.predict(state, verbose=self.verbose_level)
             q_values = q_values[0]
             if self.debug:
                 print(f"valid_actions = {valid_actions}, state = {state}, q_values = {q_values}")
@@ -73,11 +80,14 @@ class DeepQLearningAgent(QLearningAgent):
             action = np.argmax(masked_q_values)
             return action
 
+    def sample_experiences(self, batch_size):
+        return random.sample(self.replay_buffer, batch_size)
+
     def store_experience(self, state, action, reward, next_state, done):
         self.replay_buffer.append((state, action, reward, next_state, done))
 
     def train_step(self, batch_size, gamma=0.99):
-        if len(self.replay_buffer) < batch_size:
+        if len(self.replay_buffer) < 1.5 * batch_size:
             return None
         
         batch = self.sample_experiences(batch_size)
@@ -96,8 +106,9 @@ class DeepQLearningAgent(QLearningAgent):
             print(f"dones = {dones}")
 
         all_valid_actions = [self.get_valid_actions(self.state_to_board(state)) for state in states]
-        q_values = self.Qmodel.predict(states)
-        next_q_values = self.Qmodel.predict(next_states)
+        q_values = self.Qmodel.predict(states, verbose=self.verbose_level)
+        # next_q_values = self.Qmodel.predict(next_states, verbose=self.verbose_level)
+        next_q_values = self.target_model.predict(next_states, verbose=self.verbose_level)
 
         if self.debug:
             print(f"q_values = {q_values}")
@@ -114,11 +125,8 @@ class DeepQLearningAgent(QLearningAgent):
         
             q_values[i][action] = target
 
-        if self.debug:
-            history = self.Qmodel.fit(states, q_values, epochs=1, verbose=2)
-        else:
-            history = self.Qmodel.fit(states, q_values, epochs=1, verbose='none')
-
+        history = self.Qmodel.fit(states, q_values, epochs=1, verbose=self.verbose_level)
+        self.train_step_counter += 1
         loss = history.history['loss'][0]
         return loss
 
@@ -127,13 +135,7 @@ class DeepQLearningAgent(QLearningAgent):
         new_board[action] = self.player
         return tuple(new_board)
 
-    def notify_result(self, game, outcome):
-        total_history = game.get_history()
-        if self.player == 'X':
-            history = total_history[0::2]
-        else:
-            history = total_history[1::2]
-
+    def store_history(self, history, outcome):
         for i in range(len(history)):
             board, action = history[i]
             state = self.board_to_state(board)
@@ -148,6 +150,25 @@ class DeepQLearningAgent(QLearningAgent):
 
             self.store_experience(state, action, reward, next_state, done)
 
+    def get_action(self, game):
+        board = game.get_board()
+        action = self.choose_action(board, epsilon=self.epsilon)
+        diff = self.train_step(self.batch_size, self.gamma)
+        if self.evaluation:
+            if diff:
+                self.params['diffs'].append(diff)
+
+        return action
+
+    def notify_result(self, game, outcome):
+        total_history = game.get_history()
+        if self.player == 'X':
+            history = total_history[0::2]
+        else:
+            history = total_history[1::2]
+
+        self.store_history(history, outcome)
+
         if self.debug:
             board, action = history[-1]
             terminal_reward = self.rewards[outcome]
@@ -155,14 +176,20 @@ class DeepQLearningAgent(QLearningAgent):
             board, action = history[-1]
             print(f"board = {board}, action = {action}")
 
-        diff = self.train_step(self.batch_size, self.gamma)
-        if self.evaluation:
-            if diff:
-                self.params['diffs'].append(diff)
+        # diff = self.train_step(self.batch_size, self.gamma)
+        # if self.evaluation:
+        #     if diff:
+        #         self.params['diffs'].append(diff)
 
         self.episode += 1
         self.update_rates(self.episode)
         self.params['history'] = history
+
+        # Update target network every N episodes
+        if self.episode % self.target_update_frequency == 0:
+            self.target_model.set_weights(self.Qmodel.get_weights())
+            self.target_update_counter += 1
+
         if self.switching:
             self.player, self.opponent = self.opponent, self.player
             self.set_rewards()
@@ -174,9 +201,12 @@ class DeepQPlayingAgent(Agent):
     def __init__(self, Qmodel, player='X', switching=False):
         super().__init__(player=player, switching=switching)
         self.Qmodel = Qmodel
+        self.verbose_level = 0 # verbose level for tensorflow
 
         self.state_to_board_translation = {'X': 1, 'O': -1, ' ': 0}
-        self.board_to_state_translation = {1: 'X', -1: 'O', 0: ' '}
+        board_to_state_translation = {}
+        for key, value in self.state_to_board_translation.items():
+            board_to_state_translation[value] = key
 
     def board_to_state(self, board):
         return np.array([self.state_to_board_translation[cell] for cell in board]).reshape(1, -1)
@@ -198,7 +228,7 @@ class DeepQPlayingAgent(Agent):
     def choose_action(self, board):
         valid_actions = self.get_valid_actions(board)
         state = self.board_to_state(board)
-        q_values = self.Qmodel.predict(state)
+        q_values = self.Qmodel.predict(state, verbose=self.verbose_level)
         q_values = q_values[0]
         masked_q_values = self.mask_invalid_actions(q_values, valid_actions)
         action = np.argmax(masked_q_values)

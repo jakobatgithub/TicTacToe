@@ -29,7 +29,6 @@ class DeepQLearningAgent(QLearningAgent):
         self.q_update_count = 0
         self.target_update_count = 0
 
-        self.evaluation = True
         self.params = params
         Agent.__init__(self, player=params['player'], switching=params['switching'])
         self.set_rewards()
@@ -50,6 +49,9 @@ class DeepQLearningAgent(QLearningAgent):
         self.batch_size = params['batch_size']
         self.state_to_board_translation = {'X': 1, 'O': -1, ' ': 0}
         self.board_to_state_translation = {1: 'X', -1: 'O', 0: ' '}
+
+        self.evaluation = True
+        self.evaluation_data = {'loss': [], 'avg_action_value': [], 'history' : []}
 
 
     def board_to_state(self, board):
@@ -168,13 +170,13 @@ class DeepQLearningAgent(QLearningAgent):
             self.target_model.set_weights(self.Qmodel.get_weights())
             self.target_update_count += 1
             print(f"target_update_count = {self.target_update_count}, train_step_count = {self.train_step_count}, "
-                   "episode_count = {self.episode_count}, games_moves_count = {self.games_moves_count}, q_update_count = {self.q_update_count}")
+                  f"episode_count = {self.episode_count}, games_moves_count = {self.games_moves_count}, q_update_count = {self.q_update_count}")
 
         if self.evaluation:
             if loss:
-                self.params['loss'].append(loss)
+                self.evaluation_data['loss'].append(loss)
             if avg_action_value:
-                self.params['avg_action_value'].append(avg_action_value)
+                self.evaluation_data['avg_action_value'].append(avg_action_value)
 
         return action
 
@@ -196,7 +198,8 @@ class DeepQLearningAgent(QLearningAgent):
 
         self.episode_count += 1
         self.update_rates(self.episode_count)
-        self.params['history'] = history
+        if self.evaluation:
+            self.evaluation_data['history'].append(history)
 
         if self.switching:
             self.player, self.opponent = self.opponent, self.player

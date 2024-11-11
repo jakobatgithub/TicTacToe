@@ -7,10 +7,10 @@ import tensorflow as tf
 from tensorflow.keras import layers, models
 
 from Agent import Agent
-from QAgent import QLearningAgent
 
-class DeepQLearningAgent(QLearningAgent):
+class DeepQLearningAgent(Agent):
     def __init__(self, params):
+        super().__init__(player=params['player'], switching=params['switching'])
         self.Qmodel = models.Sequential([
             layers.Input(shape=(9,)),
             layers.Dense(16, activation='relu'),
@@ -22,7 +22,20 @@ class DeepQLearningAgent(QLearningAgent):
         self.target_model = tf.keras.models.clone_model(self.Qmodel)
         self.target_model.set_weights(self.Qmodel.get_weights())
 
+        self.replay_buffer = deque(maxlen=10000)
+        self.batch_size = params['batch_size']
+        self.state_to_board_translation = {'X': 1, 'O': -1, ' ': 0}
+        self.board_to_state_translation = {1: 'X', -1: 'O', 0: ' '}
+
         self.target_update_frequency = params['target_update_frequency']
+
+        self.params = params
+        self.debug = params['debug']    
+        self.evaluation = params['evaluation']
+        self.gamma = params['gamma']
+        self.epsilon = params['epsilon_start']
+        self.alpha = params['alpha_start']
+        self.nr_of_episodes = params['nr_of_episodes']
 
         self.episode_count = 0
         self.games_moves_count = 0
@@ -30,29 +43,23 @@ class DeepQLearningAgent(QLearningAgent):
         self.q_update_count = 0
         self.target_update_count = 0
 
-        self.params = params
-        Agent.__init__(self, player=params['player'], switching=params['switching'])
         self.set_rewards()
-        self.debug = params['debug']
+
         if self.debug:
             print(f"Player: {self.player}, opponent: {self.opponent}")
             self.verbose_level = 2 # verbose level for tensorflow
         else:
             self.verbose_level = 0
-    
-        self.gamma = params['gamma']
-        self.epsilon = params['epsilon_start']
-        self.alpha = params['alpha_start']
 
-        self.nr_of_episodes = params['nr_of_episodes']
-
-        self.replay_buffer = deque(maxlen=10000)
-        self.batch_size = params['batch_size']
-        self.state_to_board_translation = {'X': 1, 'O': -1, ' ': 0}
-        self.board_to_state_translation = {1: 'X', -1: 'O', 0: ' '}
-
-        self.evaluation = True
         self.evaluation_data = {'loss': [], 'avg_action_value': [], 'histories' : [], 'rewards': []}
+
+
+    def set_rewards(self):
+        self.rewards = self.params['rewards'][self.player]
+
+    # Generate all empty positions on the board
+    def get_valid_actions(self, board):
+        return [i for i, cell in enumerate(board) if cell == ' ']
 
     def board_to_state(self, board):
         return np.array([self.state_to_board_translation[cell] for cell in board]).reshape(1, -1)
@@ -61,6 +68,10 @@ class DeepQLearningAgent(QLearningAgent):
         flat_state = state.flatten()
         board = [self.board_to_state_translation[cell] for cell in flat_state]
         return board
+    
+    def update_rates(self, episode):
+        self.epsilon = max(self.params['epsilon_min'], self.params['epsilon_start'] / (1 + episode/self.nr_of_episodes))
+        self.alpha = max(self.params['alpha_min'], self.params['alpha_start'] / (1 + episode/self.nr_of_episodes))
     
     def mask_invalid_actions(self, q_values, valid_actions):
         masked_q_values = np.full_like(q_values, -np.inf)  # Initialize with -inf

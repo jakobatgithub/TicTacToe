@@ -3,12 +3,9 @@ import random
 import numpy as np
 from collections import deque
 
-import tensorflow as tf
 from tensorflow.keras import layers, models
 
 from Agent import QLearningAgent, Agent
-from Matrix import QMatrix
-
 
 class DeepQLearningAgent(QLearningAgent):
     def __init__(self, params):

@@ -12,8 +12,8 @@ class QLearningAgent(Agent):
 
         # Initialize matrices
         # self.Q = QMatrix(default_value=params['Q_initial_value'])
-        # self.Q = QSymmetricMatrix(default_value=params['Q_initial_value'], lazy=params['lazy_evaluation'], width=params['width'])
-        self.Q = QTotallySymmetricMatrix(default_value=params['Q_initial_value'], lazy=params['lazy_evaluation'], width=params['width'])
+        self.Q = QSymmetricMatrix(default_value=params['Q_initial_value'], lazy=params['lazy_evaluation'], width=params['width'])
+        # self.Q = QTotallySymmetricMatrix(default_value=params['Q_initial_value'], lazy=params['lazy_evaluation'], width=params['width'])
 
         self.params = params
         self.debug = params['debug']
@@ -27,7 +27,6 @@ class QLearningAgent(Agent):
         self.games_moves_count = 0
         self.train_step_count = 0
         self.q_update_count = 0
-        self.target_update_count = 0
 
         self.set_rewards()
 
@@ -35,9 +34,6 @@ class QLearningAgent(Agent):
             print(f"Player: {self.player}, opponent: {self.opponent}")
 
         self.evaluation_data = {'loss': [], 'avg_action_value': [], 'histories' : [], 'rewards': []}
-        if self.evaluation and params['Q_optimal']:
-            self.Q_optimal = QTotallySymmetricMatrix(file=params['Q_optimal'])
-
 
     def is_optimal(self, board, action):
         return action in self.Q_optimal.best_actions(board)
@@ -45,6 +41,7 @@ class QLearningAgent(Agent):
     def get_action(self, game):
         board = game.get_board()
         action = self.choose_action(board, epsilon=self.epsilon)
+        self.games_moves_count += 1
         return action
 
     def update_rates(self, episode):
@@ -64,10 +61,12 @@ class QLearningAgent(Agent):
             board, action = history[-1]
             print(f"board = {board}, action = {action}")
 
-        loss = self.q_update_backward(history, terminal_reward)
+        (loss, avg_action_value) = self.q_update_backward(history, terminal_reward)
         if self.evaluation:
             self.evaluation_data['loss'].append(loss)
+            self.evaluation_data['avg_action_value'].append(avg_action_value)
             self.evaluation_data['histories'] = history
+            self.evaluation_data['rewards'].append(terminal_reward)
 
         self.episode_count += 1
         self.update_rates(self.episode_count)
@@ -92,12 +91,6 @@ class QLearningAgent(Agent):
         else:
             # Exploitation: Choose the best known move
             action = int(self.Q.best_action(board))            
-            if self.evaluation:
-                if self.is_optimal(board, action):
-                    self.params['optimal_actions'].append(1)
-                else:
-                    self.params['optimal_actions'].append(0)
-
             return action
     
     def q_update(self, board, action, next_board, reward):
@@ -118,22 +111,29 @@ class QLearningAgent(Agent):
         if self.debug:
             print(f"{old_value}, {new_value}, {new_value - old_value}")
     
-        return abs(old_value - new_value)
+        self.q_update_count += 1
+        return (abs(old_value - new_value), future_q)
 
     # Update Q-values based on the game's outcome, with correct max_future_q
     def q_update_backward(self, history, terminal_reward):
-        loss = 0
+        avg_loss = 0
+        avg_action_value = 0
         # print(f"terminal_reward = {terminal_reward}")
         for i in reversed(range(len(history))):
             board, action = history[i]
             if i == len(history) - 1:
                 # Update the last state-action pair with the terminal reward
-                loss += self.q_update(board, action, None, terminal_reward)
+                loss, action_value = self.q_update(board, action, None, terminal_reward)
+                avg_loss += loss
+                avg_action_value += action_value
             else:
                 next_board, _ = history[i + 1]
-                loss += self.q_update(board, action, next_board, 0.0)
+                loss, action_value =  self.q_update(board, action, next_board, 0.0)
+                avg_loss += loss
+                avg_action_value += action_value
             
-        return loss/(len(history) * self.alpha)
+        self.train_step_count += 1
+        return (avg_loss/(len(history) * self.alpha), avg_action_value/(len(history)))
 
 class QPlayingAgent(Agent):
     def __init__(self, Q, player='X', switching=False):

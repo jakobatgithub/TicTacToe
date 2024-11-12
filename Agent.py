@@ -1,6 +1,7 @@
 import random
+from abc import ABC, abstractmethod
 
-class Agent:
+class Agent(ABC):
     def __init__(self, player='X', switching=False):
         """
         Base class for all agents.
@@ -14,6 +15,7 @@ class Agent:
     def get_opponent(self, player):
         return self.players[1] if player == self.players[0] else self.players[0]
 
+    @abstractmethod    
     def get_action(self, game):
         """
         Decides the next action based on the current game state.

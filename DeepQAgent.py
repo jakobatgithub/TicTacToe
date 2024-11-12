@@ -211,7 +211,7 @@ class DeepQLearningAgent(Agent):
 
         if self.evaluation:
             self.evaluation_data['histories'].append(history)
-            self.evaluation_data['rewards'].append(terminal_reward)             
+            self.evaluation_data['rewards'].append(terminal_reward)
 
         if self.switching:
             self.player, self.opponent = self.opponent, self.player

@@ -36,6 +36,7 @@ class DeepQLearningAgent(Agent):
         self.epsilon = params['epsilon_start']
         self.alpha = params['alpha_start']
         self.nr_of_episodes = params['nr_of_episodes']
+        self.double_q_learning = params['double_q_learning']
 
         self.episode_count = 0
         self.games_moves_count = 0
@@ -123,18 +124,24 @@ class DeepQLearningAgent(Agent):
 
         all_valid_actions = [self.get_valid_actions(self.state_to_board(state)) for state in states]
         q_values = self.Qmodel.predict(states, verbose=self.verbose_level)
-        # next_q_values = self.Qmodel.predict(next_states, verbose=self.verbose_level)
-        next_q_values = self.target_model.predict(next_states, verbose=self.verbose_level)
-
+        next_target_q_values = self.target_model.predict(next_states, verbose=self.verbose_level)
+        if self.double_q_learning:
+            next_q_values = self.Qmodel.predict(next_states, verbose=self.verbose_level)
+        
         if self.debug:
             print(f"q_values = {q_values}")
-            print(f"next_q_values = {next_q_values}")
+            print(f"next_q_values = {next_target_q_values}")
         
         avg_action_value = 0
         for i, action in enumerate(actions):
             # Mask invalid actions in next_q_values
-            masked_next_q_values = [next_q_values[i][a] if a in all_valid_actions[i] else -float('inf') for a in range(len(next_q_values[i]))]
-            q_max_predicted = np.max(masked_next_q_values)
+            masked_next_target_q_values = [next_target_q_values[i][a] if a in all_valid_actions[i] else -float('inf') for a in range(len(next_target_q_values[i]))]
+            if self.double_q_learning:
+                masked_next_q_values = [next_q_values[i][a] if a in all_valid_actions[i] else -float('inf') for a in range(len(next_q_values[i]))]
+                q_max_predicted = masked_next_q_values[np.argmax(masked_next_target_q_values)]
+            else:
+                q_max_predicted = np.max(masked_next_target_q_values)
+
             avg_action_value += q_max_predicted
             if not dones[i]:
                 target = rewards[i] + gamma * q_max_predicted

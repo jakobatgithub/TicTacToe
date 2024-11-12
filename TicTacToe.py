@@ -2,154 +2,150 @@ import time
 
 class TicTacToe:
     def __init__(self, agent1, agent2, display=None, waiting_time=0.25, width=3, height=3, win_length=3):
-        self.display = display
-        self.waiting_time = waiting_time
+        self._display = display
+        self._waiting_time = waiting_time
         assert height == width
-        self.agent1 = agent1
-        self.agent2 = agent2
-        self.width = width
-        self.height = height
-        self.win_length = win_length
-        self.generate_win_conditions()
-        self.initialize()
+        self._agent1 = agent1
+        self._agent2 = agent2
+        self._width = width
+        self._height = height
+        self._win_length = win_length
+        self._generate_win_conditions()
+        self._initialize()
 
-    # Initialize the Tic-Tac-Toe board
-    def initialize_board(self):
-        return [' ' for _ in range(self.width * self.height)]
+    def _initialize_board(self):
+        return [' ' for _ in range(self._width * self._height)]
     
-    # Generate all empty positions on the board
-    def get_valid_actions(self):
-        return [i for i, cell in enumerate(self.board) if cell == ' ']
-
-    def get_board(self):
-        return self.board
-    
-    def get_history(self):
-        return self.history
-
-    def get_current_player(self):
-        return self.current_player
-
-    def make_move(self, action):
+    def _make_move(self, action):
         if action in self.get_valid_actions():
-            self.board[action] = self.current_player
+            self._board[action] = self._current_player
             return True
         else:
             return False
         
-    def switch_player(self):
-        self.current_player = 'O' if self.current_player == 'X' else 'X'        
+    def _switch_player(self):
+        self._current_player = 'O' if self._current_player == 'X' else 'X'
 
+    def _generate_win_conditions(self):
+        width = self._width
+        height = self._height
+        win_length = self._win_length
+        self._win_conditions = []
+
+        for row in range(height):
+            for start_col in range(width - win_length + 1):
+                self._win_conditions.append(
+                    [start_col + row * width + offset for offset in range(win_length)]
+                )
+
+        for col in range(width):
+            for start_row in range(height - win_length + 1):
+                self._win_conditions.append(
+                    [col + (start_row + offset) * width for offset in range(win_length)]
+                )
+
+        for row in range(height - win_length + 1):
+            for col in range(width - win_length + 1):
+                self._win_conditions.append(
+                    [(col + offset) + (row + offset) * width for offset in range(win_length)]
+                )
+
+        for row in range(height - win_length + 1):
+            for col in range(win_length - 1, width):
+                self._win_conditions.append(
+                    [(col - offset) + (row + offset) * width for offset in range(win_length)]
+                )
+
+    def _is_won(self, player):
+        for condition in self._win_conditions:
+            if all(self._board[pos] == player for pos in condition):
+                return True
+        return False
+
+    def _is_draw(self):
+        return ' ' not in self._board
+
+    def _is_game_over(self):
+        self._done = self._is_won('X') or self._is_won('O') or self._is_draw()
+        return self._done
     
-    # Display the board in a width x height format
+    def _get_outcome(self):
+        if self._is_won('X'):
+            return 'X'
+        elif self._is_won('O'):
+            return 'O'
+        elif self._is_draw():
+            return 'D'
+        
+        return None
+
+    def _initialize(self):
+        self._done = False
+        self._board = self._initialize_board()
+        self._current_player = 'X'
+        self._history = []
+        assert self._agent1.player != self._agent2.player
+
+    def get_valid_actions(self):
+        return [i for i, cell in enumerate(self._board) if cell == ' ']
+
+    def get_board(self):
+        return self._board
+    
+    def get_history(self):
+        return self._history
+
+    def get_current_player(self):
+        return self._current_player
+    
+    def get_done(self):
+        return self._done
+    
+    def get_state_reward_done(self, player):
+        return (self._board, self.reward, self._done)
+    
     def display_board(self):
-        from IPython.display import clear_output  # Importing here for standalone function clarity
+        from IPython.display import clear_output
         clear_output(wait=True)
-        board = self.board
-        width = self.width
-        height = self.height
-        row_divider = "-" * (6 * width - 1)  # Dynamic row divider based on board width
+        board = self._board
+        width = self._width
+        height = self._height
+        row_divider = "-" * (6 * width - 1)
         
         for row in range(height):
             row_content = " | ".join(
                 f" {board[col + row * width]} " for col in range(width)
             )
             print(row_content)
-            if row < height - 1:  # Print dividers only between rows
+            if row < height - 1:
                 print(row_divider)
         print("\n")
 
-    def generate_win_conditions(self):
-        width = self.width
-        height = self.height
-        win_length = self.win_length
-        self.win_conditions = []
-
-        # Rows
-        for row in range(height):
-            for start_col in range(width - win_length + 1):  # Ensure win_length-length sequence fits
-                self.win_conditions.append(
-                    [start_col + row * width + offset for offset in range(win_length)]
-                )
-
-        # Columns
-        for col in range(width):
-            for start_row in range(height - win_length + 1):  # Ensure win_length-length sequence fits
-                self.win_conditions.append(
-                    [col + (start_row + offset) * width for offset in range(win_length)]
-                )
-
-        # Diagonals (top-left to bottom-right)
-        for row in range(height - win_length + 1):
-            for col in range(width - win_length + 1):  # Ensure win_length-length sequence fits
-                self.win_conditions.append(
-                    [(col + offset) + (row + offset) * width for offset in range(win_length)]
-                )
-
-        # Diagonals (top-right to bottom-left)
-        for row in range(height - win_length + 1):
-            for col in range(win_length - 1, width):  # Ensure win_length-length sequence fits
-                self.win_conditions.append(
-                    [(col - offset) + (row + offset) * width for offset in range(win_length)]
-                )
-
-
-    def is_won(self, player):
-        # Check if any win condition is satisfied
-        for condition in self.win_conditions:
-            if all(self.board[pos] == player for pos in condition):
-                return True
-
-        return False
-
-
-    # Check for a draw (no empty spaces)
-    def is_draw(self):
-        return ' ' not in self.board
-
-    def is_game_over(self):
-        return self.is_won('X') or self.is_won('O') or self.is_draw()
-    
-    def get_outcome(self):
-        if self.is_won('X'):
-            return 'X'
-        elif self.is_won('O'):
-            return 'O'
-        elif self.is_draw():
-            return 'D'
-
-    def initialize(self):
-        self.board = self.initialize_board()
-        self.current_player = 'X'
-        self.history = []  # To store state-action pairs
-        assert self.agent1.player != self.agent2.player
-
-    # Main game loop
     def play(self):
-        self.initialize()
-        while not self.is_game_over():
-            if self.display:
-                self.display_board()  # Optional: Display the board after each move
-                time.sleep(self.waiting_time)  # Wait a bit before the next move for readability
-            if self.current_player == self.agent1.player:
-                action = self.agent1.get_action(self)
+        self._initialize()
+        while not self.done:
+            if self._display:
+                self.display_board()
+                time.sleep(self._waiting_time)
+            if self._current_player == self._agent1.player:
+                action = self._agent1.get_action(self)
             else:
-                action = self.agent2.get_action(self)
+                action = self._agent2.get_action(self)
             
-            self.history.append((self.board[:], action))
-            if self.make_move(action):
-                self.switch_player()
+            self._history.append((self._board[:], action))
+            if self._make_move(action):
+                self._switch_player()
             else:
                 print("Invalid move. Try again.")
                 continue
 
-        outcome = self.get_outcome()
-        self.agent1.notify_result(self, outcome)
-        self.agent2.notify_result(self, outcome)
+        outcome = self._get_outcome()
+        self._agent1.notify_result(self, outcome)
+        self._agent2.notify_result(self, outcome)
 
-        if self.display:
-            self.display_board()  # Optional: Display the board after each move
-            time.sleep(self.waiting_time)  # Wait a bit before the next move for readability
+        if self._display:
+            self.display_board()
+            time.sleep(self._waiting_time)
             if outcome == 'X' or outcome == 'O':
                 print(f"Player {outcome} wins!")
             else:

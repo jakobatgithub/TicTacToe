@@ -101,9 +101,6 @@ class TicTacToe:
     def get_done(self):
         return self._done
     
-    def get_state_reward_done(self, player):
-        return (self._board, self.reward, self._done)
-    
     def display_board(self):
         from IPython.display import clear_output
         clear_output(wait=True)
@@ -123,10 +120,11 @@ class TicTacToe:
 
     def play(self):
         self._initialize()
-        while not self.done:
+        while not self._is_game_over():
             if self._display:
                 self.display_board()
                 time.sleep(self._waiting_time)
+            
             if self._current_player == self._agent1.player:
                 action = self._agent1.get_action(self)
             else:
@@ -151,4 +149,37 @@ class TicTacToe:
             else:
                 print("It's a draw!")
         
-        return outcome
+        return outcome        
+
+    # def play(self):
+    #     self._initialize()
+    #     while not self._is_game_over():
+    #         if self._display:
+    #             self.display_board()
+    #             time.sleep(self._waiting_time)
+            
+    #         if self._current_player == self._agent1.player:
+    #             action = self._agent1.get_action(self)
+    #         else:
+    #             action = self._agent2.get_action(self)
+            
+    #         self._history.append((self._board[:], action))
+    #         if self._make_move(action):
+    #             self._switch_player()
+    #         else:
+    #             print("Invalid move. Try again.")
+    #             continue
+
+    #     outcome = self._get_outcome()
+    #     self._agent1.notify_result(self, outcome)
+    #     self._agent2.notify_result(self, outcome)
+
+    #     if self._display:
+    #         self.display_board()
+    #         time.sleep(self._waiting_time)
+    #         if outcome == 'X' or outcome == 'O':
+    #             print(f"Player {outcome} wins!")
+    #         else:
+    #             print("It's a draw!")
+        
+    #     return outcome

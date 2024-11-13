@@ -44,8 +44,6 @@ class DeepQLearningAgent(Agent):
         self.q_update_count = 0
         self.target_update_count = 0
 
-        self.set_rewards()
-
         if self.debug:
             print(f"Player: {self.player}, opponent: {self.opponent}")
             self.verbose_level = 2 # verbose level for tensorflow
@@ -53,10 +51,6 @@ class DeepQLearningAgent(Agent):
             self.verbose_level = 0
 
         self.evaluation_data = {'loss': [], 'avg_action_value': [], 'histories' : [], 'rewards': []}
-
-
-    def set_rewards(self):
-        self.rewards = self.params['rewards'][self.player]
 
     # Generate all empty positions on the board
     def get_valid_actions(self, board):
@@ -227,7 +221,6 @@ class DeepQLearningAgent(Agent):
 
         if self.switching:
             self.player, self.opponent = self.opponent, self.player
-            self.set_rewards()
             if self.debug:
                 print(f"Player: {self.player}, opponent: {self.opponent}")
 

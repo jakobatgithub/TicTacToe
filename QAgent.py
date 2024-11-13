@@ -28,8 +28,6 @@ class QLearningAgent(Agent):
         self.train_step_count = 0
         self.q_update_count = 0
 
-        self.set_rewards()
-
         if self.debug:
             print(f"Player: {self.player}, opponent: {self.opponent}")
 
@@ -40,8 +38,8 @@ class QLearningAgent(Agent):
 
     def get_action(self, state_transition, game):
         state, reward , done = state_transition
+        board = state
         if not done:
-            board = game.get_board()
             action = self.choose_action(board, epsilon=self.epsilon)
             self.games_moves_count += 1
             return action
@@ -77,12 +75,8 @@ class QLearningAgent(Agent):
         self.update_rates(self.episode_count)
         if self.switching:
             self.player, self.opponent = self.opponent, self.player
-            self.set_rewards()
             if self.debug:
                 print(f"Player: {self.player}, opponent: {self.opponent}")
-
-    def set_rewards(self):
-        self.rewards = self.params['rewards'][self.player]
 
     def get_valid_actions(self, board):
         return [i for i, cell in enumerate(board) if cell == ' ']
@@ -123,7 +117,6 @@ class QLearningAgent(Agent):
     def q_update_backward(self, history, terminal_reward):
         avg_loss = 0
         avg_action_value = 0
-        # print(f"terminal_reward = {terminal_reward}")
         for i in reversed(range(len(history))):
             board, action = history[i]
             if i == len(history) - 1:

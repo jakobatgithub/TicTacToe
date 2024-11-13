@@ -38,26 +38,31 @@ class QLearningAgent(Agent):
     def is_optimal(self, board, action):
         return action in self.Q_optimal.best_actions(board)
 
-    def get_action(self, game):
-        board = game.get_board()
-        action = self.choose_action(board, epsilon=self.epsilon)
-        self.games_moves_count += 1
-        return action
+    def get_action(self, state_transition, game):
+        state, reward , done = state_transition
+        if not done:
+            board = game.get_board()
+            action = self.choose_action(board, epsilon=self.epsilon)
+            self.games_moves_count += 1
+            return action
+        else:
+            self.on_game_end(game, reward)
+            return None
 
     def update_rates(self, episode):
         self.epsilon = max(self.params['epsilon_min'], self.params['epsilon_start'] / (1 + episode/self.nr_of_episodes))
         self.alpha = max(self.params['alpha_min'], self.params['alpha_start'] / (1 + episode/self.nr_of_episodes))
 
-    def notify_result(self, game, outcome):
+    def on_game_end(self, game, reward):
         total_history = game.get_history()
         if self.player == 'X':
             history = total_history[0::2]
         else:
             history = total_history[1::2]
 
-        terminal_reward = self.rewards[outcome]
+        terminal_reward = reward
         if self.debug:
-            print(f"outcome = {outcome}, terminal_reward = {terminal_reward}")
+            print(f"terminal_reward = {terminal_reward}")
             board, action = history[-1]
             print(f"board = {board}, action = {action}")
 
@@ -140,15 +145,20 @@ class QPlayingAgent(Agent):
         super().__init__(player=player, switching=switching)
         self.Q = Q
 
-    def get_action(self, game):
-        board = game.get_board()
-        action = self.choose_action(board)
-        return action
+    def get_action(self, state_transition, game):
+        state, reward, done = state_transition
+        if not done:
+            board = game.get_board()
+            action = self.choose_action(board)
+            return action
+        else:
+            self.on_game_end(game)
+            return None
     
-    def notify_result(self, game, outcome):
-        if self.switching:
-            self.player, self.opponent = self.opponent, self.player
-
     # Choose an action based on Q-values
     def choose_action(self, board):
         return int(self.Q.best_action(board))
+    
+    def on_game_end(self, game):
+        if self.switching:
+            self.player, self.opponent = self.opponent, self.player

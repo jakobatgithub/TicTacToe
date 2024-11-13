@@ -118,28 +118,59 @@ class TicTacToe:
                 print(row_divider)
         print("\n")
 
+    def _get_step_rewards_for_valid_move(self):
+        return 0.0, 0.0
+
+    def _get_step_rewards_for_invalid_move(self):
+        if self._current_player == self._agent1.player:
+            return -1.0, 0.0
+        else:
+            return 0.0, -1.0
+        
+    def _get_terminal_rewards(self, outcome):
+        if outcome == 'D':
+            return 0.0, 0.0
+        elif outcome == self._agent1.player:
+            return 1.0, -1.0
+        elif outcome == self._agent2.player:
+            return -1.0, 1.0
+        
+        return None, None
+
     def play(self):
         self._initialize()
+        step_reward1, step_reward2 = 0.0, 0.0
+        terminal_reward1, terminal_reward2 = 0.0, 0.0
+
         while not self._is_game_over():
             if self._display:
                 self.display_board()
                 time.sleep(self._waiting_time)
             
             if self._current_player == self._agent1.player:
-                action = self._agent1.get_action(self)
+                state_transition1 = (self._board[:], step_reward1, False) # board, reward, done
+                action = self._agent1.get_action(state_transition1, self)
+                step_reward1 = 0.0
             else:
-                action = self._agent2.get_action(self)
+                state_transition2 = (self._board[:], step_reward2, False) # board, reward, done
+                action = self._agent2.get_action(state_transition2, self)
+                step_reward2 = 0.0
             
             self._history.append((self._board[:], action))
             if self._make_move(action):
+                step_reward1, step_reward2 = self._get_step_rewards_for_valid_move()
                 self._switch_player()
             else:
                 print("Invalid move. Try again.")
+                step_reward1, step_reward2 = self._get_step_rewards_for_invalid_move()
                 continue
 
         outcome = self._get_outcome()
-        self._agent1.notify_result(self, outcome)
-        self._agent2.notify_result(self, outcome)
+        terminal_reward1, terminal_reward2 = self._get_terminal_rewards(outcome)
+        state_transition1 = (None, terminal_reward1, True) # board, reward, done
+        state_transition2 = (None, terminal_reward2, True) # board, reward, done
+        self._agent1.get_action(state_transition1, self)
+        self._agent2.get_action(state_transition2, self)
 
         if self._display:
             self.display_board()
@@ -149,9 +180,10 @@ class TicTacToe:
             else:
                 print("It's a draw!")
         
-        return outcome        
+        return outcome
 
-    # def play(self):
+
+# def play(self):
     #     self._initialize()
     #     while not self._is_game_over():
     #         if self._display:
@@ -171,8 +203,8 @@ class TicTacToe:
     #             continue
 
     #     outcome = self._get_outcome()
-    #     self._agent1.notify_result(self, outcome)
-    #     self._agent2.notify_result(self, outcome)
+    #     self._agent1.on_game_end(self, outcome)
+    #     self._agent2.on_game_end(self, outcome)
 
     #     if self._display:
     #         self.display_board()

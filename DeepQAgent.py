@@ -177,42 +177,47 @@ class DeepQLearningAgent(Agent):
 
             self.store_experience(state, action, reward, next_state, done)
 
-    def get_action(self, game):
-        board = game.get_board()
-        action = self.choose_action(board, epsilon=self.epsilon)
-        (loss, avg_action_value) = self.train_step(self.batch_size, self.gamma)
-        self.games_moves_count += 1
+    def get_action(self, state_transition, game):
+        state, reward , done = state_transition
+        if not done:
+            board = game.get_board()
+            action = self.choose_action(board, epsilon=self.epsilon)
+            (loss, avg_action_value) = self.train_step(self.batch_size, self.gamma)
+            self.games_moves_count += 1
 
-        # Update target network
-        if self.train_step_count % self.target_update_frequency == 0 and len(self.replay_buffer) >= self.batch_size:
-            self.target_model.set_weights(self.Qmodel.get_weights())
-            self.target_update_count += 1
-            print(f"target_update_count = {self.target_update_count}, train_step_count = {self.train_step_count}, "
-                  f"episode_count = {self.episode_count}, games_moves_count = {self.games_moves_count}, q_update_count = {self.q_update_count}")
+            # Update target network
+            if self.train_step_count % self.target_update_frequency == 0 and len(self.replay_buffer) >= self.batch_size:
+                self.target_model.set_weights(self.Qmodel.get_weights())
+                self.target_update_count += 1
+                print(f"target_update_count = {self.target_update_count}, train_step_count = {self.train_step_count}, "
+                    f"episode_count = {self.episode_count}, games_moves_count = {self.games_moves_count}, q_update_count = {self.q_update_count}")
 
-        if self.evaluation:
-            if loss:
-                self.evaluation_data['loss'].append(loss)
-            if avg_action_value:
-                self.evaluation_data['avg_action_value'].append(avg_action_value)
+            if self.evaluation:
+                if loss:
+                    self.evaluation_data['loss'].append(loss)
+                if avg_action_value:
+                    self.evaluation_data['avg_action_value'].append(avg_action_value)
 
-        return action
+            return action
+        else:
+            self.on_game_end(game, reward)
+            return None
 
-    def notify_result(self, game, outcome):
+    def on_game_end(self, game, reward):
         total_history = game.get_history()
         if self.player == 'X':
             history = total_history[0::2]
         else:
             history = total_history[1::2]
 
-        terminal_reward = self.rewards[outcome]
+        terminal_reward = reward
         self.store_history(history, terminal_reward)
         self.update_rates(self.episode_count)
         self.episode_count += 1
 
         if self.debug:
             board, action = history[-1]
-            print(f"outcome = {outcome}, terminal_reward = {terminal_reward}")
+            print(f"terminal_reward = {terminal_reward}")
             board, action = history[-1]
             print(f"board = {board}, action = {action}")
 
@@ -264,11 +269,16 @@ class DeepQPlayingAgent(Agent):
         action = np.argmax(masked_q_values)
         return action
     
-    def get_action(self, game):
-        board = game.get_board()
-        action = self.choose_action(board)
-        return action
-    
-    def notify_result(self, game, outcome):
+    def get_action(self, state_transition, game):
+        state, reward, done = state_transition
+        if not done:
+            board = game.get_board()
+            action = self.choose_action(board)
+            return action
+        else:
+            self.on_game_end(game)
+            return None
+
+    def on_game_end(self, game):
         if self.switching:
             self.player, self.opponent = self.opponent, self.player

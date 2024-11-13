@@ -167,8 +167,8 @@ class TicTacToe:
 
         outcome = self._get_outcome()
         terminal_reward1, terminal_reward2 = self._get_terminal_rewards(outcome)
-        state_transition1 = (None, terminal_reward1, True) # board, reward, done
-        state_transition2 = (None, terminal_reward2, True) # board, reward, done
+        state_transition1 = (self._board[:], terminal_reward1, True) # board, reward, done
+        state_transition2 = (self._board[:], terminal_reward2, True) # board, reward, done
         self._agent1.get_action(state_transition1, self)
         self._agent2.get_action(state_transition2, self)
 

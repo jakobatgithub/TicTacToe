@@ -172,9 +172,9 @@ class DeepQLearningAgent(Agent):
             self.store_experience(state, action, reward, next_state, done)
 
     def get_action(self, state_transition, game):
-        state, reward , done = state_transition
+        state, reward, done = state_transition
         if not done:
-            board = game.get_board()
+            board = state
             action = self.choose_action(board, epsilon=self.epsilon)
             (loss, avg_action_value) = self.train_step(self.batch_size, self.gamma)
             self.games_moves_count += 1

@@ -28,6 +28,8 @@ class QLearningAgent(Agent):
         self.train_step_count = 0
         self.q_update_count = 0
 
+        self.history = []        
+
         if self.debug:
             print(f"Player: {self.player}, opponent: {self.opponent}")
 
@@ -37,10 +39,11 @@ class QLearningAgent(Agent):
         return action in self.Q_optimal.best_actions(board)
 
     def get_action(self, state_transition, game):
-        state, reward , done = state_transition
-        board = state
+        state, reward, done = state_transition
         if not done:
+            board = state
             action = self.choose_action(board, epsilon=self.epsilon)
+            self.history.append((board, action))
             self.games_moves_count += 1
             return action
         else:
@@ -52,27 +55,22 @@ class QLearningAgent(Agent):
         self.alpha = max(self.params['alpha_min'], self.params['alpha_start'] / (1 + episode/self.nr_of_episodes))
 
     def on_game_end(self, game, reward):
-        total_history = game.get_history()
-        if self.player == 'X':
-            history = total_history[0::2]
-        else:
-            history = total_history[1::2]
-
         terminal_reward = reward
         if self.debug:
             print(f"terminal_reward = {terminal_reward}")
-            board, action = history[-1]
+            board, action = self.history[-1]
             print(f"board = {board}, action = {action}")
 
-        (loss, avg_action_value) = self.q_update_backward(history, terminal_reward)
+        (loss, avg_action_value) = self.q_update_backward(self.history, terminal_reward)
         if self.evaluation:
             self.evaluation_data['loss'].append(loss)
             self.evaluation_data['avg_action_value'].append(avg_action_value)
-            self.evaluation_data['histories'] = history
+            self.evaluation_data['histories'] = self.history
             self.evaluation_data['rewards'].append(terminal_reward)
 
         self.episode_count += 1
         self.update_rates(self.episode_count)
+        self.history = []
         if self.switching:
             self.player, self.opponent = self.opponent, self.player
             if self.debug:

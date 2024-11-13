@@ -26,7 +26,7 @@ class Agent(ABC):
 
 class RandomAgent(Agent):
     def get_action(self, state_transition, game):
-        state, reward , done = state_transition
+        state, reward, done = state_transition
         if not done:
             valid_actions = game.get_valid_actions()
             return random.choice(valid_actions)
@@ -40,7 +40,7 @@ class RandomAgent(Agent):
 
 class HumanAgent(Agent):
     def get_action(self, state_transition, game):
-        state, reward , done = state_transition
+        state, reward, done = state_transition
         if not done:
             valid_actions = game.get_valid_actions()
             action = None

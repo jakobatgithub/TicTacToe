@@ -35,9 +35,6 @@ class QLearningAgent(Agent):
 
         self.evaluation_data = {'loss': [], 'avg_action_value': [], 'histories' : [], 'rewards': []}
 
-    def is_optimal(self, board, action):
-        return action in self.Q_optimal.best_actions(board)
-
     def get_action(self, state_transition, game):
         state, reward, done = state_transition
         if not done:

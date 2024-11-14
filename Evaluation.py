@@ -26,7 +26,7 @@ def plot_graphs(loss, avg_action_value, rewards):
     mean_lossX = average_array(loss)
     steps =[i * chunk_size for i in range(len(mean_lossX))]
 
-    axs[0].plot(steps, mean_lossX, label='Mean Loss')
+    axs[0].plot(steps[:-2], mean_lossX[:-2], label='Mean Loss')
     axs[0].set_title(f'Mean loss')
     axs[0].set_xlabel('Training steps')
     axs[0].set_ylabel('Loss')
@@ -37,7 +37,7 @@ def plot_graphs(loss, avg_action_value, rewards):
     mean_avg_action_valueX = average_array(avg_action_value)
     steps =[i * chunk_size for i in range(len(mean_lossX))]
 
-    axs[1].plot(steps, mean_avg_action_valueX, label='Mean Avg Action Value', color='orange')
+    axs[1].plot(steps[:-2], mean_avg_action_valueX[:-2], label='Mean Avg Action Value', color='orange')
     axs[1].set_title(f'Mean action value')
     axs[1].set_xlabel('Training steps')
     axs[1].set_ylabel('Action value')
@@ -47,7 +47,7 @@ def plot_graphs(loss, avg_action_value, rewards):
     mean_rewards = average_array(rewards, chunk_size)
     steps = [i * chunk_size for i in range(len(mean_rewards))]
 
-    axs[2].plot(steps, mean_rewards, label='Mean Rewards', color='blue')
+    axs[2].plot(steps[:-2], mean_rewards[:-2], label='Mean Rewards', color='blue')
     axs[2].set_title(f'Mean reward per episode')
     axs[2].set_xlabel('Episodes')
     axs[2].set_ylabel('Reward')

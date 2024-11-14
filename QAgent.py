@@ -2,8 +2,7 @@ import random
 import numpy as np
 
 from Agent import Agent
-from Matrix import Matrix
-from SymmetricMatrix import SymmetricMatrix, TotallySymmetricMatrix
+from SymmetricMatrix import Matrix, SymmetricMatrix, TotallySymmetricMatrix
 
 
 class QLearningAgent(Agent):

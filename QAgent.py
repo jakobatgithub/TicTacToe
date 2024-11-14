@@ -41,7 +41,47 @@ class QLearningAgent(Agent):
         self.evaluation_data = {'loss': [], 'avg_action_value': [], 'histories' : [], 'rewards': []}
 
     def get_action(self, state_transition, game):
+        next_board, reward, done = state_transition
+        if self.evaluation:
+            self.evaluation_data['rewards'].append(reward)
+
+        if not done:
+            if len(self.history) > 0:
+                board, action = self.history[-1]
+                loss, action_value = self.q_update(board, action, next_board, reward)
+                if self.evaluation:
+                    self.evaluation_data['loss'].append(loss / self.alpha)
+                    self.evaluation_data['avg_action_value'].append(action_value)
+
+            board = next_board
+            action = self.choose_action(board, epsilon=self.epsilon)
+            self.history.append((board, action))
+            self.games_moves_count += 1
+            return action
+        else:
+            if len(self.history) > 0:
+                board, action = self.history[-1]
+                loss, action_value = self.q_update(board, action, None, reward)
+                if self.evaluation:
+                    self.evaluation_data['loss'].append(loss / self.alpha)
+                    self.evaluation_data['avg_action_value'].append(action_value)
+
+            self.episode_count += 1
+            self.update_rates(self.episode_count)
+            if self.evaluation:
+                self.evaluation_data['histories'] = self.history
+            
+            self.history = []
+            return None
+
+    def get_action1(self, state_transition, game):
         state, reward, done = state_transition
+        if len(self.history) > 0:
+            board, action = self.history[-1]
+            # print(f"board = {board}, action = {action}")
+            next_board = state
+            # print(board, action, next_board, reward)
+            # self.q_update(board, action, next_board, reward)
         if not done:
             board = state
             action = self.choose_action(board, epsilon=self.epsilon)
@@ -49,14 +89,14 @@ class QLearningAgent(Agent):
             self.games_moves_count += 1
             return action
         else:
-            self.on_game_end(game, reward)
+            self.on_game_end(reward)
             return None
 
     def update_rates(self, episode):
         self.epsilon = max(self.params['epsilon_min'], self.params['epsilon_start'] / (1 + episode/self.nr_of_episodes))
         self.alpha = max(self.params['alpha_min'], self.params['alpha_start'] / (1 + episode/self.nr_of_episodes))
 
-    def on_game_end(self, game, reward):
+    def on_game_end(self, reward):
         terminal_reward = reward
         if self.debug:
             print(f"terminal_reward = {terminal_reward}")

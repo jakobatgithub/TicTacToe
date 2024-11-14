@@ -62,13 +62,9 @@ class QLearningAgent(Agent):
     def get_valid_actions(self, board):
         return [i for i, cell in enumerate(board) if cell == ' ']
     
-    def get_best_actions(self, board, Q, Q2=None):
+    def get_best_actions(self, board, Q):
         actions = self.get_valid_actions(board)
-        if Q2 is None:
-            q_values = {action: Q.get(board, action) for action in actions}
-        else:
-            q_values = {action: 0.5 * (self.Q.get(board, action) + self.Q2.get(board, action)) for action in self.get_valid_actions(board)}
-
+        q_values = {action: Q.get(board, action) for action in actions}
         max_q = max(q_values.values())
         best_actions = [action for action, q in q_values.items() if q == max_q]
         return best_actions

@@ -298,7 +298,7 @@ class TotallySymmetricMatrix(SymmetricMatrix):
         if lazy:
             self.canonical_board_to_next_canonical_board = self._create_level2_lazy_dict(self._get_next_canonical_board)
         else:
-            self._generate_all_next_canonical_boards()
+            self._generate_all_next_canonical_boards()    
 
     def _create_level2_lazy_dict(self, compute_func):
         def level1_compute(outer_key):

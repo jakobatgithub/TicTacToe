@@ -16,16 +16,11 @@ class QLearningAgent(Agent):
         self.epsilon = params['epsilon_start']
         self.alpha = params['alpha_start']
         self.nr_of_episodes = params['nr_of_episodes']
-        self.double_q_learning = params['double_q_learning']
 
         # Initialize matrices
         # self.Q = QMatrix(default_value=params['Q_initial_value'])
         # self.Q = QSymmetricMatrix(default_value=params['Q_initial_value'], lazy=params['lazy_evaluation'], width=params['width'])
-        if self.double_q_learning:
-            self.QA = QTotallySymmetricMatrix(default_value=params['Q_initial_value'], lazy=params['lazy_evaluation'], width=params['width'])
-            self.QB = QTotallySymmetricMatrix(default_value=params['Q_initial_value'], lazy=params['lazy_evaluation'], width=params['width'])
-        else:
-            self.Q = TotallySymmetricMatrix(default_value=params['Q_initial_value'], lazy=params['lazy_evaluation'], width=params['width'])
+        self.Q = TotallySymmetricMatrix(default_value=params['Q_initial_value'], lazy=params['lazy_evaluation'], width=params['width'])
 
         self.episode_count = 0
         self.games_moves_count = 0
@@ -42,30 +37,22 @@ class QLearningAgent(Agent):
     def get_action(self, state_transition, game):
         next_board, reward, done = state_transition
         self.evaluation_data['rewards'].append(reward)
+        if len(self.history) > 0:
+            board, action = self.history[-1]
+            loss, action_value = self.q_update(board, action, next_board, reward)
+            self.evaluation_data['loss'].append(loss / self.alpha)
+            self.evaluation_data['avg_action_value'].append(action_value)
 
         if not done:
-            if len(self.history) > 0:
-                board, action = self.history[-1]
-                loss, action_value = self.q_update(board, action, next_board, reward)
-                self.evaluation_data['loss'].append(loss / self.alpha)
-                self.evaluation_data['avg_action_value'].append(action_value)
-
             board = next_board
             action = self.choose_action(board, epsilon=self.epsilon)
             self.history.append((board, action))
             self.games_moves_count += 1
             return action
         else:
-            if len(self.history) > 0:
-                board, action = self.history[-1]
-                loss, action_value = self.q_update(board, action, None, reward)
-                self.evaluation_data['loss'].append(loss / self.alpha)
-                self.evaluation_data['avg_action_value'].append(action_value)
-
             self.episode_count += 1
             self.update_rates(self.episode_count)
-            self.evaluation_data['histories'].append(self.history)
-            
+            self.evaluation_data['histories'].append(self.history)            
             self.history = []
             return None
 
@@ -138,10 +125,7 @@ class QLearningAgent(Agent):
             return random.choice(valid_actions)
         else:
             # Exploitation: Choose the best known move
-            if self.double_q_learning:
-                action = int(self.get_best_action(board, self.QA, self.QB))                
-            else:
-                action = int(self.get_best_action(board, self.Q))
+            action = int(self.get_best_action(board, self.Q))
             return action
     
     def q_update(self, board, action, next_board, reward):

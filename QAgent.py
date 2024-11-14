@@ -69,8 +69,8 @@ class QLearningAgent(Agent):
         best_actions = [action for action, q in q_values.items() if q == max_q]
         return best_actions
     
-    def get_best_action(self, board, Q, Q2=None):
-        best_actions = self.get_best_actions(board, Q, Q2)
+    def get_best_action(self, board, Q):
+        best_actions = self.get_best_actions(board, Q)
         return np.random.choice(best_actions)
 
     # Choose an action based on Q-values

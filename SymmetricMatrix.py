@@ -192,34 +192,6 @@ class SymmetricMatrix:
         self.qMatrix[canonical_board][canonical_action] = value
 
 
-class QSymmetricMatrix(SymmetricMatrix):
-    def best_actions(self, board, player='X'):
-        """
-        Choose the best action based on Q-values for the current state.
-        """
-        actions = self.get_empty_positions(board)
-
-        # Retrieve Q-values for all valid actions
-        q_values = {action: self.get(board, action) for action in actions}
-
-        # Choose based on player strategy
-        if player == 'X':
-            max_q = max(q_values.values())
-            best_actions = [action for action, q in q_values.items() if q == max_q]
-        else:
-            min_q = min(q_values.values())
-            best_actions = [action for action, q in q_values.items() if q == min_q]
-
-        return best_actions
-    
-    def best_action(self, board, player='X'):
-        """
-        Choose the best action based on Q-values for the current state.
-        """
-        best_actions = self.best_actions(board, player)
-        return np.random.choice(best_actions)
-
-
 class TotallySymmetricMatrix(SymmetricMatrix):
     def __init__(self, file=None, default_value=None, lazy=True, width=3):
         # Call the parent initializer first
@@ -305,31 +277,3 @@ class TotallySymmetricMatrix(SymmetricMatrix):
         self.qMatrix[
             self.canonical_board_to_next_canonical_board[canonical_board][canonical_action]
         ] = value
-
-
-class QTotallySymmetricMatrix(TotallySymmetricMatrix):
-    def best_actions(self, board, player='X'):
-        """
-        Choose the best action based on Q-values for the current state.
-        """
-        actions = self.get_empty_positions(board)
-
-        # Retrieve Q-values for all valid actions
-        q_values = {action: self.get(board, action) for action in actions}
-
-        # Choose based on player strategy
-        if player == 'X':
-            max_q = max(q_values.values())
-            best_actions = [action for action, q in q_values.items() if q == max_q]
-        else:
-            min_q = min(q_values.values())
-            best_actions = [action for action, q in q_values.items() if q == min_q]
-
-        return best_actions
-    
-    def best_action(self, board, player='X'):
-        """
-        Choose the best action based on Q-values for the current state.
-        """
-        best_actions = self.best_actions(board, player)
-        return np.random.choice(best_actions)

@@ -2,9 +2,8 @@ import random
 import numpy as np
 
 from Agent import Agent
-from Matrix import Matrix, QMatrix
-from SymmetricMatrix import SymmetricMatrix, QSymmetricMatrix
-from SymmetricMatrix import TotallySymmetricMatrix, QTotallySymmetricMatrix
+from Matrix import Matrix
+from SymmetricMatrix import SymmetricMatrix, TotallySymmetricMatrix
 
 
 class QLearningAgent(Agent):
@@ -18,8 +17,8 @@ class QLearningAgent(Agent):
         self.nr_of_episodes = params['nr_of_episodes']
 
         # Initialize matrices
-        # self.Q = QMatrix(default_value=params['Q_initial_value'])
-        # self.Q = QSymmetricMatrix(default_value=params['Q_initial_value'], lazy=params['lazy_evaluation'], width=params['width'])
+        # self.Q = Matrix(default_value=params['Q_initial_value'])
+        # self.Q = SymmetricMatrix(default_value=params['Q_initial_value'], lazy=params['lazy_evaluation'], width=params['width'])
         self.Q = TotallySymmetricMatrix(default_value=params['Q_initial_value'], lazy=params['lazy_evaluation'], width=params['width'])
 
         self.episode_count = 0

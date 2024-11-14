@@ -12,7 +12,6 @@ class QLearningAgent(Agent):
         super().__init__(player=params['player'], switching=params['switching'])
         self.params = params
         self.debug = params['debug']
-        self.evaluation = params['evaluation']
         self.gamma = params['gamma']
         self.epsilon = params['epsilon_start']
         self.alpha = params['alpha_start']
@@ -42,16 +41,14 @@ class QLearningAgent(Agent):
 
     def get_action(self, state_transition, game):
         next_board, reward, done = state_transition
-        if self.evaluation:
-            self.evaluation_data['rewards'].append(reward)
+        self.evaluation_data['rewards'].append(reward)
 
         if not done:
             if len(self.history) > 0:
                 board, action = self.history[-1]
                 loss, action_value = self.q_update(board, action, next_board, reward)
-                if self.evaluation:
-                    self.evaluation_data['loss'].append(loss / self.alpha)
-                    self.evaluation_data['avg_action_value'].append(action_value)
+                self.evaluation_data['loss'].append(loss / self.alpha)
+                self.evaluation_data['avg_action_value'].append(action_value)
 
             board = next_board
             action = self.choose_action(board, epsilon=self.epsilon)
@@ -62,14 +59,12 @@ class QLearningAgent(Agent):
             if len(self.history) > 0:
                 board, action = self.history[-1]
                 loss, action_value = self.q_update(board, action, None, reward)
-                if self.evaluation:
-                    self.evaluation_data['loss'].append(loss / self.alpha)
-                    self.evaluation_data['avg_action_value'].append(action_value)
+                self.evaluation_data['loss'].append(loss / self.alpha)
+                self.evaluation_data['avg_action_value'].append(action_value)
 
             self.episode_count += 1
             self.update_rates(self.episode_count)
-            if self.evaluation:
-                self.evaluation_data['histories'] = self.history
+            self.evaluation_data['histories'].append(self.history)
             
             self.history = []
             return None
@@ -104,11 +99,10 @@ class QLearningAgent(Agent):
             print(f"board = {board}, action = {action}")
 
         (loss, avg_action_value) = self.q_update_backward(self.history, terminal_reward)
-        if self.evaluation:
-            self.evaluation_data['loss'].append(loss)
-            self.evaluation_data['avg_action_value'].append(avg_action_value)
-            self.evaluation_data['histories'] = self.history
-            self.evaluation_data['rewards'].append(terminal_reward)
+        self.evaluation_data['loss'].append(loss)
+        self.evaluation_data['avg_action_value'].append(avg_action_value)
+        self.evaluation_data['histories'] = self.history
+        self.evaluation_data['rewards'].append(terminal_reward)
 
         self.episode_count += 1
         self.update_rates(self.episode_count)

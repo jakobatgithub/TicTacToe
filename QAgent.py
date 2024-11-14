@@ -14,6 +14,7 @@ class QLearningAgent(Agent):
         self.epsilon = params['epsilon_start']
         self.alpha = params['alpha_start']
         self.nr_of_episodes = params['nr_of_episodes']
+        self.terminal_q_updates = params['terminal_q_updates']
 
         # Initialize matrices
         # self.Q = Matrix(default_value=params['Q_initial_value'])
@@ -25,7 +26,8 @@ class QLearningAgent(Agent):
         self.train_step_count = 0
         self.q_update_count = 0
 
-        self.history = []        
+        self.history = []
+        self.state_transitions = []
 
         if self.debug:
             print(f"Player: {self.player}, opponent: {self.opponent}")
@@ -37,9 +39,8 @@ class QLearningAgent(Agent):
         self.evaluation_data['rewards'].append(reward)
         if len(self.history) > 0:
             board, action = self.history[-1]
-            loss, action_value = self.q_update(board, action, next_board, reward)
-            self.evaluation_data['loss'].append(loss / self.alpha)
-            self.evaluation_data['avg_action_value'].append(action_value)
+            if not self.terminal_q_updates:
+                loss, action_value = self.q_update(board, action, next_board, reward)
 
         if not done:
             board = next_board
@@ -48,11 +49,59 @@ class QLearningAgent(Agent):
             self.games_moves_count += 1
             return action
         else:
+            if self.terminal_q_updates:
+                loss, action_value = self.q_update_backward(self.history, reward)
+
             self.episode_count += 1
             self.update_rates(self.episode_count)
-            self.evaluation_data['histories'].append(self.history)            
+            self.evaluation_data['histories'].append(self.history)
             self.history = []
             return None
+        
+    def q_update(self, board, action, next_board, reward):
+        old_value = self.Q.get(board, action)
+        if next_board:
+            # Calculate max Q-value for the next state over all possible actions
+            next_actions = self.get_valid_actions(next_board)
+            future_qs = [self.Q.get(next_board, next_action) for next_action in next_actions]
+            if self.debug:
+                print(f"future_qs = {future_qs}")
+            
+            future_q = max(future_qs)
+        else:
+            future_q = 0.0
+
+        new_value = (1 - self.alpha) * old_value + self.alpha * (reward + self.gamma * future_q)
+        self.Q.set(board, action, new_value)
+        if self.debug:
+            print(f"{old_value}, {new_value}, {new_value - old_value}")
+    
+        self.q_update_count += 1
+        loss = abs(old_value - new_value)
+        action_value = future_q
+        self.evaluation_data['loss'].append(loss / self.alpha)
+        self.evaluation_data['avg_action_value'].append(action_value)
+        return loss, action_value
+        
+    # Update Q-values based on the game's outcome, with correct max_future_q
+    def q_update_backward(self, history, terminal_reward):
+        avg_loss = 0
+        avg_action_value = 0
+        for i in reversed(range(len(history))):
+            board, action = history[i]
+            if i == len(history) - 1:
+                # Update the last state-action pair with the terminal reward
+                loss, action_value = self.q_update(board, action, None, terminal_reward)
+                avg_loss += loss
+                avg_action_value += action_value
+            else:
+                next_board, _ = history[i + 1]
+                loss, action_value =  self.q_update(board, action, next_board, 0.0)
+                avg_loss += loss
+                avg_action_value += action_value
+            
+        self.train_step_count += 1
+        return (avg_loss/(len(history) * self.alpha), avg_action_value/(len(history)))
 
     def update_rates(self, episode):
         self.epsilon = max(self.params['epsilon_min'], self.params['epsilon_start'] / (1 + episode/self.nr_of_episodes))
@@ -82,27 +131,6 @@ class QLearningAgent(Agent):
             # Exploitation: Choose the best known move
             action = int(self.get_best_action(board, self.Q))
             return action
-    
-    def q_update(self, board, action, next_board, reward):
-        old_value = self.Q.get(board, action)
-        if next_board:
-            # Calculate max Q-value for the next state over all possible actions
-            next_actions = self.get_valid_actions(next_board)
-            future_qs = [self.Q.get(next_board, next_action) for next_action in next_actions]
-            if self.debug:
-                print(f"future_qs = {future_qs}")
-            
-            future_q = max(future_qs)
-        else:
-            future_q = 0.0
-
-        new_value = (1 - self.alpha) * old_value + self.alpha * (reward + self.gamma * future_q)
-        self.Q.set(board, action, new_value)
-        if self.debug:
-            print(f"{old_value}, {new_value}, {new_value - old_value}")
-    
-        self.q_update_count += 1
-        return (abs(old_value - new_value), future_q)
 
 
 class QPlayingAgent(Agent):

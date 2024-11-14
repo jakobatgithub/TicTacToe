@@ -11,13 +11,27 @@ from Agent import Agent
 class DeepQLearningAgent(Agent):
     def __init__(self, params):
         super().__init__(player=params['player'], switching=params['switching'])
+        self.params = params
+        self.debug = params['debug']
+        self.evaluation = params['evaluation']
+        self.gamma = params['gamma']
+        self.epsilon = params['epsilon_start']
+        self.alpha = params['alpha_start']
+        self.nr_of_episodes = params['nr_of_episodes']
+        self.double_q_learning = params['double_q_learning']
+
         self.Qmodel = models.Sequential([
             layers.Input(shape=(9,)),
             layers.Dense(16, activation='relu'),
             layers.Dense(16, activation='relu'),
             layers.Dense(9)  # Q-values for 9 actions
         ])
-        self.Qmodel.compile(optimizer='adam', loss='mse')
+        lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
+            initial_learning_rate=self.alpha,
+            decay_steps=self.nr_of_episodes,
+            decay_rate=0.95)
+        # self.Qmodel.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=lr_schedule), loss='mse')
+        self.Qmodel.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.00025), loss='mse')
         self.Qmodel.summary()
         self.target_model = tf.keras.models.clone_model(self.Qmodel)
         self.target_model.set_weights(self.Qmodel.get_weights())
@@ -29,20 +43,14 @@ class DeepQLearningAgent(Agent):
 
         self.target_update_frequency = params['target_update_frequency']
 
-        self.params = params
-        self.debug = params['debug']    
-        self.evaluation = params['evaluation']
-        self.gamma = params['gamma']
-        self.epsilon = params['epsilon_start']
-        self.alpha = params['alpha_start']
-        self.nr_of_episodes = params['nr_of_episodes']
-        self.double_q_learning = params['double_q_learning']
-
         self.episode_count = 0
         self.games_moves_count = 0
         self.train_step_count = 0
         self.q_update_count = 0
         self.target_update_count = 0
+
+        self.board = None
+        self.next_board = None
 
         if self.debug:
             print(f"Player: {self.player}, opponent: {self.opponent}")
@@ -66,7 +74,6 @@ class DeepQLearningAgent(Agent):
     
     def update_rates(self, episode):
         self.epsilon = max(self.params['epsilon_min'], self.params['epsilon_start'] / (1 + episode/self.nr_of_episodes))
-        self.alpha = max(self.params['alpha_min'], self.params['alpha_start'] / (1 + episode/self.nr_of_episodes))
     
     def mask_invalid_actions(self, q_values, valid_actions):
         masked_q_values = np.full_like(q_values, -np.inf)  # Initialize with -inf
@@ -95,6 +102,9 @@ class DeepQLearningAgent(Agent):
         return random.sample(self.replay_buffer, batch_size)
 
     def store_experience(self, state, action, reward, next_state, done):
+        if self.debug:
+            print(f"state = {(state, action, reward, next_state, done)}")
+    
         self.replay_buffer.append((state, action, reward, next_state, done))
 
     def train_step(self, batch_size, gamma=0.99):
@@ -121,7 +131,7 @@ class DeepQLearningAgent(Agent):
         next_target_q_values = self.target_model.predict(next_states, verbose=self.verbose_level)
         if self.double_q_learning:
             next_q_values = self.Qmodel.predict(next_states, verbose=self.verbose_level)
-        
+
         if self.debug:
             print(f"q_values = {q_values}")
             print(f"next_q_values = {next_target_q_values}")
@@ -151,31 +161,18 @@ class DeepQLearningAgent(Agent):
         avg_action_value /= len(states)
         return (loss, avg_action_value)
 
-    def get_next_board(self, board, action):
-        new_board = list(board)
-        new_board[action] = self.player
-        return tuple(new_board)
-
-    def store_history(self, history, terminal_reward):
-        for i in range(len(history)):
-            board, action = history[i]
-            state = self.board_to_state(board)
-            next_board = self.get_next_board(board, action)
-            next_state = self.board_to_state(next_board)
-            if i == len(history) - 1:
-                reward = terminal_reward
-                done = True
-            else:
-                reward = 0.0
-                done = False
-
-            self.store_experience(state, action, reward, next_state, done)
-
     def get_action(self, state_transition, game):
-        state, reward, done = state_transition
+        if self.next_board is not None:
+            self.board = self.next_board
+        
+        self.next_board, reward, done = state_transition
+        if self.board is not None and self.action is not None:
+            self.store_experience(self.board_to_state(self.board), self.action, reward, self.board_to_state(self.next_board), done)
+        
+        self.action = None
         if not done:
-            board = state
-            action = self.choose_action(board, epsilon=self.epsilon)
+            board = self.next_board
+            self.action = self.choose_action(board, epsilon=self.epsilon)
             (loss, avg_action_value) = self.train_step(self.batch_size, self.gamma)
             self.games_moves_count += 1
 
@@ -192,31 +189,23 @@ class DeepQLearningAgent(Agent):
                 if avg_action_value:
                     self.evaluation_data['avg_action_value'].append(avg_action_value)
 
-            return action
+            return self.action
         else:
             self.on_game_end(game, reward)
+            self.action = None
+            self.board = None
+            self.next_board = None
             return None
 
     def on_game_end(self, game, reward):
-        total_history = game.get_history()
-        if self.player == 'X':
-            history = total_history[0::2]
-        else:
-            history = total_history[1::2]
-
         terminal_reward = reward
-        self.store_history(history, terminal_reward)
         self.update_rates(self.episode_count)
         self.episode_count += 1
 
         if self.debug:
-            board, action = history[-1]
             print(f"terminal_reward = {terminal_reward}")
-            board, action = history[-1]
-            print(f"board = {board}, action = {action}")
 
         if self.evaluation:
-            self.evaluation_data['histories'].append(history)
             self.evaluation_data['rewards'].append(terminal_reward)
 
         if self.switching:

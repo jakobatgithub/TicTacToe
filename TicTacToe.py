@@ -123,9 +123,9 @@ class TicTacToe:
 
     def _get_step_rewards_for_invalid_move(self):
         if self._current_player == self._agent1.player:
-            return -1.0, 0.0
+            return 0.0, 0.0
         else:
-            return 0.0, -1.0
+            return 0.0, 0.0
         
     def _get_terminal_rewards(self, outcome):
         if outcome == 'D':

@@ -1,4 +1,5 @@
 import random
+import numpy as np
 
 from Agent import Agent
 from Matrix import Matrix, QMatrix
@@ -9,12 +10,6 @@ from SymmetricMatrix import TotallySymmetricMatrix, QTotallySymmetricMatrix
 class QLearningAgent(Agent):
     def __init__(self, params):
         super().__init__(player=params['player'], switching=params['switching'])
-
-        # Initialize matrices
-        # self.Q = QMatrix(default_value=params['Q_initial_value'])
-        self.Q = QSymmetricMatrix(default_value=params['Q_initial_value'], lazy=params['lazy_evaluation'], width=params['width'])
-        # self.Q = QTotallySymmetricMatrix(default_value=params['Q_initial_value'], lazy=params['lazy_evaluation'], width=params['width'])
-
         self.params = params
         self.debug = params['debug']
         self.evaluation = params['evaluation']
@@ -22,6 +17,16 @@ class QLearningAgent(Agent):
         self.epsilon = params['epsilon_start']
         self.alpha = params['alpha_start']
         self.nr_of_episodes = params['nr_of_episodes']
+        self.double_q_learning = params['double_q_learning']
+
+        # Initialize matrices
+        # self.Q = QMatrix(default_value=params['Q_initial_value'])
+        # self.Q = QSymmetricMatrix(default_value=params['Q_initial_value'], lazy=params['lazy_evaluation'], width=params['width'])
+        if self.double_q_learning:
+            self.QA = QTotallySymmetricMatrix(default_value=params['Q_initial_value'], lazy=params['lazy_evaluation'], width=params['width'])
+            self.QB = QTotallySymmetricMatrix(default_value=params['Q_initial_value'], lazy=params['lazy_evaluation'], width=params['width'])
+        else:
+            self.Q = TotallySymmetricMatrix(default_value=params['Q_initial_value'], lazy=params['lazy_evaluation'], width=params['width'])
 
         self.episode_count = 0
         self.games_moves_count = 0
@@ -75,6 +80,21 @@ class QLearningAgent(Agent):
 
     def get_valid_actions(self, board):
         return [i for i, cell in enumerate(board) if cell == ' ']
+    
+    def get_best_actions(self, board, Q, Q2=None):
+        actions = self.get_valid_actions(board)
+        if Q2 is None:
+            q_values = {action: Q.get(board, action) for action in actions}
+        else:
+            q_values = {action: 0.5 * (self.Q.get(board, action) + self.Q2.get(board, action)) for action in self.get_valid_actions(board)}
+
+        max_q = max(q_values.values())
+        best_actions = [action for action, q in q_values.items() if q == max_q]
+        return best_actions
+    
+    def get_best_action(self, board, Q, Q2=None):
+        best_actions = self.get_best_actions(board, Q, Q2)
+        return np.random.choice(best_actions)
 
     # Choose an action based on Q-values
     def choose_action(self, board, epsilon):
@@ -84,7 +104,10 @@ class QLearningAgent(Agent):
             return random.choice(valid_actions)
         else:
             # Exploitation: Choose the best known move
-            action = int(self.Q.best_action(board))            
+            if self.double_q_learning:
+                action = int(self.get_best_action(board, self.QA, self.QB))                
+            else:
+                action = int(self.get_best_action(board, self.Q))
             return action
     
     def q_update(self, board, action, next_board, reward):
@@ -107,6 +130,27 @@ class QLearningAgent(Agent):
     
         self.q_update_count += 1
         return (abs(old_value - new_value), future_q)
+
+    # def q_update_double_q_learning(self, board, action, next_board, reward):
+    #     old_valueA, old_valueB = self.QA.get(board, action), self.QB.get(board, action)
+    #     if next_board:
+    #         # Calculate max Q-value for the next state over all possible actions
+    #         next_actions = self.get_valid_actions(next_board)
+    #         future_qs = [self.Q.get(next_board, next_action) for next_action in next_actions]
+    #         if self.debug:
+    #             print(f"future_qs = {future_qs}")
+            
+    #         future_q = max(future_qs)
+    #     else:
+    #         future_q = 0.0
+
+    #     new_value = (1 - self.alpha) * old_value + self.alpha * (reward + self.gamma * future_q)
+    #     self.Q.set(board, action, new_value)
+    #     if self.debug:
+    #         print(f"{old_value}, {new_value}, {new_value - old_value}")
+    
+    #     self.q_update_count += 1
+    #     return (abs(old_value - new_value), future_q)
 
     # Update Q-values based on the game's outcome, with correct max_future_q
     def q_update_backward(self, history, terminal_reward):
@@ -142,10 +186,25 @@ class QPlayingAgent(Agent):
         else:
             self.on_game_end(game)
             return None
+
+    def get_valid_actions(self, board):
+        return [i for i, cell in enumerate(board) if cell == ' ']
+
+    def get_best_actions(self, board, Q):
+        actions = self.get_valid_actions(board)
+        q_values = {action: Q.get(board, action) for action in actions}
+        max_q = max(q_values.values())
+        best_actions = [action for action, q in q_values.items() if q == max_q]
+        return best_actions
     
+    def get_best_action(self, board, Q):
+        best_actions = self.get_best_actions(board, Q)
+        return np.random.choice(best_actions)
+
     # Choose an action based on Q-values
     def choose_action(self, board):
-        return int(self.Q.best_action(board))
+        action = int(self.get_best_action(board, self.Q))
+        return action
     
     def on_game_end(self, game):
         if self.switching:

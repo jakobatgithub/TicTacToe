@@ -1,23 +1,7 @@
 import random
 import numpy as np
-from collections import deque
 from Agent import Agent
 from SymmetricMatrix import Matrix, SymmetricMatrix, TotallySymmetricMatrix
-
-
-# Replay Buffer
-class ReplayBuffer:
-    def __init__(self, size):
-        self.buffer = deque(maxlen=size)
-
-    def add(self, experience):
-        self.buffer.append(experience)
-
-    def sample(self, batch_size):
-        return random.sample(self.buffer, batch_size)
-
-    def __len__(self):
-        return len(self.buffer)
 
 
 class QLearningAgent(Agent):
@@ -43,7 +27,6 @@ class QLearningAgent(Agent):
 
         self.episode_history = []
         self.state_transitions = []
-        self.replay_buffer = ReplayBuffer(10000)
 
         if self.debug:
             print(f"Player: {self.player}, opponent: {self.opponent}")
@@ -59,12 +42,7 @@ class QLearningAgent(Agent):
             self.state_transitions.append((board, action, next_board, reward, done))
             self.replay_buffer.add((board, action, next_board, reward, done))
             if not self.terminal_q_updates:
-                # loss, action_value = self.q_update(board, action, next_board, reward)
-
-                if len(self.replay_buffer) >= BATCH_SIZE:
-                    experiences = self.replay_buffer.sample(BATCH_SIZE)
-                    for (board1, action1, next_board1, reward1, done1) in experiences:
-                        loss, action_value = self.q_update(board1, action1, next_board1, reward1)
+                loss, action_value = self.q_update(board, action, next_board, reward)
 
         if not done:
             board = next_board

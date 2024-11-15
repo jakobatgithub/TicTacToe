@@ -15,14 +15,14 @@ class Agent(ABC):
     def get_opponent(self, player):
         return self.players[1] if player == self.players[0] else self.players[0]
 
-    @abstractmethod    
+    @abstractmethod
     def get_action(self, state_transition, game):
         """
         Decides the next action based on the current game state.
         :param game: An instance of the Tic-Tac-Toe game.
         :return: A tuple (row, col) representing the agent's move.
         """
-        raise NotImplementedError("This method should be overridden by subclasses")
+        pass
 
 class RandomAgent(Agent):
     def get_action(self, state_transition, game):

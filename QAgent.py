@@ -1,8 +1,23 @@
 import random
 import numpy as np
-
+from collections import deque
 from Agent import Agent
 from SymmetricMatrix import Matrix, SymmetricMatrix, TotallySymmetricMatrix
+
+
+# Replay Buffer
+class ReplayBuffer:
+    def __init__(self, size):
+        self.buffer = deque(maxlen=size)
+
+    def add(self, experience):
+        self.buffer.append(experience)
+
+    def sample(self, batch_size):
+        return random.sample(self.buffer, batch_size)
+
+    def __len__(self):
+        return len(self.buffer)
 
 
 class QLearningAgent(Agent):
@@ -26,36 +41,45 @@ class QLearningAgent(Agent):
         self.train_step_count = 0
         self.q_update_count = 0
 
-        self.history = []
+        self.episode_history = []
         self.state_transitions = []
+        self.replay_buffer = ReplayBuffer(10000)
 
         if self.debug:
             print(f"Player: {self.player}, opponent: {self.opponent}")
 
-        self.evaluation_data = {'loss': [], 'avg_action_value': [], 'histories' : [], 'rewards': []}
+        self.evaluation_data = {'loss': [], 'action_value': [], 'histories' : [], 'rewards': []}
 
     def get_action(self, state_transition, game):
         next_board, reward, done = state_transition
         self.evaluation_data['rewards'].append(reward)
-        if len(self.history) > 0:
-            board, action = self.history[-1]
+        BATCH_SIZE = 16
+        if len(self.episode_history) > 0:
+            board, action = self.episode_history[-1]
+            self.state_transitions.append((board, action, next_board, reward, done))
+            self.replay_buffer.add((board, action, next_board, reward, done))
             if not self.terminal_q_updates:
-                loss, action_value = self.q_update(board, action, next_board, reward)
+                # loss, action_value = self.q_update(board, action, next_board, reward)
+
+                if len(self.replay_buffer) >= BATCH_SIZE:
+                    experiences = self.replay_buffer.sample(BATCH_SIZE)
+                    for (board1, action1, next_board1, reward1, done1) in experiences:
+                        loss, action_value = self.q_update(board1, action1, next_board1, reward1)
 
         if not done:
             board = next_board
             action = self.choose_action(board, epsilon=self.epsilon)
-            self.history.append((board, action))
+            self.episode_history.append((board, action))
             self.games_moves_count += 1
             return action
         else:
             if self.terminal_q_updates:
-                loss, action_value = self.q_update_backward(self.history, reward)
+                loss, action_value = self.q_update_backward(self.episode_history, reward)
 
             self.episode_count += 1
             self.update_rates(self.episode_count)
-            self.evaluation_data['histories'].append(self.history)
-            self.history = []
+            self.evaluation_data['histories'].append(self.episode_history)
+            self.episode_history = []
             return None
         
     def q_update(self, board, action, next_board, reward):
@@ -80,28 +104,28 @@ class QLearningAgent(Agent):
         loss = abs(old_value - new_value)
         action_value = future_q
         self.evaluation_data['loss'].append(loss / self.alpha)
-        self.evaluation_data['avg_action_value'].append(action_value)
+        self.evaluation_data['action_value'].append(action_value)
         return loss, action_value
         
     # Update Q-values based on the game's outcome, with correct max_future_q
     def q_update_backward(self, history, terminal_reward):
         avg_loss = 0
-        avg_action_value = 0
+        action_value = 0
         for i in reversed(range(len(history))):
             board, action = history[i]
             if i == len(history) - 1:
                 # Update the last state-action pair with the terminal reward
                 loss, action_value = self.q_update(board, action, None, terminal_reward)
                 avg_loss += loss
-                avg_action_value += action_value
+                action_value += action_value
             else:
                 next_board, _ = history[i + 1]
                 loss, action_value =  self.q_update(board, action, next_board, 0.0)
                 avg_loss += loss
-                avg_action_value += action_value
+                action_value += action_value
             
         self.train_step_count += 1
-        return (avg_loss/(len(history) * self.alpha), avg_action_value/(len(history)))
+        return (avg_loss/(len(history) * self.alpha), action_value/(len(history)))
 
     def update_rates(self, episode):
         self.epsilon = max(self.params['epsilon_min'], self.params['epsilon_start'] / (1 + episode/self.nr_of_episodes))

@@ -40,7 +40,6 @@ class QLearningAgent(Agent):
         if len(self.episode_history) > 0:
             board, action = self.episode_history[-1]
             self.state_transitions.append((board, action, next_board, reward, done))
-            self.replay_buffer.add((board, action, next_board, reward, done))
             if not self.terminal_q_updates:
                 loss, action_value = self.q_update(board, action, next_board, reward)
 

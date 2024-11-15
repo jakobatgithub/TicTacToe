@@ -17,7 +17,7 @@ def average_array(array, chunk_size=None):
 
     return means
 
-def plot_graphs(loss, avg_action_value, rewards):
+def plot_graphs(loss, action_value, rewards):
     # Create a figure with two subplots next to each other
     fig, axs = plt.subplots(1, 3, figsize=(12, 3))  # 1 row, 2 columns
     
@@ -33,11 +33,11 @@ def plot_graphs(loss, avg_action_value, rewards):
     axs[0].grid(True)
 
     # Plot the second graph: Mean Average Action Value
-    chunk_size = max((len(avg_action_value) // 100, 1))
-    mean_avg_action_valueX = average_array(avg_action_value)
+    chunk_size = max((len(action_value) // 100, 1))
+    mean_action_valueX = average_array(action_value)
     steps =[i * chunk_size for i in range(len(mean_lossX))]
 
-    axs[1].plot(steps[:-2], mean_avg_action_valueX[:-2], label='Mean Avg Action Value', color='orange')
+    axs[1].plot(steps[:-2], mean_action_valueX[:-2], label='Mean Avg Action Value', color='orange')
     axs[1].set_title(f'Mean action value')
     axs[1].set_xlabel('Training steps')
     axs[1].set_ylabel('Action value')
@@ -60,12 +60,12 @@ def plot_graphs(loss, avg_action_value, rewards):
 def plot_evaluation_data(learning_agent):
     evaluation_data = learning_agent.evaluation_data
     loss = evaluation_data['loss']
-    avg_action_value = evaluation_data['avg_action_value']
+    action_value = evaluation_data['action_value']
     rewards = evaluation_data['rewards']
     print(f"Number of losses: {len(loss)}")
-    print(f"Number of action values: {len(avg_action_value)}")
+    print(f"Number of action values: {len(action_value)}")
     print(f"Number of rewards: {len(rewards)}")
-    plot_graphs(loss, avg_action_value, rewards)
+    plot_graphs(loss, action_value, rewards)
 
 def extract_values(dictionary):
     """Extract all values from a potentially nested dictionary."""

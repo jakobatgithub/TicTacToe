@@ -3,9 +3,6 @@ import random
 import numpy as np
 from collections import deque
 
-import tensorflow as tf
-from tensorflow.keras import layers, models
-
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -53,21 +50,23 @@ class DeepQLearningAgent(Agent):
         self.epsilon = params['epsilon_start']
         self.alpha = params['alpha_start']
         self.nr_of_episodes = params['nr_of_episodes']
-        self.terminal_q_updates = params['terminal_q_updates']
         self.batch_size = params['batch_size']
+        self.target_update_frequency = params['target_update_frequency']
 
         self.episode_count = 0
         self.games_moves_count = 0
         self.train_step_count = 0
         self.q_update_count = 0
+        self.target_update_count = 0
 
         self.episode_history = []
         self.state_transitions = []
-        (state_size, action_size) = (3*3, 3*3)
+        self.width = params['width']
+        (state_size, action_size) = (self.width ** 2, self.width ** 2)
         self.device = torch.device(params['device'])
         print(f"Using device: {self.device}")
         self.q_network = QNetwork(state_size, action_size).to(self.device)
-        self.target_network = QNetwork(state_size, action_size)
+        self.target_network = QNetwork(state_size, action_size).to(self.device)
         self.target_network.load_state_dict(self.q_network.state_dict())
         self.target_network.eval()
 
@@ -90,52 +89,36 @@ class DeepQLearningAgent(Agent):
             self.state_transitions.append((board, action, next_board, reward, done))
             state = self.board_to_state(board)
             if next_board is None:
-                next_state = self.board_to_state(['X'] * 9) # is not needed
+                next_state = self.board_to_state(['X'] * self.width ** 2) # is not needed
             else:
                 next_state = self.board_to_state(next_board)
 
             # print(f"state = {state}")
             # print(f"next_state = {next_state}")
             self.replay_buffer.add((state, action, reward, next_state, done))
-            if not self.terminal_q_updates:
-                # loss, action_value = self.q_update(board, action, next_board, reward)
+            # loss, action_value = self.q_update(board, action, next_board, reward)
 
-                if len(self.replay_buffer) >= self.batch_size:
-                    experiences = self.replay_buffer.sample(self.batch_size)
-                    # for (board1, action1, next_board1, reward1, done1) in experiences:
-                    #     loss, action_value = self.q_update(board1, action1, next_board1, reward1)
+            if len(self.replay_buffer) >= self.batch_size:
+                experiences = self.replay_buffer.sample(self.batch_size)
+                states, actions, rewards, next_states, dones = zip(*experiences)
 
-                    states, actions, rewards, next_states, dones = zip(*experiences)
-                    # print(f"states = {states[0:2]}")
-                    # print(f"next_states = {next_states[0:2]}")
+                states = torch.FloatTensor(np.array(states)).to(self.device)
+                actions = torch.LongTensor(actions).unsqueeze(1).to(self.device)
+                rewards = torch.FloatTensor(rewards).unsqueeze(1).to(self.device)
+                next_states = torch.FloatTensor(np.array(next_states)).to(self.device)
+                dones = torch.FloatTensor(dones).unsqueeze(1).to(self.device)
 
-                    states = torch.FloatTensor(np.array(states)).to(self.device)
-                    actions = torch.LongTensor(actions).unsqueeze(1).to(self.device)
-                    rewards = torch.FloatTensor(rewards).unsqueeze(1).to(self.device)
-                    next_states = torch.FloatTensor(np.array(next_states)).to(self.device)
-                    dones = torch.FloatTensor(dones).unsqueeze(1).to(self.device)
+                q_values = self.q_network(states).gather(2, actions.unsqueeze(2)).squeeze(2)
+                next_q_values = self.q_network(next_states).max(2, keepdim=True)[0].squeeze(2)
+                # next_q_values = self.target_network(next_states).max(2, keepdim=True)[0].squeeze(2)
+                targets = rewards + (1 - dones) * self.gamma * next_q_values
 
-                    q_values = self.q_network(states).gather(2, actions.unsqueeze(2)).squeeze(2)
-
-                    # next_q_values = self.target_network(next_states).max(2, keepdim=True)[0].squeeze(2)
-                    next_q_values = self.q_network(next_states).max(2, keepdim=True)[0].squeeze(2)
-
-                    # print(f"next_q_values.shape = {next_q_values.shape}")
-
-                    targets = rewards + (1 - dones) * self.gamma * next_q_values
-
-                    # print(f"q_values.shape = {q_values.shape}")
-                    # print(f"targets.shape = {targets.shape}")
-
-                    # print(f"q_values = {q_values[0:2]}")
-                    # print(f"targets = {targets[0:2]}")
-
-                    loss = nn.MSELoss()(q_values, targets)
-                    self.evaluation_data['loss'].append(loss.item())
-                    self.evaluation_data['action_value'].append(next_q_values.mean().item())
-                    self.optimizer.zero_grad()
-                    loss.backward()
-                    self.optimizer.step()
+                loss = nn.MSELoss()(q_values, targets)
+                self.evaluation_data['loss'].append(loss.item())
+                self.evaluation_data['action_value'].append(next_q_values.mean().item())
+                self.optimizer.zero_grad()
+                loss.backward()
+                self.optimizer.step()
 
         if not done:
             board = next_board
@@ -144,8 +127,10 @@ class DeepQLearningAgent(Agent):
             self.games_moves_count += 1
             return action
         else:
-            if self.terminal_q_updates:
-                loss, action_value = self.q_update_backward(self.episode_history, reward)
+            # Update target network
+            if self.episode_count % self.target_update_frequency == 0:
+                self.target_network.load_state_dict(self.q_network.state_dict())
+                self.target_update_count += 1
 
             self.episode_count += 1
             self.update_rates(self.episode_count)

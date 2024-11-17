@@ -93,10 +93,7 @@ class DeepQLearningAgent(Agent):
             else:
                 next_state = self.board_to_state(next_board)
 
-            # print(f"state = {state}")
-            # print(f"next_state = {next_state}")
             self.replay_buffer.add((state, action, reward, next_state, done))
-            # loss, action_value = self.q_update(board, action, next_board, reward)
 
             if len(self.replay_buffer) >= self.batch_size:
                 experiences = self.replay_buffer.sample(self.batch_size)
@@ -197,17 +194,6 @@ class DeepQLearningAgent(Agent):
 
     def get_valid_actions(self, board):
         return [i for i, cell in enumerate(board) if cell == ' ']
-    
-    def get_best_actions(self, board, Q):
-        actions = self.get_valid_actions(board)
-        q_values = {action: Q.get(board, action) for action in actions}
-        max_q = max(q_values.values())
-        best_actions = [action for action, q in q_values.items() if q == max_q]
-        return best_actions
-    
-    def get_best_action(self, board, Q):
-        best_actions = self.get_best_actions(board, Q)
-        return np.random.choice(best_actions)
 
     # Choose an action based on Q-values
     def choose_action(self, board, epsilon):

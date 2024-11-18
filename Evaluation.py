@@ -57,6 +57,24 @@ def plot_graphs(loss, action_value, rewards):
     plt.tight_layout()
     plt.show()
 
+def plot_valid_actions(learning_agent):
+    evaluation_data = learning_agent.evaluation_data
+    valid_actions = evaluation_data['valid_actions']
+    chunk_size = max((len(valid_actions) // 100, 1))
+    mean_valid_actions = average_array(valid_actions)
+    steps =[i * chunk_size for i in range(len(mean_valid_actions))]
+    fig, axs = plt.subplots(1, 1, figsize=(4, 3))  # 1 row, 2 columns
+    
+    axs.plot(steps[:-2], mean_valid_actions[:-2], label='Valid actions')
+    axs.set_title(f'Valid actions')
+    axs.set_xlabel('Training steps')
+    axs.set_ylabel('Fraction of valid actions')
+    axs.grid(True)
+
+    # Adjust layout for better spacing
+    plt.tight_layout()
+    plt.show()
+
 def plot_evaluation_data(learning_agent):
     evaluation_data = learning_agent.evaluation_data
     loss = evaluation_data['loss']
@@ -110,7 +128,7 @@ def QAgent_plays_against_RandomAgent(Q, player, nr_of_episodes=5000, width=3, he
     opponent = 'O' if player == 'X' else 'X'
     random_agent1 = RandomAgent(player=opponent, switching=False)
     game = TicTacToe(playing_agent1, random_agent1, display=False, width=width, height=height, win_length=win_length)
-    outcomes = {'X' : 0, 'O' : 0, 'D' : 0}
+    outcomes = {'X' : 0, 'O' : 0, 'D' : 0, 'I' : 0}
     for _ in range(nr_of_episodes):
         outcome = game.play()
         outcomes[outcome] += 1
@@ -125,7 +143,7 @@ def QAgent_plays_against_QAgent(Q1, player1, Q2, player2=None, nr_of_episodes=50
 
     playing_agent2 = QPlayingAgent(Q2, player=player2, switching=False)
     game = TicTacToe(playing_agent1, playing_agent2, display=False, width=width, height=height, win_length=win_length)
-    outcomes = {'X' : 0, 'O' : 0, 'D' : 0}
+    outcomes = {'X' : 0, 'O' : 0, 'D' : 0, 'I' : 0}
     for episode in range(nr_of_episodes):
         outcome = game.play()
         outcomes[outcome] += 1

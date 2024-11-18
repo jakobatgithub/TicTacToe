@@ -64,13 +64,12 @@ class DeepQLearningAgent(Agent):
         self.width = params['width']
         (state_size, action_size) = (self.width ** 2, self.width ** 2)
         self.device = torch.device(params['device'])
-        print(f"Using device: {self.device}")
         self.q_network = QNetwork(state_size, action_size).to(self.device)
         self.target_network = QNetwork(state_size, action_size).to(self.device)
         self.target_network.load_state_dict(self.q_network.state_dict())
         self.target_network.eval()
 
-        self.optimizer = optim.Adam(self.q_network.parameters(), lr=0.001)
+        self.optimizer = optim.Adam(self.q_network.parameters(), lr=0.0005)
         self.replay_buffer = ReplayBuffer(10000)
 
         self.state_to_board_translation = {'X': 1, 'O': -1, ' ': 0}
@@ -79,7 +78,7 @@ class DeepQLearningAgent(Agent):
         if self.debug:
             print(f"Player: {self.player}, opponent: {self.opponent}")
 
-        self.evaluation_data = {'loss': [], 'action_value': [], 'histories' : [], 'rewards': []}
+        self.evaluation_data = {'loss': [], 'action_value': [], 'histories' : [], 'rewards': [], 'valid_actions': []}
 
     def get_action(self, state_transition, game):
         next_board, reward, done = state_transition
@@ -106,8 +105,8 @@ class DeepQLearningAgent(Agent):
                 dones = torch.FloatTensor(dones).unsqueeze(1).to(self.device)
 
                 q_values = self.q_network(states).gather(2, actions.unsqueeze(2)).squeeze(2)
-                next_q_values = self.q_network(next_states).max(2, keepdim=True)[0].squeeze(2)
-                # next_q_values = self.target_network(next_states).max(2, keepdim=True)[0].squeeze(2)
+                # next_q_values = self.q_network(next_states).max(2, keepdim=True)[0].squeeze(2)
+                next_q_values = self.target_network(next_states).max(2, keepdim=True)[0].squeeze(2)
                 targets = rewards + (1 - dones) * self.gamma * next_q_values
 
                 loss = nn.MSELoss()(q_values, targets)
@@ -208,6 +207,11 @@ class DeepQLearningAgent(Agent):
             with torch.no_grad():
                 action = torch.argmax(self.q_network(state_tensor)).item()
 
+            if action in self.get_valid_actions(board):
+                self.evaluation_data['valid_actions'].append(1)
+            else:
+                self.evaluation_data['valid_actions'].append(0)
+
             return action
 
 
@@ -216,7 +220,6 @@ class DeepQPlayingAgent(Agent):
         super().__init__(player=player, switching=switching)
         # self.device = torch.device('mps')
         self.device = torch.device('cpu')
-        print(f"Using device: {self.device}")
 
         self.q_network = q_network.to(self.device)
         self.verbose_level = 0 # verbose level for tensorflow
@@ -255,8 +258,9 @@ class DeepQPlayingAgent(Agent):
         with torch.no_grad():
             q_values = self.q_network(state_tensor).squeeze().tolist()
         
-        masked_q_values = self.mask_invalid_actions(q_values, valid_actions)
-        action = valid_actions[np.argmax(masked_q_values)]
+        # masked_q_values = self.mask_invalid_actions(q_values, valid_actions)
+        # action = valid_actions[np.argmax(masked_q_values)]
+        action = np.argmax(q_values)
         return action
     
     def get_action(self, state_transition, game):

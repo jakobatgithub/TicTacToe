@@ -21,6 +21,7 @@ class TicTacToe:
             self._board[action] = self._current_player
             return True
         else:
+            self._invalid_move = True
             return False
         
     def _switch_player(self):
@@ -66,7 +67,7 @@ class TicTacToe:
         return ' ' not in self._board
 
     def _is_game_over(self):
-        self._done = self._is_won('X') or self._is_won('O') or self._is_draw()
+        self._done = self._is_won('X') or self._is_won('O') or self._is_draw() or self._invalid_move
         return self._done
     
     def _get_outcome(self):
@@ -76,11 +77,14 @@ class TicTacToe:
             return 'O'
         elif self._is_draw():
             return 'D'
+        elif self._invalid_move:
+            return 'I'
         
         return None
 
     def _initialize(self):
         self._done = False
+        self._invalid_move = False
         self._board = self._initialize_board()
         self._current_player = 'X'
         self._history = []
@@ -126,9 +130,6 @@ class TicTacToe:
             return 0.0, 0.0
         else:
             return 0.0, 0.0
-        #     return -1.0, 0.0
-        # else:
-        #     return 0.0, -1.0
         
     def _get_terminal_rewards(self, outcome):
         if outcome == 'D':
@@ -137,6 +138,10 @@ class TicTacToe:
             return 1.0, -1.0
         elif outcome == self._agent2.player:
             return -1.0, 1.0
+        elif outcome == 'I' and self._current_player == self._agent1.player:
+            return -1.0, 1.0
+        elif outcome == 'I' and self._current_player == self._agent2.player:
+            return 0.0, -1.0
         
         return None, None
 
@@ -163,9 +168,6 @@ class TicTacToe:
             if self._make_move(action):
                 step_reward1, step_reward2 = self._get_step_rewards_for_valid_move()
                 self._switch_player()
-            else:
-                step_reward1, step_reward2 = self._get_step_rewards_for_invalid_move()
-                continue
 
         outcome = self._get_outcome()
         terminal_reward1, terminal_reward2 = self._get_terminal_rewards(outcome)
@@ -179,7 +181,9 @@ class TicTacToe:
             time.sleep(self._waiting_time)
             if outcome == 'X' or outcome == 'O':
                 print(f"Player {outcome} wins!")
-            else:
+            elif outcome == 'D':
                 print("It's a draw!")
+            elif outcome == 'I':
+                print("Invalid move!")
         
         return outcome

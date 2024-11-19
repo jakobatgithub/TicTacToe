@@ -128,7 +128,7 @@ def QAgent_plays_against_RandomAgent(Q, player, nr_of_episodes=5000, width=3, he
     opponent = 'O' if player == 'X' else 'X'
     random_agent1 = RandomAgent(player=opponent, switching=False)
     game = TicTacToe(playing_agent1, random_agent1, display=False, width=width, height=height, win_length=win_length)
-    outcomes = {'X' : 0, 'O' : 0, 'D' : 0, 'I' : 0}
+    outcomes = {'X' : 0, 'O' : 0, 'D' : 0}
     for _ in range(nr_of_episodes):
         outcome = game.play()
         outcomes[outcome] += 1
@@ -143,7 +143,7 @@ def QAgent_plays_against_QAgent(Q1, player1, Q2, player2=None, nr_of_episodes=50
 
     playing_agent2 = QPlayingAgent(Q2, player=player2, switching=False)
     game = TicTacToe(playing_agent1, playing_agent2, display=False, width=width, height=height, win_length=win_length)
-    outcomes = {'X' : 0, 'O' : 0, 'D' : 0, 'I' : 0}
+    outcomes = {'X' : 0, 'O' : 0, 'D' : 0}
     for episode in range(nr_of_episodes):
         outcome = game.play()
         outcomes[outcome] += 1

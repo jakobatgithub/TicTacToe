@@ -1,15 +1,18 @@
 import time
 import tkinter as tk
 from IPython.display import clear_output
+from abc import ABC, abstractmethod
 
-class Display:
+class Display(ABC):
+    @abstractmethod
     def update_display(self, board, outcome=None):
         """Update the display with the given board state."""
-        raise NotImplementedError("This method should be overridden in subclasses.")
+        pass
 
+    @abstractmethod
     def set_message(self, message):
         """Display a message."""
-        raise NotImplementedError("This method should be overridden in subclasses.")
+        pass
 
 
 class TicTacToeDisplay(tk.Tk, Display):

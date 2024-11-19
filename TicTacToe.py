@@ -33,7 +33,7 @@ class TicTacToe:
         return [' ' for _ in range(rows * cols)]
     
     def _make_move(self, action):
-        if action in self.get_valid_actions_from_board():
+        if action in self.get_valid_actions():
             self._board[action] = self._current_player
             return True
         else:

@@ -3,6 +3,8 @@ import random
 import numpy as np
 from collections import deque
 
+import wandb
+
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -48,16 +50,19 @@ class DeepQLearningAgent(Agent):
         self.debug = params['debug']
         self.gamma = params['gamma']
         self.epsilon = params['epsilon_start']
-        self.alpha = params['alpha_start']
         self.nr_of_episodes = params['nr_of_episodes']
         self.batch_size = params['batch_size']
         self.target_update_frequency = params['target_update_frequency']
+        self.learning_rate = params['learning_rate']
+        self.replay_buffer_length = params['replay_buffer_length']
 
         self.episode_count = 0
         self.games_moves_count = 0
         self.train_step_count = 0
         self.q_update_count = 0
         self.target_update_count = 0
+
+        wandb.init(config=params)
 
         self.episode_history = []
         self.state_transitions = []
@@ -69,8 +74,10 @@ class DeepQLearningAgent(Agent):
         self.target_network.load_state_dict(self.q_network.state_dict())
         self.target_network.eval()
 
-        self.optimizer = optim.Adam(self.q_network.parameters(), lr=0.0005)
-        self.replay_buffer = ReplayBuffer(10000)
+        self.optimizer = optim.Adam(self.q_network.parameters(), lr=self.learning_rate)
+        self.replay_buffer = ReplayBuffer(self.replay_buffer_length)
+
+        wandb.watch(self.q_network, log_freq=100)
 
         self.state_to_board_translation = {'X': 1, 'O': -1, ' ': 0}
         self.board_to_state_translation = {1: 'X', -1: 'O', 0: ' '}
@@ -112,6 +119,8 @@ class DeepQLearningAgent(Agent):
                 loss = nn.MSELoss()(q_values, targets)
                 self.evaluation_data['loss'].append(loss.item())
                 self.evaluation_data['action_value'].append(next_q_values.mean().item())
+                wandb.log({"loss": loss})
+                wandb.log({"action_value": next_q_values.mean().item()})
                 self.optimizer.zero_grad()
                 loss.backward()
                 self.optimizer.step()
@@ -133,51 +142,6 @@ class DeepQLearningAgent(Agent):
             self.evaluation_data['histories'].append(self.episode_history)
             self.episode_history = []
             return None
-        
-    def q_update(self, board, action, next_board, reward):
-        old_value = self.Q.get(board, action)
-        if next_board:
-            # Calculate max Q-value for the next state over all possible actions
-            next_actions = self.get_valid_actions(next_board)
-            future_qs = [self.Q.get(next_board, next_action) for next_action in next_actions]
-            if self.debug:
-                print(f"future_qs = {future_qs}")
-            
-            future_q = max(future_qs)
-        else:
-            future_q = 0.0
-
-        new_value = (1 - self.alpha) * old_value + self.alpha * (reward + self.gamma * future_q)
-        self.Q.set(board, action, new_value)
-        if self.debug:
-            print(f"{old_value}, {new_value}, {new_value - old_value}")
-    
-        self.q_update_count += 1
-        loss = abs(old_value - new_value)
-        action_value = future_q
-        self.evaluation_data['loss'].append(loss / self.alpha)
-        self.evaluation_data['action_value'].append(action_value)
-        return loss, action_value
-        
-    # Update Q-values based on the game's outcome, with correct max_future_q
-    def q_update_backward(self, history, terminal_reward):
-        avg_loss = 0
-        action_value = 0
-        for i in reversed(range(len(history))):
-            board, action = history[i]
-            if i == len(history) - 1:
-                # Update the last state-action pair with the terminal reward
-                loss, action_value = self.q_update(board, action, None, terminal_reward)
-                avg_loss += loss
-                action_value += action_value
-            else:
-                next_board, _ = history[i + 1]
-                loss, action_value =  self.q_update(board, action, next_board, 0.0)
-                avg_loss += loss
-                action_value += action_value
-            
-        self.train_step_count += 1
-        return (avg_loss/(len(history) * self.alpha), action_value/(len(history)))
 
     def board_to_state(self, board):
         return np.array([self.state_to_board_translation[cell] for cell in board]).reshape(1, -1)
@@ -189,7 +153,6 @@ class DeepQLearningAgent(Agent):
 
     def update_rates(self, episode):
         self.epsilon = max(self.params['epsilon_min'], self.params['epsilon_start'] / (1 + episode/self.nr_of_episodes))
-        self.alpha = max(self.params['alpha_min'], self.params['alpha_start'] / (1 + episode/self.nr_of_episodes))
 
     def get_valid_actions(self, board):
         return [i for i, cell in enumerate(board) if cell == ' ']

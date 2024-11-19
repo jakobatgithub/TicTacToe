@@ -103,12 +103,9 @@ class TicTacToe:
     def get_done(self):
         return self._done
     
-    def display_board(self):
+    def display_board(self, board, width, height, waiting_time=0.25, outcome=None):
         from IPython.display import clear_output
         clear_output(wait=True)
-        board = self._board
-        width = self._width
-        height = self._height
         row_divider = "-" * (6 * width - 1)
         
         for row in range(height):
@@ -118,7 +115,15 @@ class TicTacToe:
             print(row_content)
             if row < height - 1:
                 print(row_divider)
+        
         print("\n")
+        if outcome is not None:
+            if outcome == 'X' or outcome == 'O':
+                print(f"Player {outcome} wins!")
+            elif outcome == 'D':
+                print("It's a draw!")
+
+        time.sleep(waiting_time)
 
     def _get_step_rewards(self):
         return 0.0, 0.0
@@ -139,9 +144,8 @@ class TicTacToe:
         terminal_reward1, terminal_reward2 = 0.0, 0.0
 
         while not self._is_game_over():
-            if self._display:
-                self.display_board()
-                time.sleep(self._waiting_time)
+            if self._display is not None:
+                self.display_board(self._board, self._width, self._height, self._waiting_time)
             
             if self._current_player == self._agent1.player:
                 state_transition1 = (self._board[:], step_reward1, False) # board, reward, done
@@ -164,12 +168,7 @@ class TicTacToe:
         self._agent1.get_action(state_transition1, self)
         self._agent2.get_action(state_transition2, self)
 
-        if self._display:
-            self.display_board()
-            time.sleep(self._waiting_time)
-            if outcome == 'X' or outcome == 'O':
-                print(f"Player {outcome} wins!")
-            elif outcome == 'D':
-                print("It's a draw!")
+        if self._display is not None:
+            self.display_board(self._board, self._width, self._height, self._waiting_time, outcome)
         
         return outcome

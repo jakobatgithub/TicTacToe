@@ -77,8 +77,6 @@ class DeepQLearningAgent(Agent):
         self.optimizer = optim.Adam(self.q_network.parameters(), lr=self.learning_rate)
         self.replay_buffer = ReplayBuffer(self.replay_buffer_length)
 
-        wandb.watch(self.q_network, log_freq=100)
-
         self.state_to_board_translation = {'X': 1, 'O': -1, ' ': 0}
         self.board_to_state_translation = {1: 'X', -1: 'O', 0: ' '}
 
@@ -120,7 +118,7 @@ class DeepQLearningAgent(Agent):
                 loss = nn.MSELoss()(q_values, targets)
                 self.evaluation_data['loss'].append(loss.item())
                 self.evaluation_data['action_value'].append(next_q_values.mean().item())
-                wandb.log({"loss": loss})
+                wandb.log({"loss": loss.item()})
                 wandb.log({"action_value": next_q_values.mean().item()})
                 self.optimizer.zero_grad()
                 loss.backward()

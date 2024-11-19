@@ -184,10 +184,12 @@ class DeepQPlayingAgent(Agent):
         super().__init__(player=player, switching=switching)
         # self.device = torch.device('mps')
         self.device = torch.device('cpu')
-
-        self.q_network = q_network.to(self.device)
-        self.verbose_level = 0 # verbose level for tensorflow
-
+        if isinstance(q_network, torch.nn.Module):
+            self.q_network = q_network.to(self.device)
+        elif isinstance(q_network, str):
+            self.q_network = torch.load(q_network).to(self.device)
+            self.q_network.eval()
+        
         self.state_to_board_translation = {'X': 1, 'O': -1, ' ': 0}
         board_to_state_translation = {}
         for key, value in self.state_to_board_translation.items():

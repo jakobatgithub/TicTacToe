@@ -28,11 +28,12 @@ class TicTacToe:
             # For Console: Run game logic directly
             self.play()
 
-    def _initialize_board(self):
-        return [' ' for _ in range(self._rows * self._cols)]
+    @staticmethod
+    def initialize_board(rows=3, cols=3):
+        return [' ' for _ in range(rows * cols)]
     
     def _make_move(self, action):
-        if action in self.get_valid_actions():
+        if action in self.get_valid_actions_from_board():
             self._board[action] = self._current_player
             return True
         else:
@@ -98,13 +99,17 @@ class TicTacToe:
     def _initialize(self):
         self._done = False
         self._invalid_move = False
-        self._board = self._initialize_board()
+        self._board = self.initialize_board(self._rows, self._cols)
         self._current_player = 'X'
         self._history = []
         assert self._agent1.player != self._agent2.player
 
+    @staticmethod
+    def get_valid_actions_from_board(board):
+        return [i for i, cell in enumerate(board) if cell == ' ']
+    
     def get_valid_actions(self):
-        return [i for i, cell in enumerate(self._board) if cell == ' ']
+        return self.get_valid_actions_from_board(self._board)
 
     def get_board(self):
         return self._board

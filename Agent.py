@@ -79,16 +79,13 @@ class MouseAgent(Agent):
         """
         self.selected_action = None
         game.display.bind_click_handler(self.handle_click)  # Bind the click handler
-        print(f"Selected action 1: {self.selected_action}")
         game.display.wait_for_player_action()  # Wait for the user to select an action
-        print(f"Selected action 2: {self.selected_action}")
         return self.selected_action
 
-    def handle_click(self, i):
+    def handle_click(self, action):
         """
         Handles the mouse click on the board.
         :param row: The row of the clicked cell.
         :param col: The column of the clicked cell.
         """
-        print(f"Clicked at (i)")
-        self.selected_action = i
+        self.selected_action = action

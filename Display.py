@@ -32,17 +32,16 @@ class TicTacToeDisplay(tk.Tk, Display):
 
     def _init_display(self):
         """Initialize the board display as a grid of labels."""
-        for i in range(self.rows * self.cols):  # 9 fields for a 3x3 board
+        for idx in range(self.rows * self.cols):  # 9 fields for a 3x3 board
             label = tk.Label(self, text=' ', font=('Arial', 24), width=5, height=2, borderwidth=1, relief="solid")
-            label.grid(row=(i // self.rows) + 1, column=i % self.cols)  # Offset by +1 to make room for the message label
-            # label.bind("<Button-1>", lambda event, r=(i // self.rows), c=(i % self.cols): self.handle_click(event, r, c))
-            label.bind("<Button-1>", lambda event, r=i: self.handle_click(event, r))
+            label.grid(row=(idx // self.rows) + 1, column=idx % self.cols)  # Offset by +1 to make room for the message label
+            label.bind("<Button-1>", lambda event, action=idx: self.handle_click(event, action))
             self.labels.append(label)
 
-    def handle_click(self, event, i):
+    def handle_click(self, event, action):
         """Handle a mouse click on the board."""
         if self.click_handler:
-            self.click_handler(i)
+            self.click_handler(action)
             self.action_complete.set(True)  # Signal that the action is complete
 
     def bind_click_handler(self, handler):

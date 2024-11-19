@@ -1,12 +1,15 @@
 import time
 
 from Display import TicTacToeDisplay
+from Agent import MouseAgent
 
 class TicTacToe:
     def __init__(self, agent1, agent2, display=None, waiting_time=1.0, rows=3, cols=3, win_length=3):
         self.display = None
         self._waiting_time = waiting_time
-        assert cols == rows
+        if cols != rows:
+            raise ValueError("Board must be square")
+
         self._agent1 = agent1
         self._agent2 = agent2
         self._rows = rows
@@ -18,8 +21,11 @@ class TicTacToe:
             self.display = display
             self.start_game()
 
-
     def start_game(self):
+        if isinstance(self._agent1, MouseAgent) or isinstance(self._agent2, MouseAgent):
+            if not isinstance(self.display, TicTacToeDisplay):
+                raise ValueError("Mouse agent can only be used with TicTacToeDisplay")            
+
         if isinstance(self.display, TicTacToeDisplay):
             # For GUI: Schedule game logic
             self.display.after(0, self.play)
@@ -102,7 +108,8 @@ class TicTacToe:
         self._board = self.initialize_board(self._rows, self._cols)
         self._current_player = 'X'
         self._history = []
-        assert self._agent1.player != self._agent2.player
+        if self._agent1.player == self._agent2.player:
+            raise ValueError("Players must be different")
 
     @staticmethod
     def get_valid_actions_from_board(board):

@@ -63,3 +63,32 @@ class HumanAgent(Agent):
     def on_game_end(self, game):
         if self.switching:
             self.player, self.opponent = self.opponent, self.player
+
+
+class MouseAgent(Agent):
+    def __init__(self, player='X'):
+        super().__init__(player)
+        self.selected_action = None  # Stores the clicked (row, col) action
+
+    def get_action(self, state_transition, game):
+        """
+        Waits for a mouse click and returns the corresponding (row, col) position.
+        :param state_transition: Not used for a human player.
+        :param game: The game instance (TicTacToeDisplay) to monitor for input.
+        :return: A tuple (row, col) representing the selected move.
+        """
+        self.selected_action = None
+        game.display.bind_click_handler(self.handle_click)  # Bind the click handler
+        print(f"Selected action 1: {self.selected_action}")
+        game.display.wait_for_player_action()  # Wait for the user to select an action
+        print(f"Selected action 2: {self.selected_action}")
+        return self.selected_action
+
+    def handle_click(self, i):
+        """
+        Handles the mouse click on the board.
+        :param row: The row of the clicked cell.
+        :param col: The column of the clicked cell.
+        """
+        print(f"Clicked at (i)")
+        self.selected_action = i

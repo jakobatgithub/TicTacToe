@@ -27,13 +27,33 @@ class TicTacToeDisplay(tk.Tk, Display):
         self.message_label = tk.Label(self, text="", font=("Arial", 16))
         self.message_label.grid(row=0, column=0, columnspan=self.cols)  # Span the entire top row
         self._init_display()
+        self.click_handler = None  # A callback for handling clicks
+        self.action_complete = tk.BooleanVar(value=False)  # Persistent variable to control wait state
 
     def _init_display(self):
         """Initialize the board display as a grid of labels."""
         for i in range(self.rows * self.cols):  # 9 fields for a 3x3 board
             label = tk.Label(self, text=' ', font=('Arial', 24), width=5, height=2, borderwidth=1, relief="solid")
             label.grid(row=(i // self.rows) + 1, column=i % self.cols)  # Offset by +1 to make room for the message label
+            # label.bind("<Button-1>", lambda event, r=(i // self.rows), c=(i % self.cols): self.handle_click(event, r, c))
+            label.bind("<Button-1>", lambda event, r=i: self.handle_click(event, r))
             self.labels.append(label)
+
+    def handle_click(self, event, i):
+        """Handle a mouse click on the board."""
+        if self.click_handler:
+            self.click_handler(i)
+            self.action_complete.set(True)  # Signal that the action is complete
+
+    def bind_click_handler(self, handler):
+        """Bind the click handler for mouse input."""
+        self.click_handler = handler
+
+    def wait_for_player_action(self):
+        """Wait for the player to perform an action (no-op for GUI)."""
+        self.action_complete.set(False)  # Reset the variable before waiting        
+        print("Waiting for player action.")
+        self.wait_variable(self.action_complete)  # Suspend until an action occurs
 
     def update_display(self, board, outcome=None):
         """Update the display with the given board state."""

@@ -1,8 +1,10 @@
 import time
 
+from Display import TicTacToeDisplay
+
 class TicTacToe:
-    def __init__(self, agent1, agent2, display=None, waiting_time=0.25, rows=3, cols=3, win_length=3):
-        self._display = display
+    def __init__(self, agent1, agent2, display=None, waiting_time=1.0, rows=3, cols=3, win_length=3):
+        self.display = None
         self._waiting_time = waiting_time
         assert cols == rows
         self._agent1 = agent1
@@ -12,6 +14,19 @@ class TicTacToe:
         self._win_length = win_length
         self._generate_win_conditions()
         self._initialize()
+        if display is not None:
+            self.display = display
+            self.start_game()
+
+
+    def start_game(self):
+        if isinstance(self.display, TicTacToeDisplay):
+            # For GUI: Schedule game logic
+            self.display.after(0, self.play)
+            self.display.mainloop()
+        else:
+            # For Console: Run game logic directly
+            self.play()
 
     def _initialize_board(self):
         return [' ' for _ in range(self._rows * self._cols)]
@@ -103,28 +118,10 @@ class TicTacToe:
     def get_done(self):
         return self._done
     
-    def display_board(self, board, rows, cols, waiting_time=0.25, outcome=None):
-        from IPython.display import clear_output
-        clear_output(wait=True)
-        row_divider = "-" * (6 * rows - 1)
+    def display_board(self, board, outcome=None):
+        if self.display is not None:
+            self.display.update_display(board, outcome)
         
-        for row in range(cols):
-            row_content = " | ".join(
-                f" {board[col + row * rows]} " for col in range(rows)
-            )
-            print(row_content)
-            if row < cols - 1:
-                print(row_divider)
-        
-        print("\n")
-        if outcome is not None:
-            if outcome == 'X' or outcome == 'O':
-                print(f"Player {outcome} wins!")
-            elif outcome == 'D':
-                print("It's a draw!")
-
-        time.sleep(waiting_time)
-
     def _get_step_rewards(self):
         return 0.0, 0.0
         
@@ -144,8 +141,7 @@ class TicTacToe:
         terminal_reward1, terminal_reward2 = 0.0, 0.0
 
         while not self._is_game_over():
-            if self._display is not None:
-                self.display_board(self._board, self._rows, self._cols, self._waiting_time)
+            self.display_board(self._board)
             
             if self._current_player == self._agent1.player:
                 state_transition1 = (self._board[:], step_reward1, False) # board, reward, done
@@ -168,7 +164,6 @@ class TicTacToe:
         self._agent1.get_action(state_transition1, self)
         self._agent2.get_action(state_transition2, self)
 
-        if self._display is not None:
-            self.display_board(self._board, self._rows, self._cols, self._waiting_time, outcome)
+        self.display_board(self._board, outcome)
         
         return outcome

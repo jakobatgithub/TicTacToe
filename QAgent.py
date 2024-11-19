@@ -17,8 +17,8 @@ class QLearningAgent(Agent):
 
         # Initialize matrices
         # self.Q = Matrix(default_value=params['Q_initial_value'])
-        # self.Q = SymmetricMatrix(default_value=params['Q_initial_value'], lazy=params['lazy_evaluation'], width=params['width'])
-        self.Q = TotallySymmetricMatrix(default_value=params['Q_initial_value'], lazy=params['lazy_evaluation'], width=params['width'])
+        # self.Q = SymmetricMatrix(default_value=params['Q_initial_value'], lazy=params['lazy_evaluation'], rows=params['rows'])
+        self.Q = TotallySymmetricMatrix(default_value=params['Q_initial_value'], lazy=params['lazy_evaluation'], rows=params['rows'])
 
         self.episode_count = 0
         self.games_moves_count = 0

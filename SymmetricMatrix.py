@@ -107,9 +107,9 @@ class Matrix:
 
 
 class SymmetricMatrix:
-    def __init__(self, file=None, default_value=None, lazy=True, width=3):
+    def __init__(self, file=None, default_value=None, lazy=True, rows=3):
         self.default_value = 0.0
-        self.width = width
+        self.rows = rows
 
         if default_value is None and file is None:
             self.qMatrix = defaultdict(self._initialize_q_matrix)
@@ -142,7 +142,7 @@ class SymmetricMatrix:
             lambda x: np.transpose(x),           # Diagonal reflection (TL-BR) inverse
         ]
 
-        self.original_actions = np.array(range(self.width * self.width)).reshape(self.width, self.width)
+        self.original_actions = np.array(range(self.rows * self.rows)).reshape(self.rows, self.rows)
         for i, transform in enumerate(self.transformations):
             assert self.inverse_transformations[i](transform(self.original_actions)).flatten().tolist() == self.original_actions.flatten().tolist()
 
@@ -190,19 +190,19 @@ class SymmetricMatrix:
 
     def _board_to_matrix(self, board):
         """
-        Convert a linear board to a width x width matrix for easier manipulation
+        Convert a linear board to a rows x rows matrix for easier manipulation
         """
-        return np.array(board).reshape(self.width, self.width)
+        return np.array(board).reshape(self.rows, self.rows)
 
     def _matrix_to_board(self, matrix):
         """
-        Convert a width x width matrix back to a linear board representation.
+        Convert a rows x rows matrix back to a linear board representation.
         """
         return matrix.flatten().tolist()
 
     def _generate_all_valid_boards(self):
         symbols = [' ', 'X', 'O']
-        all_boards = list(product(symbols, repeat=self.width*self.width))  # Generate all 3^(width^2) combinations
+        all_boards = list(product(symbols, repeat=self.rows*self.rows))  # Generate all 3^(rows^2) combinations
         # print(f"Total number of boards: {len(all_boards)}")
         all_valid_boards = []
 
@@ -283,9 +283,9 @@ class SymmetricMatrix:
 
 
 class TotallySymmetricMatrix(SymmetricMatrix):
-    def __init__(self, file=None, default_value=None, lazy=True, width=3):
+    def __init__(self, file=None, default_value=None, lazy=True, rows=3):
         # Call the parent initializer first
-        super().__init__(file=file, default_value=default_value, lazy=lazy, width=width)
+        super().__init__(file=file, default_value=default_value, lazy=lazy, rows=rows)
 
         # Override q_matrix initialization for TotallySymmetricMatrix
         if file is not None:

@@ -1,20 +1,20 @@
 import time
 
 class TicTacToe:
-    def __init__(self, agent1, agent2, display=None, waiting_time=0.25, width=3, height=3, win_length=3):
+    def __init__(self, agent1, agent2, display=None, waiting_time=0.25, rows=3, cols=3, win_length=3):
         self._display = display
         self._waiting_time = waiting_time
-        assert height == width
+        assert cols == rows
         self._agent1 = agent1
         self._agent2 = agent2
-        self._width = width
-        self._height = height
+        self._rows = rows
+        self._cols = cols
         self._win_length = win_length
         self._generate_win_conditions()
         self._initialize()
 
     def _initialize_board(self):
-        return [' ' for _ in range(self._width * self._height)]
+        return [' ' for _ in range(self._rows * self._cols)]
     
     def _make_move(self, action):
         if action in self.get_valid_actions():
@@ -28,33 +28,33 @@ class TicTacToe:
         self._current_player = 'O' if self._current_player == 'X' else 'X'
 
     def _generate_win_conditions(self):
-        width = self._width
-        height = self._height
+        rows = self._rows
+        cols = self._cols
         win_length = self._win_length
         self._win_conditions = []
 
-        for row in range(height):
-            for start_col in range(width - win_length + 1):
+        for row in range(cols):
+            for start_col in range(rows - win_length + 1):
                 self._win_conditions.append(
-                    [start_col + row * width + offset for offset in range(win_length)]
+                    [start_col + row * rows + offset for offset in range(win_length)]
                 )
 
-        for col in range(width):
-            for start_row in range(height - win_length + 1):
+        for col in range(rows):
+            for start_row in range(cols - win_length + 1):
                 self._win_conditions.append(
-                    [col + (start_row + offset) * width for offset in range(win_length)]
+                    [col + (start_row + offset) * rows for offset in range(win_length)]
                 )
 
-        for row in range(height - win_length + 1):
-            for col in range(width - win_length + 1):
+        for row in range(cols - win_length + 1):
+            for col in range(rows - win_length + 1):
                 self._win_conditions.append(
-                    [(col + offset) + (row + offset) * width for offset in range(win_length)]
+                    [(col + offset) + (row + offset) * rows for offset in range(win_length)]
                 )
 
-        for row in range(height - win_length + 1):
-            for col in range(win_length - 1, width):
+        for row in range(cols - win_length + 1):
+            for col in range(win_length - 1, rows):
                 self._win_conditions.append(
-                    [(col - offset) + (row + offset) * width for offset in range(win_length)]
+                    [(col - offset) + (row + offset) * rows for offset in range(win_length)]
                 )
 
     def _is_won(self, player):
@@ -103,17 +103,17 @@ class TicTacToe:
     def get_done(self):
         return self._done
     
-    def display_board(self, board, width, height, waiting_time=0.25, outcome=None):
+    def display_board(self, board, rows, cols, waiting_time=0.25, outcome=None):
         from IPython.display import clear_output
         clear_output(wait=True)
-        row_divider = "-" * (6 * width - 1)
+        row_divider = "-" * (6 * rows - 1)
         
-        for row in range(height):
+        for row in range(cols):
             row_content = " | ".join(
-                f" {board[col + row * width]} " for col in range(width)
+                f" {board[col + row * rows]} " for col in range(rows)
             )
             print(row_content)
-            if row < height - 1:
+            if row < cols - 1:
                 print(row_divider)
         
         print("\n")
@@ -145,7 +145,7 @@ class TicTacToe:
 
         while not self._is_game_over():
             if self._display is not None:
-                self.display_board(self._board, self._width, self._height, self._waiting_time)
+                self.display_board(self._board, self._rows, self._cols, self._waiting_time)
             
             if self._current_player == self._agent1.player:
                 state_transition1 = (self._board[:], step_reward1, False) # board, reward, done
@@ -169,6 +169,6 @@ class TicTacToe:
         self._agent2.get_action(state_transition2, self)
 
         if self._display is not None:
-            self.display_board(self._board, self._width, self._height, self._waiting_time, outcome)
+            self.display_board(self._board, self._rows, self._cols, self._waiting_time, outcome)
         
         return outcome

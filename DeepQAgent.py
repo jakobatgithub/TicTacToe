@@ -66,8 +66,8 @@ class DeepQLearningAgent(Agent):
 
         self.episode_history = []
         self.state_transitions = []
-        self.width = params['width']
-        (state_size, action_size) = (self.width ** 2, self.width ** 2)
+        self.rows = params['rows']
+        (state_size, action_size) = (self.rows ** 2, self.rows ** 2)
         self.device = torch.device(params['device'])
         self.q_network = QNetwork(state_size, action_size).to(self.device)
         self.target_network = QNetwork(state_size, action_size).to(self.device)
@@ -96,7 +96,7 @@ class DeepQLearningAgent(Agent):
             self.state_transitions.append((board, action, next_board, reward, done))
             state = self.board_to_state(board)
             if next_board is None:
-                next_state = self.board_to_state(['X'] * self.width ** 2) # is not needed
+                next_state = self.board_to_state(['X'] * self.rows ** 2) # is not needed
             else:
                 next_state = self.board_to_state(next_board)
 

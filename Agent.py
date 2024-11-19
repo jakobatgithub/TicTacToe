@@ -45,9 +45,14 @@ class HumanAgent(Agent):
             valid_actions = game.get_valid_actions()
             action = None
             while action is None:
-                user_input = input(f"Choose a number from the set {valid_actions}: ")
-                action = int(user_input)
-                if action not in valid_actions:
+                try:
+                    user_input = input(f"Choose a number from the set {valid_actions}: ")
+                    action = int(user_input)
+                    if action not in valid_actions:
+                        print(f"Invalid choice. Please choose a number from {valid_actions}.")
+                        action = None
+                except ValueError:
+                    print("Invalid input. Please enter a valid integer.")
                     action = None
 
             return action

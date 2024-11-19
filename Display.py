@@ -45,6 +45,8 @@ class TicTacToeDisplay(tk.Tk, Display):
         
         self.update()
         time.sleep(self.waiting_time)
+        if outcome is not None:
+            self.quit()
 
     def set_message(self, message):
         """Update the message displayed at the top of the window."""

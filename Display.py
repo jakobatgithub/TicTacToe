@@ -51,7 +51,6 @@ class TicTacToeDisplay(tk.Tk, Display):
     def wait_for_player_action(self):
         """Wait for the player to perform an action (no-op for GUI)."""
         self.action_complete.set(False)  # Reset the variable before waiting        
-        print("Waiting for player action.")
         self.wait_variable(self.action_complete)  # Suspend until an action occurs
 
     def update_display(self, board, outcome=None):

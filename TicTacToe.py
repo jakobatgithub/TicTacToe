@@ -71,14 +71,12 @@ class TicTacToe:
         return self._done
     
     def _get_outcome(self):
-        if self._is_won('X'):
+        if self._is_won('X') or (self._invalid_move and self._current_player == 'O'):
             return 'X'
-        elif self._is_won('O'):
+        elif self._is_won('O') or (self._invalid_move and self._current_player == 'X'):
             return 'O'
         elif self._is_draw():
             return 'D'
-        elif self._invalid_move:
-            return 'I'
         
         return None
 
@@ -122,14 +120,8 @@ class TicTacToe:
                 print(row_divider)
         print("\n")
 
-    def _get_step_rewards_for_valid_move(self):
+    def _get_step_rewards(self):
         return 0.0, 0.0
-
-    def _get_step_rewards_for_invalid_move(self):
-        if self._current_player == self._agent1.player:
-            return 0.0, 0.0
-        else:
-            return 0.0, 0.0
         
     def _get_terminal_rewards(self, outcome):
         if outcome == 'D':
@@ -138,10 +130,6 @@ class TicTacToe:
             return 1.0, -1.0
         elif outcome == self._agent2.player:
             return -1.0, 1.0
-        elif outcome == 'I' and self._current_player == self._agent1.player:
-            return -1.0, 1.0
-        elif outcome == 'I' and self._current_player == self._agent2.player:
-            return 0.0, -1.0
         
         return None, None
 
@@ -166,7 +154,7 @@ class TicTacToe:
             
             self._history.append((self._board[:], action))
             if self._make_move(action):
-                step_reward1, step_reward2 = self._get_step_rewards_for_valid_move()
+                step_reward1, step_reward2 = self._get_step_rewards()
                 self._switch_player()
 
         outcome = self._get_outcome()
@@ -183,7 +171,5 @@ class TicTacToe:
                 print(f"Player {outcome} wins!")
             elif outcome == 'D':
                 print("It's a draw!")
-            elif outcome == 'I':
-                print("Invalid move!")
         
         return outcome

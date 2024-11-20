@@ -1,6 +1,7 @@
 import random
 from abc import ABC, abstractmethod
 
+
 class Agent(ABC):
     def __init__(self, player='X', switching=False):
         """
@@ -24,6 +25,7 @@ class Agent(ABC):
         """
         pass
 
+
 class RandomAgent(Agent):
     def get_action(self, state_transition, game):
         state, reward, done = state_transition
@@ -36,7 +38,8 @@ class RandomAgent(Agent):
         
     def on_game_end(self, game):
         if self.switching:
-            self.player, self.opponent = self.opponent, self.player        
+            self.player, self.opponent = self.opponent, self.player
+
 
 class HumanAgent(Agent):
     def get_action(self, state_transition, game):

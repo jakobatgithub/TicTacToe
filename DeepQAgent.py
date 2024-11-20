@@ -1,7 +1,6 @@
 import random
 
 import numpy as np
-from collections import deque
 
 import wandb
 
@@ -13,13 +12,12 @@ from Agent import Agent
 
 
 class ReplayBuffer:
-    def __init__(self, size, state_dim, action_dim, device='cpu'):
+    def __init__(self, size, state_dim, device='cpu'):
         """
         Initialize the ReplayBuffer with a fixed size and GPU storage.
 
         :param size: Maximum number of experiences to store in the buffer.
         :param state_dim: Dimension of the state tensor.
-        :param action_dim: Dimension of the action tensor (if actions are discrete, set this to 1).
         :param device: The device to store the buffer on ("cuda" for GPU or "cpu").
         """
         self.size = size
@@ -29,7 +27,6 @@ class ReplayBuffer:
 
         # Pre-allocate tensors on the specified device
         self.states = torch.zeros((size, state_dim), dtype=torch.float32, device=device)
-        self.actions = torch.zeros((size, action_dim), dtype=torch.int64, device=device)
         self.actions = torch.zeros(size, dtype=torch.int64, device=device)
         self.rewards = torch.zeros(size, dtype=torch.float32, device=device)
         self.next_states = torch.zeros((size, state_dim), dtype=torch.float32, device=device)
@@ -80,21 +77,6 @@ class ReplayBuffer:
         return self.current_size
 
 
-# # Replay Buffer
-# class ReplayBuffer:
-#     def __init__(self, size):
-#         self.buffer = deque(maxlen=size)
-
-#     def add(self, experience):
-#         self.buffer.append(experience)
-
-#     def sample(self, batch_size):
-#         return random.sample(self.buffer, batch_size)
-
-#     def __len__(self):
-#         return len(self.buffer)
-
-
 # Neural Network for Q-function
 class QNetwork(nn.Module):
     def __init__(self, input_dim, output_dim):
@@ -143,8 +125,7 @@ class DeepQLearningAgent(Agent):
         self.target_network.eval()
 
         self.optimizer = optim.Adam(self.q_network.parameters(), lr=self.learning_rate)
-        # self.replay_buffer = ReplayBuffer(self.replay_buffer_length)
-        self.replay_buffer = ReplayBuffer(self.replay_buffer_length, self.rows ** 2, 1, device=self.device)
+        self.replay_buffer = ReplayBuffer(self.replay_buffer_length, self.rows ** 2, device=self.device)
 
         self.board_to_state_translation = {'X': 1, 'O': -1, ' ': 0}
         self.state_to_board_translation = {1: 'X', -1: 'O', 0: ' '}
@@ -167,22 +148,8 @@ class DeepQLearningAgent(Agent):
             else:
                 next_state = self.board_to_state(next_board)
 
-            # self.replay_buffer.add((state, action, reward, next_state, done))
             self.replay_buffer.add(state, action, reward, next_state, done)
-
-            if len(self.replay_buffer) >= self.batch_size:               
-                # experiences = self.replay_buffer.sample(self.batch_size)
-                # states, actions, rewards, next_states, dones = zip(*experiences)
-                # states = torch.FloatTensor(np.array(states)).to(self.device)
-                # actions = torch.LongTensor(actions).unsqueeze(1).to(self.device)
-                # rewards = torch.FloatTensor(rewards).unsqueeze(1).to(self.device)
-                # next_states = torch.FloatTensor(np.array(next_states)).to(self.device)
-                # dones = torch.FloatTensor(dones).unsqueeze(1).to(self.device)
-
-                # q_values = self.q_network(states).gather(2, actions.unsqueeze(2)).squeeze(2)
-                # next_q_values = self.q_network(next_states).max(2, keepdim=True)[0].squeeze(2)
-                # targets = rewards + (1 - dones) * self.gamma * next_q_values
-
+            if len(self.replay_buffer) >= self.batch_size:
                 states, actions, rewards, next_states, dones = self.replay_buffer.sample(self.batch_size)
 
                 q_values = self.q_network(states).gather(1, actions.unsqueeze(1)).squeeze(1)

@@ -12,19 +12,87 @@ import torch.optim as optim
 from Agent import Agent
 
 
-# Replay Buffer
 class ReplayBuffer:
-    def __init__(self, size):
-        self.buffer = deque(maxlen=size)
+    def __init__(self, size, state_dim, action_dim, device='cpu'):
+        """
+        Initialize the ReplayBuffer with a fixed size and GPU storage.
 
-    def add(self, experience):
-        self.buffer.append(experience)
+        :param size: Maximum number of experiences to store in the buffer.
+        :param state_dim: Dimension of the state tensor.
+        :param action_dim: Dimension of the action tensor (if actions are discrete, set this to 1).
+        :param device: The device to store the buffer on ("cuda" for GPU or "cpu").
+        """
+        self.size = size
+        self.current_size = 0  # Tracks the current number of stored experiences
+        self.index = 0         # Tracks the insertion index for circular overwriting
+        self.device = device
+
+        # Pre-allocate tensors on the specified device
+        self.states = torch.zeros((size, state_dim), dtype=torch.float32, device=device)
+        self.actions = torch.zeros((size, action_dim), dtype=torch.int64, device=device)
+        self.actions = torch.zeros(size, dtype=torch.int64, device=device)
+        self.rewards = torch.zeros(size, dtype=torch.float32, device=device)
+        self.next_states = torch.zeros((size, state_dim), dtype=torch.float32, device=device)
+        self.dones = torch.zeros(size, dtype=torch.bool, device=device)
+
+    def add(self, state, action, reward, next_state, done):
+        """
+        Add a new experience to the buffer.
+
+        :param state: Current state.
+        :param action: Action taken.
+        :param reward: Reward received.
+        :param next_state: Next state observed.
+        :param done: Whether the episode is done.
+        """
+        self.states[self.index] = torch.tensor(state, dtype=torch.float32, device=self.device)
+        self.actions[self.index] = torch.tensor(action, dtype=torch.int64, device=self.device)
+        self.rewards[self.index] = torch.tensor(reward, dtype=torch.float32, device=self.device)
+        self.next_states[self.index] = torch.tensor(next_state, dtype=torch.float32, device=self.device)
+        self.dones[self.index] = torch.tensor(done, dtype=torch.bool, device=self.device)
+
+        # Update the index and current size
+        self.index = (self.index + 1) % self.size
+        self.current_size = min(self.current_size + 1, self.size)
 
     def sample(self, batch_size):
-        return random.sample(self.buffer, batch_size)
+        """
+        Sample a batch of experiences from the buffer directly on the GPU.
+
+        :param batch_size: Number of experiences to sample.
+        :return: A tuple of sampled tensors (states, actions, rewards, next_states, dones).
+        """
+        indices = torch.randint(0, self.current_size, (batch_size,), device=self.device)
+        return (
+            self.states[indices],
+            self.actions[indices],
+            self.rewards[indices],
+            self.next_states[indices],
+            self.dones[indices],
+        )
 
     def __len__(self):
-        return len(self.buffer)
+        """
+        Get the current size of the buffer.
+
+        :return: The number of experiences currently stored in the buffer.
+        """
+        return self.current_size
+
+
+# # Replay Buffer
+# class ReplayBuffer:
+#     def __init__(self, size):
+#         self.buffer = deque(maxlen=size)
+
+#     def add(self, experience):
+#         self.buffer.append(experience)
+
+#     def sample(self, batch_size):
+#         return random.sample(self.buffer, batch_size)
+
+#     def __len__(self):
+#         return len(self.buffer)
 
 
 # Neural Network for Q-function
@@ -75,7 +143,8 @@ class DeepQLearningAgent(Agent):
         self.target_network.eval()
 
         self.optimizer = optim.Adam(self.q_network.parameters(), lr=self.learning_rate)
-        self.replay_buffer = ReplayBuffer(self.replay_buffer_length)
+        # self.replay_buffer = ReplayBuffer(self.replay_buffer_length)
+        self.replay_buffer = ReplayBuffer(self.replay_buffer_length, self.rows ** 2, 1, device=self.device)
 
         self.board_to_state_translation = {'X': 1, 'O': -1, ' ': 0}
         self.state_to_board_translation = {1: 'X', -1: 'O', 0: ' '}
@@ -94,26 +163,38 @@ class DeepQLearningAgent(Agent):
             self.state_transitions.append((board, action, next_board, reward, done))
             state = self.board_to_state(board)
             if next_board is None:
-                next_state = self.board_to_state(['X'] * self.rows ** 2) # is not needed
+                next_state = self.board_to_state(['X'] * (self.rows ** 2)) # is not needed
             else:
                 next_state = self.board_to_state(next_board)
 
-            self.replay_buffer.add((state, action, reward, next_state, done))
+            # self.replay_buffer.add((state, action, reward, next_state, done))
+            self.replay_buffer.add(state, action, reward, next_state, done)
 
-            if len(self.replay_buffer) >= self.batch_size:
-                experiences = self.replay_buffer.sample(self.batch_size)
-                states, actions, rewards, next_states, dones = zip(*experiences)
+            if len(self.replay_buffer) >= self.batch_size:               
+                # experiences = self.replay_buffer.sample(self.batch_size)
+                # states, actions, rewards, next_states, dones = zip(*experiences)
+                # states = torch.FloatTensor(np.array(states)).to(self.device)
+                # actions = torch.LongTensor(actions).unsqueeze(1).to(self.device)
+                # rewards = torch.FloatTensor(rewards).unsqueeze(1).to(self.device)
+                # next_states = torch.FloatTensor(np.array(next_states)).to(self.device)
+                # dones = torch.FloatTensor(dones).unsqueeze(1).to(self.device)
 
-                states = torch.FloatTensor(np.array(states)).to(self.device)
-                actions = torch.LongTensor(actions).unsqueeze(1).to(self.device)
-                rewards = torch.FloatTensor(rewards).unsqueeze(1).to(self.device)
-                next_states = torch.FloatTensor(np.array(next_states)).to(self.device)
-                dones = torch.FloatTensor(dones).unsqueeze(1).to(self.device)
-
-                q_values = self.q_network(states).gather(2, actions.unsqueeze(2)).squeeze(2)
+                # q_values = self.q_network(states).gather(2, actions.unsqueeze(2)).squeeze(2)
                 # next_q_values = self.q_network(next_states).max(2, keepdim=True)[0].squeeze(2)
-                next_q_values = self.target_network(next_states).max(2, keepdim=True)[0].squeeze(2)
-                targets = rewards + (1 - dones) * self.gamma * next_q_values
+                # targets = rewards + (1 - dones) * self.gamma * next_q_values
+
+                states, actions, rewards, next_states, dones = self.replay_buffer.sample(self.batch_size)
+
+                q_values = self.q_network(states).gather(1, actions.unsqueeze(1)).squeeze(1)
+                next_q_values = self.target_network(next_states).max(1, keepdim=True)[0].squeeze(1)
+                targets = rewards + (~dones) * self.gamma * next_q_values
+                
+                # print(f"states.shape = {states.shape}")
+                # print(f"q_values.shape = {q_values.shape}")
+                # print(f"next_q_values.shape = {next_q_values.shape}")
+                # print(f"(~dones).shape = {(~dones).shape}")
+                # print(f"rewards.shape = {rewards.shape}")
+                # print(f"targets.shape = {targets.shape}")
 
                 loss = nn.MSELoss()(q_values, targets)
                 self.evaluation_data['loss'].append(loss.item())

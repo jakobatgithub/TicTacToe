@@ -88,7 +88,7 @@ class DeepQLearningAgent(Agent):
     def get_action(self, state_transition, game):
         next_board, reward, done = state_transition
         self.evaluation_data['rewards'].append(reward)
-        wandb.log({"rewards": reward})
+        # wandb.log({"rewards": reward})
         if len(self.episode_history) > 0:
             board, action = self.episode_history[-1]
             self.state_transitions.append((board, action, next_board, reward, done))
@@ -118,8 +118,8 @@ class DeepQLearningAgent(Agent):
                 loss = nn.MSELoss()(q_values, targets)
                 self.evaluation_data['loss'].append(loss.item())
                 self.evaluation_data['action_value'].append(next_q_values.mean().item())
-                wandb.log({"loss": loss.item()})
-                wandb.log({"action_value": next_q_values.mean().item()})
+                # wandb.log({"loss": loss.item()})
+                # wandb.log({"action_value": next_q_values.mean().item()})
                 self.optimizer.zero_grad()
                 loss.backward()
                 self.optimizer.step()
@@ -139,6 +139,13 @@ class DeepQLearningAgent(Agent):
             self.episode_count += 1
             self.update_rates(self.episode_count)
             self.evaluation_data['histories'].append(self.episode_history)
+            losses = self.evaluation_data['loss']
+            if len(losses) > 0:
+                wandb.log({"loss" : losses[-1]})
+            action_values = self.evaluation_data['action_value']
+            if len(action_values) > 0:
+                wandb.log({"action_value" : action_values[-1]})
+    
             self.episode_history = []
             return None
 
@@ -171,10 +178,10 @@ class DeepQLearningAgent(Agent):
 
             if action in self.get_valid_actions(board):
                 self.evaluation_data['valid_actions'].append(1)
-                wandb.log({"valid_actions": 1})
+                # wandb.log({"valid_actions": 1})
             else:
                 self.evaluation_data['valid_actions'].append(0)
-                wandb.log({"valid_actions": 0})
+                # wandb.log({"valid_actions": 0})
 
             return action
 

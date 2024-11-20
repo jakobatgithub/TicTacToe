@@ -138,7 +138,6 @@ class DeepQLearningAgent(Agent):
     def get_action(self, state_transition, game):
         next_board, reward, done = state_transition
         self.evaluation_data['rewards'].append(reward)
-        # wandb.log({"rewards": reward})
         if len(self.episode_history) > 0:
             board, action = self.episode_history[-1]
             self.state_transitions.append((board, action, next_board, reward, done))

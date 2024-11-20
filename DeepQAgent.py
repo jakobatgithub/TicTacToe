@@ -166,11 +166,16 @@ class DeepQLearningAgent(Agent):
                 loss = nn.MSELoss()(q_values, targets)
                 self.evaluation_data['loss'].append(loss.item())
                 self.evaluation_data['action_value'].append(next_q_values.mean().item())
-                # wandb.log({"loss": loss.item()})
-                # wandb.log({"action_value": next_q_values.mean().item()})
+                # Buffer Wandb Metrics
+                if self.train_step_count % 50 == 0:
+                    wandb.log({
+                        "loss": sum(self.evaluation_data['loss'][-10:]) / 10,
+                        "action_value": sum(self.evaluation_data['action_value'][-10:]) / 10
+                    })
                 self.optimizer.zero_grad()
                 loss.backward()
                 self.optimizer.step()
+                self.train_step_count += 1
 
         if not done:
             board = next_board
@@ -186,14 +191,7 @@ class DeepQLearningAgent(Agent):
 
             self.episode_count += 1
             self.update_rates(self.episode_count)
-            self.evaluation_data['histories'].append(self.episode_history)
-            losses = self.evaluation_data['loss']
-            if len(losses) > 0:
-                wandb.log({"loss" : losses[-1]})
-            action_values = self.evaluation_data['action_value']
-            if len(action_values) > 0:
-                wandb.log({"action_value" : action_values[-1]})
-    
+            self.evaluation_data['histories'].append(self.episode_history)    
             self.episode_history = []
             return None
 

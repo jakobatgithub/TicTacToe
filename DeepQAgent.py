@@ -77,8 +77,8 @@ class DeepQLearningAgent(Agent):
         self.optimizer = optim.Adam(self.q_network.parameters(), lr=self.learning_rate)
         self.replay_buffer = ReplayBuffer(self.replay_buffer_length)
 
-        self.state_to_board_translation = {'X': 1, 'O': -1, ' ': 0}
-        self.board_to_state_translation = {1: 'X', -1: 'O', 0: ' '}
+        self.board_to_state_translation = {'X': 1, 'O': -1, ' ': 0}
+        self.state_to_board_translation = {1: 'X', -1: 'O', 0: ' '}
 
         if self.debug:
             print(f"Player: {self.player}, opponent: {self.opponent}")
@@ -150,11 +150,11 @@ class DeepQLearningAgent(Agent):
             return None
 
     def board_to_state(self, board):
-        return np.array([self.state_to_board_translation[cell] for cell in board]).reshape(1, -1)
+        return np.array([self.board_to_state_translation[cell] for cell in board]).reshape(1, -1)
     
     def state_to_board(self, state):
         flat_state = state.flatten()
-        board = [self.board_to_state_translation[cell] for cell in flat_state]
+        board = [self.state_to_board_translation[cell] for cell in flat_state]
         return board
 
     def update_rates(self, episode):

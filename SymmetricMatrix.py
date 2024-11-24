@@ -123,23 +123,25 @@ class SymmetricMatrix:
 
         # Precompute symmetries and their inverses
         self.transformations = [
-            lambda x: x,                         # Identity
-            lambda x: np.rot90(x, 1),            # Rotate 90°
-            lambda x: np.rot90(x, 2),            # Rotate 180°
-            lambda x: np.rot90(x, 3),            # Rotate 270°
-            lambda x: np.fliplr(x),              # Horizontal reflection
-            lambda x: np.flipud(x),              # Vertical reflection
-            lambda x: np.transpose(x),           # Diagonal reflection (TL-BR)
+            lambda x: x,
+            lambda x: np.fliplr(x),
+            lambda x: np.flipud(x),
+            lambda x: np.flipud(np.fliplr(x)),
+            lambda x: np.transpose(x),
+            lambda x: np.fliplr(np.transpose(x)),
+            lambda x: np.flipud(np.transpose(x)),
+            lambda x: np.flipud(np.fliplr(np.transpose(x))),
         ]
 
         self.inverse_transformations = [
-            lambda x: x,                         # Identity
-            lambda x: np.rot90(x, 3),            # Rotate 90° inverse (rotate 270°)
-            lambda x: np.rot90(x, 2),            # Rotate 180° inverse
-            lambda x: np.rot90(x, 1),            # Rotate 270° inverse (rotate 90°)
-            lambda x: np.fliplr(x),              # Horizontal reflection inverse
-            lambda x: np.flipud(x),              # Vertical reflection inverse
-            lambda x: np.transpose(x),           # Diagonal reflection (TL-BR) inverse
+            lambda x: x,
+            lambda x: np.fliplr(x),
+            lambda x: np.flipud(x),
+            lambda x: np.fliplr(np.flipud(x)),
+            lambda x: np.transpose(x),
+            lambda x: np.transpose(np.fliplr(x)),
+            lambda x: np.transpose(np.flipud(x)),
+            lambda x: np.transpose(np.fliplr(np.flipud(x))),
         ]
 
         self.original_actions = np.array(range(self.rows * self.rows)).reshape(self.rows, self.rows)

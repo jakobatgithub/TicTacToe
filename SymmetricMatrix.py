@@ -1,7 +1,8 @@
+from collections import defaultdict
+from itertools import product
+
 import dill
 import numpy as np
-from itertools import product
-from collections import defaultdict
 
 
 class LazyComputeDict(dict):

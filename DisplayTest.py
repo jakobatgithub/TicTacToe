@@ -1,8 +1,8 @@
 # %%
-from TicTacToe import TicTacToe
-from Display import TicTacToeDisplay
 from Agent import MouseAgent
 from DeepQAgent import DeepQPlayingAgent
+from Display import TicTacToeDisplay
+from TicTacToe import TicTacToe
 
 rows = 4
 win_length = 4

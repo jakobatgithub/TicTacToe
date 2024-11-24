@@ -1,5 +1,7 @@
 import random
+
 import numpy as np
+
 from Agent import Agent
 from SymmetricMatrix import TotallySymmetricMatrix
 

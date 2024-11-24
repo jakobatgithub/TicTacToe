@@ -1,5 +1,5 @@
-from Display import TicTacToeDisplay
 from Agent import MouseAgent
+from Display import TicTacToeDisplay
 
 
 class TicTacToe:

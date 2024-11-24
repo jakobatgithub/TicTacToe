@@ -1,7 +1,8 @@
 import time
 import tkinter as tk
-from IPython.display import clear_output
 from abc import ABC, abstractmethod
+
+from IPython.display import clear_output
 
 
 class Display(ABC):

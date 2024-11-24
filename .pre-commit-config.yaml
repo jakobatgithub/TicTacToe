@@ -1,17 +1,10 @@
 repos:
--   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v2.3.0
-    hooks:
-    -   id: check-yaml
-    -   id: end-of-file-fixer
-    -   id: trailing-whitespace
-- repo: https://github.com/JelleZijlstra/autotyping
-  rev: 24.9.0
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v2.3.0
   hooks:
-    - id: autotyping
-      stages: [commit]
-      types: [python]
-      args: [--aggressive] # or alternatively, --aggressive, or any of the other flags mentioned above
+  -   id: check-yaml
+  -   id: end-of-file-fixer
+  -   id: trailing-whitespace
 - repo: https://github.com/astral-sh/ruff-pre-commit
   # Ruff version.
   rev: v0.8.0

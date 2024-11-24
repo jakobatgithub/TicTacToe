@@ -5,7 +5,13 @@ repos:
     -   id: check-yaml
     -   id: end-of-file-fixer
     -   id: trailing-whitespace
-
+- repo: https://github.com/JelleZijlstra/autotyping
+  rev: 24.9.0
+  hooks:
+    - id: autotyping
+      stages: [commit]
+      types: [python]
+      args: [--aggressive] # or alternatively, --aggressive, or any of the other flags mentioned above
 - repo: https://github.com/astral-sh/ruff-pre-commit
   # Ruff version.
   rev: v0.8.0

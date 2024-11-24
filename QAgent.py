@@ -1,7 +1,7 @@
 import random
 import numpy as np
 from Agent import Agent
-from SymmetricMatrix import Matrix, SymmetricMatrix, TotallySymmetricMatrix
+from SymmetricMatrix import TotallySymmetricMatrix
 
 
 class QLearningAgent(Agent):

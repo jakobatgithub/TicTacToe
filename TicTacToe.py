@@ -1,5 +1,3 @@
-import time
-
 from Display import TicTacToeDisplay
 from Agent import MouseAgent
 

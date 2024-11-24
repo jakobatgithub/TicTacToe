@@ -261,26 +261,14 @@ class DeepQPlayingAgent(Agent):
     # Generate all empty positions on the board
     def get_valid_actions(self, board):
         return [i for i, cell in enumerate(board) if cell == ' ']
-    
-    def mask_invalid_actions(self, q_values, valid_actions):
-        masked_q_values = np.full_like(q_values, -np.inf)  # Initialize with -inf
-        masked_q_values[valid_actions] = q_values[valid_actions]  # Keep only valid actions
-        return masked_q_values
-
-    def mask_invalid_actions(self, q_values, valid_actions):
-        masked_q_values = [q_values[valid_action] for valid_action in valid_actions]  # Keep only valid actions
-        return masked_q_values
 
     def choose_action(self, board):
         # Exploitation: Choose the best known move
         state = self.board_to_state(board)
         state_tensor = torch.FloatTensor(state).unsqueeze(0).to(self.device)
-        valid_actions = self.get_valid_actions(board)
         with torch.no_grad():
             q_values = self.q_network(state_tensor).squeeze().tolist()
         
-        # masked_q_values = self.mask_invalid_actions(q_values, valid_actions)
-        # action = valid_actions[np.argmax(masked_q_values)]
         action = np.argmax(q_values)
         return action
     

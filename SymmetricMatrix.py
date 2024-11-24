@@ -8,7 +8,7 @@ class LazyComputeDict(dict):
     def __init__(self, compute_func, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.compute_func = compute_func
-    
+
     def __getitem__(self, key):
         if key not in self:
             # Compute and store the value if it doesn't exist
@@ -40,7 +40,7 @@ class Matrix:
         if default_value is None and file is None:
             self.q_matrix = defaultdict(self._initialize_q_matrix)
         elif default_value is None and file is not None:
-            with open(file, 'rb') as f:
+            with open(file, "rb") as f:
                 self.q_matrix = dill.load(f)
         elif file is None and default_value is not None:
             self.default_value = default_value
@@ -59,7 +59,7 @@ class Matrix:
             An empty dictionary for storing q-values for the given state.
         """
         state_dict = defaultdict(lambda: self.default_value)
-        return state_dict    
+        return state_dict
 
     def get(self, board=None, action=None):
         """
@@ -114,7 +114,7 @@ class SymmetricMatrix:
         if default_value is None and file is None:
             self.qMatrix = defaultdict(self._initialize_q_matrix)
         elif default_value is None and file is not None:
-            with open(file, 'rb') as f:
+            with open(file, "rb") as f:
                 self.qMatrix = dill.load(f)
 
         elif file is None and default_value is not None:
@@ -146,9 +146,14 @@ class SymmetricMatrix:
 
         self.original_actions = np.array(range(self.rows * self.rows)).reshape(self.rows, self.rows)
         for i, transform in enumerate(self.transformations):
-            assert self.inverse_transformations[i](transform(self.original_actions)).flatten().tolist() == self.original_actions.flatten().tolist()
+            assert (
+                self.inverse_transformations[i](transform(self.original_actions)).flatten().tolist()
+                == self.original_actions.flatten().tolist()
+            )
 
-        transformed_actions = [transform(self.original_actions).flatten().tolist() for transform in self.transformations]
+        transformed_actions = [
+            transform(self.original_actions).flatten().tolist() for transform in self.transformations
+        ]
         for i in range(len(transformed_actions)):
             for j in range(i + 1, len(transformed_actions)):
                 assert transformed_actions[i] != transformed_actions[j]
@@ -157,11 +162,14 @@ class SymmetricMatrix:
             self.dict_canonical_board = LazyComputeDict(self._get_canonical_board)
             self.dict_transform = LazyComputeDict(self._get_canonical_symmetry_transform)
             self.dict_inverse_transform = LazyComputeDict(self._get_inverse_canonical_symmetry_transform)
-            self.dict_canonical_actions = LazyComputeDict(lambda board : self.dict_inverse_transform[board](self.original_actions).flatten().tolist())
-            self.dict_inverse_canonical_actions = LazyComputeDict(lambda board : self.dict_transform[board](self.original_actions).flatten().tolist())
+            self.dict_canonical_actions = LazyComputeDict(
+                lambda board: self.dict_inverse_transform[board](self.original_actions).flatten().tolist()
+            )
+            self.dict_inverse_canonical_actions = LazyComputeDict(
+                lambda board: self.dict_transform[board](self.original_actions).flatten().tolist()
+            )
         else:
             self._generate_all_dicts()
-
 
     def _generate_all_dicts(self):
         all_valid_boards = self._generate_all_valid_boards()
@@ -177,8 +185,12 @@ class SymmetricMatrix:
             self.dict_canonical_board[board] = canonical_board
             self.dict_transform[board] = self.transformations[transform_idx]
             self.dict_inverse_transform[board] = self.inverse_transformations[transform_idx]
-            self.dict_canonical_actions[board] = self.dict_inverse_transform[board](self.original_actions).flatten().tolist()
-            self.dict_inverse_canonical_actions[board] = self.dict_transform[board](self.original_actions).flatten().tolist()
+            self.dict_canonical_actions[board] = (
+                self.dict_inverse_transform[board](self.original_actions).flatten().tolist()
+            )
+            self.dict_inverse_canonical_actions[board] = (
+                self.dict_transform[board](self.original_actions).flatten().tolist()
+            )
 
         self.all_canonical_boards = list(self.all_canonical_boards)
         self.all_canonical_actions = {}
@@ -188,7 +200,7 @@ class SymmetricMatrix:
 
     def _initialize_q_matrix(self):
         state_dict = defaultdict(lambda: self.default_value)
-        return state_dict    
+        return state_dict
 
     def _board_to_matrix(self, board):
         """
@@ -203,20 +215,20 @@ class SymmetricMatrix:
         return matrix.flatten().tolist()
 
     def _generate_all_valid_boards(self):
-        symbols = [' ', 'X', 'O']
-        all_boards = list(product(symbols, repeat=self.rows*self.rows))  # Generate all 3^(rows^2) combinations
+        symbols = [" ", "X", "O"]
+        all_boards = list(product(symbols, repeat=self.rows * self.rows))  # Generate all 3^(rows^2) combinations
         # print(f"Total number of boards: {len(all_boards)}")
         all_valid_boards = []
 
         for board in all_boards:
-            x_count = board.count('X')
-            o_count = board.count('O')
-            
+            x_count = board.count("X")
+            o_count = board.count("O")
+
             # Valid boards must satisfy these conditions:
             if x_count == o_count or x_count == o_count + 1:
                 all_valid_boards.append(board)
 
-        # print(f"Number of valid boards: {len(all_valid_boards)}")    
+        # print(f"Number of valid boards: {len(all_valid_boards)}")
         return all_valid_boards
 
     def _generate_symmetries(self, board):
@@ -247,14 +259,14 @@ class SymmetricMatrix:
         return tuple(min_symmetry), symmetries.index(min_symmetry)
 
     def get_canonical_action(self, board, action):
-            return self.dict_canonical_actions[tuple(board)][action]
+        return self.dict_canonical_actions[tuple(board)][action]
 
     def get_canonical_board(self, board):
-            return self.dict_canonical_board[tuple(board)]
+        return self.dict_canonical_board[tuple(board)]
 
     def get_inverse_canonical_action(self, board, canonical_action):
         return self.dict_inverse_canonical_actions[tuple(board)][canonical_action]
-    
+
     def canonicalize(self, board, action):
         canonical_board = self.get_canonical_board(board)
         canonical_action = self.get_canonical_action(board, action)
@@ -262,7 +274,7 @@ class SymmetricMatrix:
 
     # Generate all empty positions on the board
     def get_empty_positions(self, board):
-        return [i for i, cell in enumerate(board) if cell == ' ']
+        return [i for i, cell in enumerate(board) if cell == " "]
 
     def get(self, board=None, action=None):
         """
@@ -291,7 +303,7 @@ class TotallySymmetricMatrix(SymmetricMatrix):
 
         # Override q_matrix initialization for TotallySymmetricMatrix
         if file is not None:
-            with open(file, 'rb') as f:
+            with open(file, "rb") as f:
                 self.qMatrix = dill.load(f)
         else:
             self.qMatrix = defaultdict(lambda: self.default_value)
@@ -300,12 +312,12 @@ class TotallySymmetricMatrix(SymmetricMatrix):
         if lazy:
             self.canonical_board_to_next_canonical_board = self._create_level2_lazy_dict(self._get_next_canonical_board)
         else:
-            self._generate_all_next_canonical_boards()    
+            self._generate_all_next_canonical_boards()
 
     def _create_level2_lazy_dict(self, compute_func):
         def level1_compute(outer_key):
             return LazyComputeDict(lambda inner_key: compute_func(outer_key, inner_key))
-        
+
         return LazyComputeDict(level1_compute)
 
     def _get_next_canonical_board(self, canonical_board, canonical_action):
@@ -334,9 +346,9 @@ class TotallySymmetricMatrix(SymmetricMatrix):
         return tuple(new_board)
 
     def _get_next_player(self, board):
-        x_count = board.count('X')
-        o_count = board.count('O')
-        return 'X' if x_count == o_count else 'O'
+        x_count = board.count("X")
+        o_count = board.count("O")
+        return "X" if x_count == o_count else "O"
 
     def get(self, board=None, action=None):
         """
@@ -356,9 +368,7 @@ class TotallySymmetricMatrix(SymmetricMatrix):
                 for action in actions
             ]
         canonical_action = self.get_canonical_action(board, action)
-        return self.qMatrix[
-            self.canonical_board_to_next_canonical_board[canonical_board][canonical_action]
-        ]
+        return self.qMatrix[self.canonical_board_to_next_canonical_board[canonical_board][canonical_action]]
 
     def set(self, board, action, value):
         """
@@ -366,6 +376,4 @@ class TotallySymmetricMatrix(SymmetricMatrix):
         """
         canonical_board = self.get_canonical_board(board)
         canonical_action = self.get_canonical_action(board, action)
-        self.qMatrix[
-            self.canonical_board_to_next_canonical_board[canonical_board][canonical_action]
-        ] = value
+        self.qMatrix[self.canonical_board_to_next_canonical_board[canonical_board][canonical_action]] = value

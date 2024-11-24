@@ -3,12 +3,12 @@ from abc import ABC, abstractmethod
 
 
 class Agent(ABC):
-    def __init__(self, player='X', switching=False):
+    def __init__(self, player="X", switching=False):
         """
         Base class for all agents.
         :param player: 'X', 'O', or None (to be assigned later).
         """
-        self.players = ['X', 'O']
+        self.players = ["X", "O"]
         self.player = player
         self.opponent = self.get_opponent(player)
         self.switching = switching
@@ -35,7 +35,7 @@ class RandomAgent(Agent):
         else:
             self.on_game_end(game)
             return None
-        
+
     def on_game_end(self, game):
         if self.switching:
             self.player, self.opponent = self.opponent, self.player
@@ -62,14 +62,14 @@ class HumanAgent(Agent):
         else:
             self.on_game_end(game)
             return None
-        
+
     def on_game_end(self, game):
         if self.switching:
             self.player, self.opponent = self.opponent, self.player
 
 
 class MouseAgent(Agent):
-    def __init__(self, player='X'):
+    def __init__(self, player="X"):
         super().__init__(player)
         self.selected_action = None  # Stores the clicked (row, col) action
 

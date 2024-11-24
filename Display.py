@@ -3,6 +3,7 @@ import tkinter as tk
 from IPython.display import clear_output
 from abc import ABC, abstractmethod
 
+
 class Display(ABC):
     @abstractmethod
     def update_display(self, board, outcome=None):
@@ -33,8 +34,10 @@ class TicTacToeDisplay(tk.Tk, Display):
     def _init_display(self):
         """Initialize the board display as a grid of labels."""
         for idx in range(self.rows * self.cols):  # 9 fields for a 3x3 board
-            label = tk.Label(self, text=' ', font=('Arial', 24), width=5, height=2, borderwidth=1, relief="solid")
-            label.grid(row=(idx // self.rows) + 1, column=idx % self.cols)  # Offset by +1 to make room for the message label
+            label = tk.Label(self, text=" ", font=("Arial", 24), width=5, height=2, borderwidth=1, relief="solid")
+            label.grid(
+                row=(idx // self.rows) + 1, column=idx % self.cols
+            )  # Offset by +1 to make room for the message label
             label.bind("<Button-1>", lambda event, action=idx: self.handle_click(event, action))
             self.labels.append(label)
 
@@ -50,20 +53,20 @@ class TicTacToeDisplay(tk.Tk, Display):
 
     def wait_for_player_action(self):
         """Wait for the player to perform an action (no-op for GUI)."""
-        self.action_complete.set(False)  # Reset the variable before waiting        
+        self.action_complete.set(False)  # Reset the variable before waiting
         self.wait_variable(self.action_complete)  # Suspend until an action occurs
 
     def update_display(self, board, outcome=None):
         """Update the display with the given board state."""
         for i, value in enumerate(board):
-            self.labels[i].config(text=value if value in ['X', 'O'] else ' ')
+            self.labels[i].config(text=value if value in ["X", "O"] else " ")
 
         if outcome is not None:
-            if outcome in ['X', 'O']:
+            if outcome in ["X", "O"]:
                 self.set_message(f"Player {outcome} wins!")
-            elif outcome == 'D':
+            elif outcome == "D":
                 self.set_message("It's a draw!")
-        
+
         self.update()
         time.sleep(self.waiting_time)
         if outcome is not None:
@@ -84,22 +87,20 @@ class ConsoleDisplay(Display):
         """Display the board dynamically in the console."""
         clear_output(wait=True)
         row_divider = "-" * (6 * self.rows - 1)
-        
+
         for row in range(self.cols):
-            row_content = " | ".join(
-                f" {board[col + row * self.rows]} " for col in range(self.rows)
-            )
+            row_content = " | ".join(f" {board[col + row * self.rows]} " for col in range(self.rows))
             print(row_content)
             if row < self.cols - 1:
                 print(row_divider)
-        
+
         print("\n")
         if outcome is not None:
-            if outcome in ['X', 'O']:
+            if outcome in ["X", "O"]:
                 self.set_message(f"Player {outcome} wins!")
-            elif outcome == 'D':
+            elif outcome == "D":
                 self.set_message("It's a draw!")
-        
+
         time.sleep(self.waiting_time)
 
     def set_message(self, message):

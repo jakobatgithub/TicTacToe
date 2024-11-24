@@ -7,7 +7,7 @@ from SymmetricMatrix import TotallySymmetricMatrix
 
 
 class QLearningAgent(Agent):
-    def __init__(self, params):
+    def __init__(self, params) -> None:
         super().__init__(player=params["player"], switching=params["switching"])
         self.params = params
         self.debug = params["debug"]
@@ -62,7 +62,7 @@ class QLearningAgent(Agent):
             self.episode_history = []
             return None
 
-    def q_update(self, board, action, next_board, reward):
+    def q_update(self, board, action, next_board, reward: float):
         old_value = self.Q.get(board, action)
         if next_board:
             # Calculate max Q-value for the next state over all possible actions
@@ -107,7 +107,7 @@ class QLearningAgent(Agent):
         self.train_step_count += 1
         return (avg_loss / (len(history) * self.alpha), action_value / (len(history)))
 
-    def update_rates(self, episode):
+    def update_rates(self, episode) -> None:
         self.epsilon = max(
             self.params["epsilon_min"], self.params["epsilon_start"] / (1 + episode / self.nr_of_episodes)
         )
@@ -128,7 +128,7 @@ class QLearningAgent(Agent):
         return np.random.choice(best_actions)
 
     # Choose an action based on Q-values
-    def choose_action(self, board, epsilon):
+    def choose_action(self, board, epsilon: float):
         if random.uniform(0, 1) < epsilon:
             # Exploration: Choose a random move
             valid_actions = self.get_valid_actions(board)
@@ -140,7 +140,7 @@ class QLearningAgent(Agent):
 
 
 class QPlayingAgent(Agent):
-    def __init__(self, Q, player="X", switching=False):
+    def __init__(self, Q, player: str = "X", switching: bool = False) -> None:
         super().__init__(player=player, switching=switching)
         self.Q = Q
 
@@ -173,6 +173,6 @@ class QPlayingAgent(Agent):
         action = int(self.get_best_action(board, self.Q))
         return action
 
-    def on_game_end(self):
+    def on_game_end(self) -> None:
         if self.switching:
             self.player, self.opponent = self.opponent, self.player

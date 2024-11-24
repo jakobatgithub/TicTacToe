@@ -3,7 +3,9 @@ from Display import TicTacToeDisplay
 
 
 class TicTacToe:
-    def __init__(self, agent1, agent2, display=None, waiting_time=1.0, rows=3, cols=3, win_length=3):
+    def __init__(
+        self, agent1, agent2, display=None, waiting_time: float = 1.0, rows: int = 3, cols: int = 3, win_length: int = 3
+    ) -> None:
         self.display = None
         self._waiting_time = waiting_time
         if cols != rows:
@@ -34,10 +36,10 @@ class TicTacToe:
             self.play()
 
     @staticmethod
-    def initialize_board(rows=3, cols=3):
+    def initialize_board(rows: int = 3, cols: int = 3):
         return [" " for _ in range(rows * cols)]
 
-    def _make_move(self, action):
+    def _make_move(self, action) -> bool:
         if action in self.get_valid_actions():
             self._board[action] = self._current_player
             return True
@@ -45,10 +47,10 @@ class TicTacToe:
             self._invalid_move = True
             return False
 
-    def _switch_player(self):
+    def _switch_player(self) -> None:
         self._current_player = "O" if self._current_player == "X" else "X"
 
-    def _generate_win_conditions(self):
+    def _generate_win_conditions(self) -> None:
         rows = self._rows
         cols = self._cols
         win_length = self._win_length
@@ -70,13 +72,13 @@ class TicTacToe:
             for col in range(win_length - 1, rows):
                 self._win_conditions.append([(col - offset) + (row + offset) * rows for offset in range(win_length)])
 
-    def _is_won(self, player):
+    def _is_won(self, player) -> bool:
         for condition in self._win_conditions:
             if all(self._board[pos] == player for pos in condition):
                 return True
         return False
 
-    def _is_draw(self):
+    def _is_draw(self) -> bool:
         return " " not in self._board
 
     def _is_game_over(self):
@@ -121,7 +123,7 @@ class TicTacToe:
     def get_done(self):
         return self._done
 
-    def display_board(self, board, outcome=None):
+    def display_board(self, board, outcome=None) -> None:
         if self.display is not None:
             self.display.update_display(board, outcome)
 

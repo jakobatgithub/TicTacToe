@@ -18,7 +18,7 @@ class Display(ABC):
 
 
 class TicTacToeDisplay(tk.Tk, Display):
-    def __init__(self, rows=3, cols=3, waiting_time=0.25):
+    def __init__(self, rows: int = 3, cols: int = 3, waiting_time: float = 0.25) -> None:
         super().__init__()
         self.rows = rows
         self.cols = cols
@@ -32,7 +32,7 @@ class TicTacToeDisplay(tk.Tk, Display):
         self.click_handler = None  # A callback for handling clicks
         self.action_complete = tk.BooleanVar(value=False)  # Persistent variable to control wait state
 
-    def _init_display(self):
+    def _init_display(self) -> None:
         """Initialize the board display as a grid of labels."""
         for idx in range(self.rows * self.cols):  # 9 fields for a 3x3 board
             label = tk.Label(self, text=" ", font=("Arial", 24), width=5, height=2, borderwidth=1, relief="solid")
@@ -42,22 +42,22 @@ class TicTacToeDisplay(tk.Tk, Display):
             label.bind("<Button-1>", lambda event, action=idx: self.handle_click(event, action))
             self.labels.append(label)
 
-    def handle_click(self, event, action):
+    def handle_click(self, event, action) -> None:
         """Handle a mouse click on the board."""
         if self.click_handler:
             self.click_handler(action)
             self.action_complete.set(True)  # Signal that the action is complete
 
-    def bind_click_handler(self, handler):
+    def bind_click_handler(self, handler) -> None:
         """Bind the click handler for mouse input."""
         self.click_handler = handler
 
-    def wait_for_player_action(self):
+    def wait_for_player_action(self) -> None:
         """Wait for the player to perform an action (no-op for GUI)."""
         self.action_complete.set(False)  # Reset the variable before waiting
         self.wait_variable(self.action_complete)  # Suspend until an action occurs
 
-    def update_display(self, board, outcome=None):
+    def update_display(self, board, outcome=None) -> None:
         """Update the display with the given board state."""
         for i, value in enumerate(board):
             self.labels[i].config(text=value if value in ["X", "O"] else " ")
@@ -73,18 +73,18 @@ class TicTacToeDisplay(tk.Tk, Display):
         if outcome is not None:
             self.quit()
 
-    def set_message(self, message):
+    def set_message(self, message) -> None:
         """Update the message displayed at the top of the window."""
         self.message_label.config(text=message)
 
 
 class ConsoleDisplay(Display):
-    def __init__(self, rows=3, cols=3, waiting_time=0.25):
+    def __init__(self, rows: int = 3, cols: int = 3, waiting_time: float = 0.25) -> None:
         self.rows = rows
         self.cols = cols
         self.waiting_time = waiting_time
 
-    def update_display(self, board, outcome=None):
+    def update_display(self, board, outcome=None) -> None:
         """Display the board dynamically in the console."""
         clear_output(wait=True)
         row_divider = "-" * (6 * self.rows - 1)
@@ -104,6 +104,6 @@ class ConsoleDisplay(Display):
 
         time.sleep(self.waiting_time)
 
-    def set_message(self, message):
+    def set_message(self, message) -> None:
         """Set a message for the console display."""
         print(message)

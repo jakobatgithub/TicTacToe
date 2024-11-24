@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 
 
 class Agent(ABC):
-    def __init__(self, player="X", switching=False):
+    def __init__(self, player: str = "X", switching: bool = False) -> None:
         """
         Base class for all agents.
         :param player: 'X', 'O', or None (to be assigned later).
@@ -36,7 +36,7 @@ class RandomAgent(Agent):
             self.on_game_end(game)
             return None
 
-    def on_game_end(self, game):
+    def on_game_end(self, game) -> None:
         if self.switching:
             self.player, self.opponent = self.opponent, self.player
 
@@ -63,13 +63,13 @@ class HumanAgent(Agent):
             self.on_game_end(game)
             return None
 
-    def on_game_end(self, game):
+    def on_game_end(self, game) -> None:
         if self.switching:
             self.player, self.opponent = self.opponent, self.player
 
 
 class MouseAgent(Agent):
-    def __init__(self, player="X"):
+    def __init__(self, player: str = "X") -> None:
         super().__init__(player)
         self.selected_action = None  # Stores the clicked (row, col) action
 
@@ -85,7 +85,7 @@ class MouseAgent(Agent):
         game.display.wait_for_player_action()  # Wait for the user to select an action
         return self.selected_action
 
-    def handle_click(self, action):
+    def handle_click(self, action) -> None:
         """
         Handles the mouse click on the board.
         :param row: The row of the clicked cell.

@@ -10,7 +10,7 @@ from Agent import Agent
 
 
 class ReplayBuffer:
-    def __init__(self, size, state_dim, device="cpu"):
+    def __init__(self, size: int, state_dim, device: str = "cpu") -> None:
         """
         Initialize the ReplayBuffer with a fixed size and GPU storage.
 
@@ -30,7 +30,7 @@ class ReplayBuffer:
         self.next_states = torch.zeros((size, state_dim), dtype=torch.float32, device=device)
         self.dones = torch.zeros(size, dtype=torch.bool, device=device)
 
-    def add(self, state, action, reward, next_state, done):
+    def add(self, state, action, reward: float, next_state, done) -> None:
         """
         Add a new experience to the buffer.
 
@@ -50,7 +50,7 @@ class ReplayBuffer:
         self.index = (self.index + 1) % self.size
         self.current_size = min(self.current_size + 1, self.size)
 
-    def sample(self, batch_size):
+    def sample(self, batch_size: int):
         """
         Sample a batch of experiences from the buffer directly on the GPU.
 
@@ -66,7 +66,7 @@ class ReplayBuffer:
             self.dones[indices],
         )
 
-    def __len__(self):
+    def __len__(self) -> int:
         """
         Get the current size of the buffer.
 
@@ -77,7 +77,7 @@ class ReplayBuffer:
 
 # Neural Network for Q-function
 class QNetwork(nn.Module):
-    def __init__(self, input_dim, output_dim):
+    def __init__(self, input_dim, output_dim) -> None:
         super(QNetwork, self).__init__()
         self.fc = nn.Sequential(
             nn.Linear(input_dim, 128), nn.ReLU(), nn.Linear(128, 64), nn.ReLU(), nn.Linear(64, output_dim)
@@ -88,7 +88,7 @@ class QNetwork(nn.Module):
 
 
 class DeepQLearningAgent(Agent):
-    def __init__(self, params):
+    def __init__(self, params) -> None:
         super().__init__(player=params["player"], switching=params["switching"])
         self.params = params
         self.debug = params["debug"]
@@ -206,7 +206,7 @@ class DeepQLearningAgent(Agent):
         board = [self.state_to_board_translation[cell] for cell in flat_state]
         return board
 
-    def update_rates(self, episode):
+    def update_rates(self, episode) -> None:
         self.epsilon = max(
             self.params["epsilon_min"], self.params["epsilon_start"] / (1 + episode / self.nr_of_episodes)
         )
@@ -215,7 +215,7 @@ class DeepQLearningAgent(Agent):
         return [i for i, cell in enumerate(board) if cell == " "]
 
     # Choose an action based on Q-values
-    def choose_action(self, board, epsilon):
+    def choose_action(self, board, epsilon: float):
         if random.uniform(0, 1) < epsilon:
             # Exploration: Choose a random move
             valid_actions = self.get_valid_actions(board)
@@ -236,7 +236,7 @@ class DeepQLearningAgent(Agent):
 
 
 class DeepQPlayingAgent(Agent):
-    def __init__(self, q_network, player="X", switching=False):
+    def __init__(self, q_network, player: str = "X", switching: bool = False) -> None:
         super().__init__(player=player, switching=switching)
         # self.device = torch.device('mps')
         self.device = torch.device("cpu")
@@ -283,6 +283,6 @@ class DeepQPlayingAgent(Agent):
             self.on_game_end(game)
             return None
 
-    def on_game_end(self, game):
+    def on_game_end(self, game) -> None:
         if self.switching:
             self.player, self.opponent = self.opponent, self.player

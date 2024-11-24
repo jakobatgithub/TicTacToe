@@ -4,9 +4,10 @@ import numpy as np
 from Agent import RandomAgent
 from QAgent import QPlayingAgent
 from TicTacToe import TicTacToe
+from typing import Optional, Sequence
 
 
-def average_array(array, chunk_size=None):
+def average_array(array, chunk_size: Optional[int] = None):
     means = []
     if chunk_size is None:
         chunk_size = max((len(array) // 100, 1))
@@ -18,7 +19,7 @@ def average_array(array, chunk_size=None):
     return means
 
 
-def plot_graphs(loss, action_value, rewards):
+def plot_graphs(loss, action_value, rewards: Sequence[float]) -> None:
     # Create a figure with two subplots next to each other
     fig, axs = plt.subplots(1, 3, figsize=(12, 3))  # 1 row, 2 columns
 
@@ -59,7 +60,7 @@ def plot_graphs(loss, action_value, rewards):
     plt.show()
 
 
-def plot_valid_actions(learning_agent):
+def plot_valid_actions(learning_agent) -> None:
     evaluation_data = learning_agent.evaluation_data
     valid_actions = evaluation_data["valid_actions"]
     chunk_size = max((len(valid_actions) // 100, 1))
@@ -78,7 +79,7 @@ def plot_valid_actions(learning_agent):
     plt.show()
 
 
-def plot_evaluation_data(learning_agent):
+def plot_evaluation_data(learning_agent) -> None:
     evaluation_data = learning_agent.evaluation_data
     loss = evaluation_data["loss"]
     action_value = evaluation_data["action_value"]
@@ -100,7 +101,7 @@ def extract_values(dictionary):
     return values
 
 
-def evaluate_and_plot_Q(learning_agent, player):
+def evaluate_and_plot_Q(learning_agent, player) -> None:
     Q = learning_agent.Q
     qMatrix = Q.get()
     qValues = extract_values(qMatrix)
@@ -129,7 +130,9 @@ def evaluate_and_plot_Q(learning_agent, player):
     plt.show()
 
 
-def QAgent_plays_against_RandomAgent(Q, player, nr_of_episodes=5000, rows=3, cols=3, win_length=3):
+def QAgent_plays_against_RandomAgent(
+    Q, player, nr_of_episodes: int = 5000, rows: int = 3, cols: int = 3, win_length: int = 3
+) -> None:
     playing_agent1 = QPlayingAgent(Q, player=player, switching=False)
     opponent = "O" if player == "X" else "X"
     random_agent1 = RandomAgent(player=opponent, switching=False)
@@ -145,7 +148,9 @@ def QAgent_plays_against_RandomAgent(Q, player, nr_of_episodes=5000, rows=3, col
     )
 
 
-def QAgent_plays_against_QAgent(Q1, player1, Q2, player2=None, nr_of_episodes=5000, rows=3, cols=3, win_length=3):
+def QAgent_plays_against_QAgent(
+    Q1, player1, Q2, player2=None, nr_of_episodes: int = 5000, rows: int = 3, cols: int = 3, win_length: int = 3
+) -> None:
     playing_agent1 = QPlayingAgent(Q1, player=player1, switching=False)
     if not player2:
         player2 = "O" if player1 == "X" else "X"

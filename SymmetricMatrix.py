@@ -6,7 +6,7 @@ import numpy as np
 
 
 class LazyComputeDict(dict):
-    def __init__(self, compute_func, *args, **kwargs):
+    def __init__(self, compute_func, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.compute_func = compute_func
 
@@ -18,7 +18,7 @@ class LazyComputeDict(dict):
 
 
 class Matrix:
-    def __init__(self, file=None, default_value=None):
+    def __init__(self, file=None, default_value=None) -> None:
         """
         Initialize a Matrix object.
 
@@ -91,7 +91,7 @@ class Matrix:
         if action is not None and board is not None:
             return self.q_matrix[tuple(board)][action]
 
-    def set(self, board, action, value):
+    def set(self, board, action, value) -> None:
         """
         Set the q-value for a given state-action pair.
 
@@ -108,7 +108,7 @@ class Matrix:
 
 
 class SymmetricMatrix:
-    def __init__(self, file=None, default_value=None, lazy=True, rows=3):
+    def __init__(self, file=None, default_value=None, lazy: bool = True, rows: int = 3) -> None:
         self.default_value = 0.0
         self.rows = rows
 
@@ -172,7 +172,7 @@ class SymmetricMatrix:
         else:
             self._generate_all_dicts()
 
-    def _generate_all_dicts(self):
+    def _generate_all_dicts(self) -> None:
         all_valid_boards = self._generate_all_valid_boards()
         self.all_canonical_boards = set()
         self.dict_canonical_board = {}
@@ -289,7 +289,7 @@ class SymmetricMatrix:
             canonical_board, canonical_action = self.canonicalize(board, action)
             return self.qMatrix[canonical_board][canonical_action]
 
-    def set(self, board, action, value):
+    def set(self, board, action, value) -> None:
         """
         Set the value for a state-action pair.
         """
@@ -298,7 +298,7 @@ class SymmetricMatrix:
 
 
 class TotallySymmetricMatrix(SymmetricMatrix):
-    def __init__(self, file=None, default_value=None, lazy=True, rows=3):
+    def __init__(self, file=None, default_value=None, lazy: bool = True, rows: int = 3) -> None:
         # Call the parent initializer first
         super().__init__(file=file, default_value=default_value, lazy=lazy, rows=rows)
 
@@ -326,7 +326,7 @@ class TotallySymmetricMatrix(SymmetricMatrix):
         next_canonical_board = self.get_canonical_board(next_board)
         return next_canonical_board
 
-    def _generate_all_next_canonical_boards(self):
+    def _generate_all_next_canonical_boards(self) -> None:
         # Generate canonical board-to-next canonical board mapping
         all_next_canonical_boards = set()
         self.canonical_board_to_next_canonical_board = {}
@@ -371,7 +371,7 @@ class TotallySymmetricMatrix(SymmetricMatrix):
         canonical_action = self.get_canonical_action(board, action)
         return self.qMatrix[self.canonical_board_to_next_canonical_board[canonical_board][canonical_action]]
 
-    def set(self, board, action, value):
+    def set(self, board, action, value) -> None:
         """
         Set the value for a state-action pair.
         """

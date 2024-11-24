@@ -1,0 +1,173 @@
+#LyX 2.4 created this file. For more info see https://www.lyx.org/
+\lyxformat 620
+\begin_document
+\begin_header
+\save_transient_properties true
+\origin unavailable
+\textclass article
+\use_default_options true
+\maintain_unincluded_children no
+\language ngerman
+\language_package default
+\inputencoding utf8
+\fontencoding auto
+\font_roman "default" "default"
+\font_sans "default" "default"
+\font_typewriter "default" "default"
+\font_math "auto" "auto"
+\font_default_family default
+\use_non_tex_fonts false
+\font_sc false
+\font_roman_osf false
+\font_sans_osf false
+\font_typewriter_osf false
+\font_sf_scale 100 100
+\font_tt_scale 100 100
+\use_microtype false
+\use_dash_ligatures true
+\graphics default
+\default_output_format default
+\output_sync 0
+\bibtex_command default
+\index_command default
+\float_placement class
+\float_alignment class
+\paperfontsize default
+\use_hyperref false
+\papersize default
+\use_geometry false
+\use_package amsmath 1
+\use_package amssymb 1
+\use_package cancel 1
+\use_package esint 1
+\use_package mathdots 1
+\use_package mathtools 1
+\use_package mhchem 1
+\use_package stackrel 1
+\use_package stmaryrd 1
+\use_package undertilde 1
+\cite_engine basic
+\cite_engine_type default
+\use_bibtopic false
+\use_indices false
+\paperorientation portrait
+\suppress_date false
+\justification true
+\use_refstyle 1
+\use_formatted_ref 0
+\use_minted 0
+\use_lineno 0
+\index Index
+\shortcut idx
+\color #008000
+\end_index
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation indent
+\paragraph_indentation default
+\is_math_indent 0
+\math_numbering_side default
+\quotes_style english
+\dynamic_quotes 0
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+\tablestyle default
+\tracking_changes false
+\output_changes false
+\change_bars false
+\postpone_fragile_content true
+\html_math_output 0
+\html_css_as_file 0
+\html_be_strict false
+\docbook_table_output 0
+\docbook_mathml_prefix 1
+\end_header
+
+\begin_body
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+y_{i} & =\sum_{j=0}^{n-1}W_{i,j}x_{j},\,i\in\left\{ 0,\dots,n-1\right\} \\
+P_{i,j} & =\delta_{j,n-i}\\
+\tilde{x}_{i} & =\sum_{j=0}^{n-1}P_{i,j}x_{j}=\sum_{j=0}^{n-1}\delta_{j,n-i}x_{j}=x_{n-i}\\
+\tilde{y}_{i} & =\sum_{j=0}^{n-1}W_{i,j}\tilde{x}_{j}=\sum_{j=0}^{n-1}W_{i,j}\sum_{k=0}^{n-1}P_{j,k}x_{k}\\
+ & =\sum_{j=0}^{n-1}\sum_{k=0}^{n-1}W_{i,j}\delta_{k,n-j}x_{k}\\
+ & =\sum_{k=0}^{n-1}x_{k}\sum_{j=0}^{n-1}W_{i,j}\delta_{k,n-j}\\
+ & =\sum_{k=0}^{n-1}x_{k}\sum_{j=0}^{n-1}W_{i,j}P_{j,k}\\
+ & =\sum_{k=0}^{n-1}W_{i,n-k}x_{k}\\
+0 & =y_{i}-\tilde{y}_{i}=\sum_{j=0}^{n-1}W_{i,j}x_{j}-\sum_{k=0}^{n-1}W_{i,n-k}x_{k}\\
+ & =\sum_{j=0}^{n-1}\left(W_{i,j}-W_{i,n-j}\right)x_{j}
+\end{align*}
+
+\end_inset
+
+
+\begin_inset Formula 
+\begin{align*}
+A_{i,j} & =\dfrac{1}{2}\left(W_{i,j}+W_{i,n-j}\right)\\
+A_{i,n-j} & =\dfrac{1}{2}\left(W_{i,n-j}+W_{i,j}\right)=\dfrac{1}{2}\left(W_{i,j}+W_{i,n-j}\right)=A_{i,j}\\
+y_{i} & =\sum_{j=0}^{n-1}A_{i,j}x_{j}\\
+\tilde{y}_{i} & =\sum_{j=0}^{n-1}A_{i,j}\tilde{x}_{j}
+\end{align*}
+
+\end_inset
+
+
+\begin_inset Formula 
+\begin{align*}
+W_{i,j}-W_{i,n-j} & =W_{i,j}-\sum_{l=0}^{n-1}W_{i,l}P_{l,j}=0\\
+A_{i,j} & =\dfrac{1}{2}\left(W_{i,j}+\sum_{l=0}^{n-1}W_{i,l}P_{l,j}\right)\\
+\sum_{l=0}^{n-1}A_{i,l}P_{l,j} & =\dfrac{1}{2}\sum_{l=0}^{n-1}\left(W_{i,l}+\sum_{k=0}^{n-1}W_{i,k}P_{k,l}\right)P_{l,j}\\
+ & =\dfrac{1}{2}\left(\sum_{l=0}^{n-1}W_{i,l}P_{l,j}+\sum_{k=0}^{n-1}\sum_{l=0}^{n-1}W_{i,k}P_{k,l}P_{l,j}\right)\\
+ & =\dfrac{1}{2}\left(\sum_{l=0}^{n-1}W_{i,l}P_{l,j}+\sum_{k=0}^{n-1}W_{i,k}\sum_{l=0}^{n-1}P_{k,l}P_{l,j}\right)\\
+ & =\dfrac{1}{2}\left(\sum_{l=0}^{n-1}W_{i,l}P_{l,j}+\sum_{k=0}^{n-1}W_{i,k}\delta_{k,j}\right)\\
+ & =\dfrac{1}{2}\left(\sum_{l=0}^{n-1}W_{i,l}P_{l,j}+W_{i,j}\right)\\
+ & =\dfrac{1}{2}\left(W_{i,j}+\sum_{l=0}^{n-1}W_{i,l}P_{l,j}\right)=A_{i,j}\\
+\sum_{l=0}^{n-1}P_{k,l}P_{l,j} & =\sum_{l=0}^{n-1}\delta_{l,n-k}\delta_{j,n-l}=\delta_{j,k}=\delta_{k,j}\\
+P_{i,j} & =\delta_{j,n-i}
+\end{align*}
+
+\end_inset
+
+
+\begin_inset Formula 
+\begin{align*}
+B_{i,j} & =\dfrac{1}{2}\left(A_{i,j}+\sum_{l=0}^{n-1}A_{i,l}Q_{l,j}\right)\\
+ & =\dfrac{1}{4}\left(W_{i,j}+\sum_{l=0}^{n-1}W_{i,l}\left(P_{l,j}+Q_{l,j}\right)+\sum_{k=0}^{n-1}\sum_{l=0}^{n-1}W_{i,k}P_{k,j}Q_{l,j}\right)\\
+\sum_{l=0}^{n-1}B_{i,l}Q_{l,j} & =B_{i,j}
+\end{align*}
+
+\end_inset
+
+
+\begin_inset Formula 
+\begin{align*}
+\sum_{m=0}^{n-1}B_{i,m}P_{m,j} & =\sum_{m=0}^{n-1}\dfrac{1}{2}\left(A_{i,m}+\sum_{l=0}^{n-1}A_{i,l}Q_{l,m}\right)P_{m,j}\\
+ & =\dfrac{1}{2}\left(\sum_{m=0}^{n-1}A_{i,m}P_{m,j}+\sum_{l=0}^{n-1}\sum_{m=0}^{n-1}A_{i,l}Q_{l,m}P_{m,j}\right)\\
+ & =\dfrac{1}{2}\left(\sum_{m=0}^{n-1}A_{i,m}P_{m,j}+\sum_{l=0}^{n-1}\sum_{m=0}^{n-1}A_{i,l}Q_{l,m}P_{m,j}\right)\stackrel{!}{=}\dfrac{1}{2}\left(A_{i,j}+\sum_{l=0}^{n-1}A_{i,l}Q_{l,j}\right)=B_{i,j}\\
+\sum_{k=0}^{n-1}A_{i,k}Q_{k,j} & \stackrel{!}{=}\sum_{k=0}^{n-1}\sum_{m=0}^{n-1}A_{i,k}Q_{k,m}P_{m,j}\\
+\sum_{k=0}^{n-1}W_{i,k}Q_{k,j}+\sum_{k=0}^{n-1}\sum_{l=0}^{n-1}W_{i,k}P_{k,l}Q_{l,j} & \stackrel{!}{=}\sum_{k=0}^{n-1}\sum_{m=0}^{n-1}W_{i,k}Q_{k,m}P_{m,j}+\sum_{k=0}^{n-1}\sum_{m=0}^{n-1}\sum_{l=0}^{n-1}W_{i,k}P_{k,l}Q_{l,m}P_{m,j}\\
+\sum_{k=0}^{n-1}W_{i,k}\left(Q_{k,j}+\sum_{l=0}^{n-1}P_{k,l}Q_{l,j}-\sum_{m=0}^{n-1}Q_{k,m}P_{m,j}-\sum_{m=0}^{n-1}\sum_{l=0}^{n-1}P_{k,l}Q_{l,m}P_{m,j}\right) & \stackrel{!}{=}0\\
+Q_{k,j}+\sum_{l=0}^{n-1}P_{k,l}Q_{l,j}-\sum_{m=0}^{n-1}Q_{k,m}P_{m,j}-\sum_{m=0}^{n-1}\sum_{l=0}^{n-1}P_{k,l}Q_{l,m}P_{m,j} & =0
+\end{align*}
+
+\end_inset
+
+
+\begin_inset Formula 
+\begin{align*}
+\bm{P}_{\pi}^{k} & =\bm{1}\\
+\bm{A} & =\dfrac{1}{k}\sum_{i=0}^{k-1}\bm{W}\cdot\bm{P}_{\pi}^{i}\\
+\bm{A}\cdot\bm{P}_{\pi} & =\dfrac{1}{k}\sum_{i=0}^{k-1}\bm{W}\cdot\bm{P}_{\pi}^{i+1}=\dfrac{1}{k}\sum_{i=0}^{k-2}\bm{W}\cdot\bm{P}_{\pi}^{i+1}+\dfrac{1}{k}\bm{W}\cdot\bm{P}_{\pi}^{k}\\
+ & =\dfrac{1}{k}\sum_{m=1}^{k-1}\bm{W}\cdot\bm{P}_{\pi}^{m}+\dfrac{1}{k}\bm{W}=\dfrac{1}{k}\sum_{m=0}^{k-1}\bm{W}\cdot\bm{P}_{\pi}^{m}=\bm{A}
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\end_body
+\end_document

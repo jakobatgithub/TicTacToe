@@ -115,6 +115,11 @@ class TestTicTacToe(unittest.TestCase):
         with self.assertRaises(ValueError):
             TicTacToe(agent1, self.agent2, display=display)
 
+    def test_non_quadratic_board(self) -> None:
+        """Test non-quadratic board raises an error."""
+        with self.assertRaises(ValueError):
+            TicTacToe(self.agent1, self.agent2, rows=3, cols=4)
+
 
 class TestDisplay(unittest.TestCase):
     def setUp(self) -> None:

@@ -87,7 +87,7 @@
 \begin_body
 
 \begin_layout Standard
-\begin_inset Formula 
+\begin_inset Formula
 \begin{align*}
 y_{i} & =\sum_{j=0}^{n-1}W_{i,j}x_{j},\,i\in\left\{ 0,\dots,n-1\right\} \\
 P_{i,j} & =\delta_{j,n-i}\\
@@ -104,7 +104,7 @@ P_{i,j} & =\delta_{j,n-i}\\
 \end_inset
 
 
-\begin_inset Formula 
+\begin_inset Formula
 \begin{align*}
 A_{i,j} & =\dfrac{1}{2}\left(W_{i,j}+W_{i,n-j}\right)\\
 A_{i,n-j} & =\dfrac{1}{2}\left(W_{i,n-j}+W_{i,j}\right)=\dfrac{1}{2}\left(W_{i,j}+W_{i,n-j}\right)=A_{i,j}\\
@@ -115,7 +115,7 @@ y_{i} & =\sum_{j=0}^{n-1}A_{i,j}x_{j}\\
 \end_inset
 
 
-\begin_inset Formula 
+\begin_inset Formula
 \begin{align*}
 W_{i,j}-W_{i,n-j} & =W_{i,j}-\sum_{l=0}^{n-1}W_{i,l}P_{l,j}=0\\
 A_{i,j} & =\dfrac{1}{2}\left(W_{i,j}+\sum_{l=0}^{n-1}W_{i,l}P_{l,j}\right)\\
@@ -132,7 +132,7 @@ P_{i,j} & =\delta_{j,n-i}
 \end_inset
 
 
-\begin_inset Formula 
+\begin_inset Formula
 \begin{align*}
 B_{i,j} & =\dfrac{1}{2}\left(A_{i,j}+\sum_{l=0}^{n-1}A_{i,l}Q_{l,j}\right)\\
  & =\dfrac{1}{4}\left(W_{i,j}+\sum_{l=0}^{n-1}W_{i,l}\left(P_{l,j}+Q_{l,j}\right)+\sum_{k=0}^{n-1}\sum_{l=0}^{n-1}W_{i,k}P_{k,j}Q_{l,j}\right)\\
@@ -142,7 +142,7 @@ B_{i,j} & =\dfrac{1}{2}\left(A_{i,j}+\sum_{l=0}^{n-1}A_{i,l}Q_{l,j}\right)\\
 \end_inset
 
 
-\begin_inset Formula 
+\begin_inset Formula
 \begin{align*}
 \sum_{m=0}^{n-1}B_{i,m}P_{m,j} & =\sum_{m=0}^{n-1}\dfrac{1}{2}\left(A_{i,m}+\sum_{l=0}^{n-1}A_{i,l}Q_{l,m}\right)P_{m,j}\\
  & =\dfrac{1}{2}\left(\sum_{m=0}^{n-1}A_{i,m}P_{m,j}+\sum_{l=0}^{n-1}\sum_{m=0}^{n-1}A_{i,l}Q_{l,m}P_{m,j}\right)\\
@@ -156,7 +156,7 @@ Q_{k,j}+\sum_{l=0}^{n-1}P_{k,l}Q_{l,j}-\sum_{m=0}^{n-1}Q_{k,m}P_{m,j}-\sum_{m=0}
 \end_inset
 
 
-\begin_inset Formula 
+\begin_inset Formula
 \begin{align*}
 \bm{P}_{\pi}^{k} & =\bm{1}\\
 \bm{A} & =\dfrac{1}{k}\sum_{i=0}^{k-1}\bm{W}\cdot\bm{P}_{\pi}^{i}\\

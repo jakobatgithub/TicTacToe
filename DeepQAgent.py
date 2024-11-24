@@ -105,6 +105,7 @@ class DeepQLearningAgent(Agent):
         self.target_update_frequency = params['target_update_frequency']
         self.learning_rate = params['learning_rate']
         self.replay_buffer_length = params['replay_buffer_length']
+        self.wandb_logging_frequency = params['wandb_logging_frequency']
 
         self.episode_count = 0
         self.games_moves_count = 0
@@ -137,7 +138,6 @@ class DeepQLearningAgent(Agent):
 
     def get_action(self, state_transition, game):
         next_board, reward, done = state_transition
-        self.evaluation_data['rewards'].append(reward)
         if len(self.episode_history) > 0:
             board, action = self.episode_history[-1]
             self.state_transitions.append((board, action, next_board, reward, done))
@@ -165,11 +165,15 @@ class DeepQLearningAgent(Agent):
                 loss = nn.MSELoss()(q_values, targets)
                 self.evaluation_data['loss'].append(loss.item())
                 self.evaluation_data['action_value'].append(next_q_values.mean().item())
+                self.evaluation_data['rewards'].append(reward)
+
                 # Buffer Wandb Metrics
-                if self.train_step_count % 50 == 0:
+                if self.train_step_count % self.wandb_logging_frequency == 0:
                     wandb.log({
-                        "loss": sum(self.evaluation_data['loss'][-10:]) / 10,
-                        "action_value": sum(self.evaluation_data['action_value'][-10:]) / 10
+                        "loss": sum(self.evaluation_data['loss'][-self.wandb_logging_frequency:]) / self.wandb_logging_frequency,
+                        "action_value": sum(self.evaluation_data['action_value'][-self.wandb_logging_frequency:]) / self.wandb_logging_frequency,
+                        "reward": sum(self.evaluation_data['rewards'][-self.wandb_logging_frequency:]) / self.wandb_logging_frequency,
+                        "episode_count": self.episode_count
                     })
                 self.optimizer.zero_grad()
                 loss.backward()
@@ -196,6 +200,7 @@ class DeepQLearningAgent(Agent):
 
     def board_to_state(self, board):
         return np.array([self.board_to_state_translation[cell] for cell in board]).reshape(1, -1)
+        # return [self.board_to_state_translation[cell] for cell in board]
     
     def state_to_board(self, state):
         flat_state = state.flatten()
@@ -223,10 +228,8 @@ class DeepQLearningAgent(Agent):
 
             if action in self.get_valid_actions(board):
                 self.evaluation_data['valid_actions'].append(1)
-                # wandb.log({"valid_actions": 1})
             else:
                 self.evaluation_data['valid_actions'].append(0)
-                # wandb.log({"valid_actions": 0})
 
             return action
 

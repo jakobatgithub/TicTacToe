@@ -143,6 +143,7 @@ class DeepQLearningAgent(Agent):
 
             self.replay_buffer.add(state, action, reward, next_state, done)
             if len(self.replay_buffer) >= self.batch_size:
+                print("Training step")
                 states, actions, rewards, next_states, dones = self.replay_buffer.sample(self.batch_size)
 
                 q_values = self.q_network(states).gather(1, actions.unsqueeze(1)).squeeze(1)

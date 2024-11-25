@@ -142,54 +142,64 @@ class DeepQLearningAgent(Agent):
             "valid_actions": [],
         }
 
+    def train_step(self) -> tuple[float, float]:
+        states, actions, rewards, next_states, dones = self.replay_buffer.sample(self.batch_size)
+
+        q_values = self.q_network(states).gather(1, actions.unsqueeze(1)).squeeze(1)
+        next_q_values = self.target_network(next_states).max(1, keepdim=True)[0].squeeze(1)
+        targets = rewards + (~dones) * self.gamma * next_q_values
+
+        # print(f"states.shape = {states.shape}")
+        # print(f"q_values.shape = {q_values.shape}")
+        # print(f"next_q_values.shape = {next_q_values.shape}")
+        # print(f"(~dones).shape = {(~dones).shape}")
+        # print(f"rewards.shape = {rewards.shape}")
+        # print(f"targets.shape = {targets.shape}")
+
+        loss = nn.MSELoss()(q_values, targets)
+        self.optimizer.zero_grad()
+        loss.backward()
+        self.optimizer.step()  # type: ignore
+        self.train_step_count += 1
+        return loss.item(), next_q_values.mean().item()
+
+    def log_evaluation_data(self, loss: float, mean_q_values: float, reward: Reward) -> None:
+        self.evaluation_data["loss"].append(loss)
+        self.evaluation_data["action_value"].append(mean_q_values)
+        self.evaluation_data["rewards"].append(reward)
+
+        # Buffer Wandb Metrics
+        if self.train_step_count % self.wandb_logging_frequency == 0:
+            wandb.log(
+                {
+                    "loss": sum(self.evaluation_data["loss"][-self.wandb_logging_frequency :])
+                    / self.wandb_logging_frequency,
+                    "action_value": sum(self.evaluation_data["action_value"][-self.wandb_logging_frequency :])
+                    / self.wandb_logging_frequency,
+                    "reward": sum(self.evaluation_data["rewards"][-self.wandb_logging_frequency :])
+                    / self.wandb_logging_frequency,
+                    "episode_count": self.episode_count,
+                }
+            )
+
+    def add_state_transition(self, next_board: Board | None, reward: Reward, done: bool) -> None:
+        board, action = self.episode_history[-1]
+        self.state_transitions.append((board, action, next_board, reward, done))
+        state = self.board_to_state(board)
+        if next_board is None:
+            next_state = self.board_to_state(["X"] * (self.rows**2))  # is not needed
+        else:
+            next_state = self.board_to_state(next_board)
+
+        self.replay_buffer.add(state, action, reward, next_state, done)
+
     def get_action(self, state_transition: StateTransition, game: "TicTacToe") -> int:
         next_board, reward, done = state_transition
         if len(self.episode_history) > 0:
-            board, action = self.episode_history[-1]
-            self.state_transitions.append((board, action, next_board, reward, done))
-            state = self.board_to_state(board)
-            if next_board is None:
-                next_state = self.board_to_state(["X"] * (self.rows**2))  # is not needed
-            else:
-                next_state = self.board_to_state(next_board)
-
-            self.replay_buffer.add(state, action, reward, next_state, done)
+            self.add_state_transition(next_board, reward, done)
             if len(self.replay_buffer) >= self.batch_size:
-                states, actions, rewards, next_states, dones = self.replay_buffer.sample(self.batch_size)
-
-                q_values = self.q_network(states).gather(1, actions.unsqueeze(1)).squeeze(1)
-                next_q_values = self.target_network(next_states).max(1, keepdim=True)[0].squeeze(1)
-                targets = rewards + (~dones) * self.gamma * next_q_values
-
-                # print(f"states.shape = {states.shape}")
-                # print(f"q_values.shape = {q_values.shape}")
-                # print(f"next_q_values.shape = {next_q_values.shape}")
-                # print(f"(~dones).shape = {(~dones).shape}")
-                # print(f"rewards.shape = {rewards.shape}")
-                # print(f"targets.shape = {targets.shape}")
-
-                loss = nn.MSELoss()(q_values, targets)
-                self.evaluation_data["loss"].append(loss.item())
-                self.evaluation_data["action_value"].append(next_q_values.mean().item())
-                self.evaluation_data["rewards"].append(reward)
-
-                # Buffer Wandb Metrics
-                if self.train_step_count % self.wandb_logging_frequency == 0:
-                    wandb.log(
-                        {
-                            "loss": sum(self.evaluation_data["loss"][-self.wandb_logging_frequency :])
-                            / self.wandb_logging_frequency,
-                            "action_value": sum(self.evaluation_data["action_value"][-self.wandb_logging_frequency :])
-                            / self.wandb_logging_frequency,
-                            "reward": sum(self.evaluation_data["rewards"][-self.wandb_logging_frequency :])
-                            / self.wandb_logging_frequency,
-                            "episode_count": self.episode_count,
-                        }
-                    )
-                self.optimizer.zero_grad()
-                loss.backward()
-                self.optimizer.step()  # type: ignore
-                self.train_step_count += 1
+                loss, mean_q_values = self.train_step()
+                self.log_evaluation_data(loss, mean_q_values, reward)
 
         if not done:
             board = next_board

@@ -24,24 +24,6 @@ class LazyComputeDict(dict[Any, Any]):
 
 class Matrix:
     def __init__(self, file: str | None = None, default_value: float | None = None) -> None:
-        """
-        Initialize a Matrix object.
-
-        Parameters
-        ----------
-        file : str, optional
-            File name to load the matrix from. If None, the matrix is
-            initialized with the given default value.
-        default_value : object, optional
-            Default value to use for initializing the matrix. If None,
-            the matrix is loaded from the given file.
-
-        Notes
-        -----
-        The matrix is stored in a dictionary where the keys represent
-        states and the values are dictionaries where the keys are
-        actions and the values are q-values.
-        """
         self.default_value = 0.0
         if default_value is None and file is None:
             self.q_matrix: dict[Any, Any] = defaultdict(self._initialize_q_matrix)
@@ -53,66 +35,13 @@ class Matrix:
             self.q_matrix = defaultdict(self._initialize_q_matrix)
 
     def _initialize_q_matrix(self) -> dict[Any, Any]:
-        """
-        Initialize an empty dictionary for storing q-values for a given state.
-
-        The dictionary is a defaultdict with the default value set to
-        self.default_value.
-
-        Returns
-        -------
-        state_dict : dict
-            An empty dictionary for storing q-values for the given state.
-        """
         state_dict: dict[Any, Any] = defaultdict(lambda: self.default_value)
         return state_dict
 
     def get(self, board: Board, action: Action) -> float:
         return self.q_matrix[board][action]
 
-    # def get(self, board : Board | None = None, action : Action = None) -> Union[dict[Board, dict[int, float]], dict[int, float], float]:
-    #     """
-    #     Retrieve the q-value(s) for a given state-action pair.
-
-    #     Parameters
-    #     ----------
-    #     board : list or None, optional
-    #         The current state of the board represented as a list. If None,
-    #         the entire q_matrix is returned.
-    #     action : int or None, optional
-    #         The action taken at the given board state. If None, all q-values
-    #         for the given board state are returned.
-
-    #     Returns
-    #     -------
-    #     float or dict
-    #         If both board and action are provided, returns the q-value for
-    #         the specified state-action pair. If only the board is provided,
-    #         returns a dictionary of actions and their corresponding q-values
-    #         for the given state. If neither is provided, returns the entire
-    #         q_matrix.
-    #     """
-    #     if board is None:
-    #         return self.q_matrix
-    #     else:
-    #         if action is None:
-    #             return self.q_matrix[tuple(board)]
-    #         else:
-    #             return self.q_matrix[tuple(board)][action]
-
     def set(self, board: Board, action: Action, value: float) -> None:
-        """
-        Set the q-value for a given state-action pair.
-
-        Parameters
-        ----------
-        board : list
-            The state of the board represented as a list.
-        action : int
-            The action taken at the given board state.
-        value : float
-            The q-value to set for the specified state-action pair.
-        """
         self.q_matrix[tuple(board)][action] = value
 
 
@@ -215,15 +144,9 @@ class SymmetricMatrix:
         return state_dict
 
     def _board_to_matrix(self, board: Board) -> np.ndarray[Any, Any]:
-        """
-        Convert a linear board to a rows x rows matrix for easier manipulation
-        """
         return np.array(board).reshape(self.rows, self.rows)
 
     def _matrix_to_board(self, matrix: np.ndarray[Any, Any]) -> Board:
-        """
-        Convert a rows x rows matrix back to a linear board representation.
-        """
         return matrix.flatten().tolist()
 
     def _generate_all_valid_boards(self) -> list[Board]:
@@ -294,23 +217,7 @@ class SymmetricMatrix:
         canonical_board, canonical_action = self.canonicalize(board, action)
         return self.qMatrix[canonical_board][canonical_action]
 
-    # def get(self, board : Board | None = None, action : Action = None) -> Union[dict[Board, dict[int, float]], dict[int, float], float]:
-    #     """
-    #     Retrieve the value for a state-action pair.
-    #     """
-    #     if board is None:
-    #         return self.qMatrix
-    #     else:
-    #         if action is None:
-    #             return self.qMatrix[self.get_canonical_board(board)]
-    #         else:
-    #             canonical_board, canonical_action = self.canonicalize(board, action)
-    #             return self.qMatrix[canonical_board][canonical_action]
-
     def set(self, board: Board, action: int, value: float) -> None:
-        """
-        Set the value for a state-action pair.
-        """
         canonical_board, canonical_action = self.canonicalize(board, action)
         self.qMatrix[canonical_board][canonical_action] = value
 
@@ -377,9 +284,6 @@ class TotallySymmetricMatrix(SymmetricMatrix):
         return self.qMatrix[self.canonical_board_to_next_canonical_board[canonical_board][canonical_action]]
 
     def set(self, board: Board, action: int, value: float) -> None:
-        """
-        Set the value for a state-action pair.
-        """
         canonical_board = self.get_canonical_board(board)
         canonical_action = self.get_canonical_action(board, action)
         self.qMatrix[self.canonical_board_to_next_canonical_board[canonical_board][canonical_action]] = value

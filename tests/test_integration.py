@@ -87,7 +87,3 @@ class TestIntegration(unittest.TestCase):
 
         self.assertTrue(agent2.get_action.called, "HumanAgent should be called for actions during the game.")
         self.assertIn(outcome, ["X", "O", "D"], "Game outcome should be valid.")
-
-
-if __name__ == "__main__":
-    unittest.main()

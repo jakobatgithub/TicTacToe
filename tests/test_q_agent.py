@@ -238,3 +238,62 @@ class TestDeepQLearningAgent(unittest.TestCase):
             else:
                 self.agent.target_network.load_state_dict.assert_not_called()
             self.agent.target_network.load_state_dict.reset_mock()
+
+    def test_update_state_transitions_and_replay_buffer(self):
+        # Mock inputs
+        reward = 1
+        done = False
+        board = ["X", "O", " ", "O", "X", " ", " ", " ", " "]
+        action = 2
+        next_board = ["X", "O", "X", "O", "X", " ", " ", " ", " "]
+        self.agent.episode_history = [(board, action)]
+        self.agent.board_to_state = MagicMock(side_effect=[1, 2])
+
+        # Call the method
+        self.agent._update_state_transitions_and_replay_buffer(next_board, reward, done)
+
+        # Assertions
+        self.agent.board_to_state.assert_called()
+        self.assertEqual(len(self.agent.state_transitions), 1)
+
+    def test_log_training_metrics(self):
+        # Mock inputs
+        loss = 0.1
+        next_q_values = 0.5
+        reward = 1.0
+
+        # Call the method
+        self.agent._log_training_metrics(loss, next_q_values, reward)
+
+        # Assertions
+        self.assertIn(0.1, self.agent.evaluation_data["loss"])
+        self.assertIn(0.5, self.agent.evaluation_data["action_value"])
+        self.assertIn(1.0, self.agent.evaluation_data["rewards"])
+
+    def test_handle_incomplete_game(self):
+        # Mock inputs
+        next_board = [["X", "O", ""], ["O", "X", ""], ["", "", ""]]
+        self.agent.choose_action = MagicMock(return_value=4)
+
+        # Call the method
+        action = self.agent._handle_incomplete_game(next_board)
+
+        # Assertions
+        self.agent.choose_action.assert_called_with(next_board, epsilon=self.agent.epsilon)
+        self.assertEqual(action, 4)
+        self.assertEqual(len(self.agent.episode_history), 1)
+        self.assertEqual(self.agent.games_moves_count, 1)
+
+    def test_handle_game_completion(self):
+        # Mock attributes
+        self.agent.episode_count = 5
+        self.agent.target_update_frequency = 5
+        self.agent.update_rates = MagicMock()
+
+        # Call the method
+        self.agent._handle_game_completion()
+
+        # Assertions
+        self.agent.update_rates.assert_called_with(6)  # Incremented episode count
+        self.assertEqual(len(self.agent.evaluation_data["histories"]), 1)
+        self.assertEqual(len(self.agent.episode_history), 0)

@@ -222,7 +222,7 @@ class SymmetricMatrix:
         self.qMatrix[canonical_board][canonical_action] = value
 
 
-class TotallySymmetricMatrix(SymmetricMatrix):
+class FullySymmetricMatrix(SymmetricMatrix):
     def __init__(
         self, file: str | None = None, default_value: float | None = None, lazy: bool = True, rows: int = 3
     ) -> None:

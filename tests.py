@@ -10,7 +10,7 @@ import torch
 from Agent import Agent, HumanAgent, MouseAgent, RandomAgent
 from DeepQAgent import DeepQLearningAgent, QNetwork, ReplayBuffer
 from Display import ConsoleDisplay, TicTacToeDisplay
-from SymmetricMatrix import SymmetricMatrix, TotallySymmetricMatrix
+from SymmetricMatrix import FullySymmetricMatrix, SymmetricMatrix
 from TicTacToe import TicTacToe
 
 
@@ -553,7 +553,7 @@ class TestSymmetricMatrix(unittest.TestCase):
         self.default_value = 0.0
         self.rows = 3
         self.matrix = SymmetricMatrix(default_value=self.default_value, rows=self.rows)
-        self.totally_symmetric_matrix = TotallySymmetricMatrix(default_value=self.default_value, rows=self.rows)
+        self.totally_symmetric_matrix = FullySymmetricMatrix(default_value=self.default_value, rows=self.rows)
 
     def test_initialization(self) -> None:
         """Test initialization of SymmetricMatrix."""

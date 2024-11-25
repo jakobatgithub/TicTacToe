@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any
 import numpy as np
 
 from Agent import Agent
-from SymmetricMatrix import SymmetricMatrix, TotallySymmetricMatrix
+from SymmetricMatrix import FullySymmetricMatrix, SymmetricMatrix
 
 if TYPE_CHECKING:
     from TicTacToe import TicTacToe  # Import only for type hinting
@@ -26,7 +26,7 @@ class QLearningAgent(Agent):
         # Initialize matrices
         # self.Q = Matrix(default_value=params['Q_initial_value'])
         # self.Q = SymmetricMatrix(default_value=params['Q_initial_value'], lazy=params['lazy_evaluation'], rows=params['rows'])
-        self.Q: SymmetricMatrix = TotallySymmetricMatrix(
+        self.Q: SymmetricMatrix = FullySymmetricMatrix(
             default_value=params["Q_initial_value"], lazy=params["lazy_evaluation"], rows=params["rows"]
         )
 

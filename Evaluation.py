@@ -7,7 +7,7 @@ from Agent import RandomAgent
 from DeepQAgent import DeepQLearningAgent
 from game_types import Player
 from QAgent import QLearningAgent, QPlayingAgent
-from SymmetricMatrix import TotallySymmetricMatrix
+from SymmetricMatrix import FullySymmetricMatrix
 from TicTacToe import TicTacToe
 
 
@@ -134,7 +134,7 @@ def evaluate_and_plot_Q(learning_agent: QLearningAgent, player: Player) -> None:
 
 
 def QAgent_plays_against_RandomAgent(
-    Q: TotallySymmetricMatrix,
+    Q: FullySymmetricMatrix,
     player: Player,
     nr_of_episodes: int = 5000,
     rows: int = 3,
@@ -158,9 +158,9 @@ def QAgent_plays_against_RandomAgent(
 
 
 def QAgent_plays_against_QAgent(
-    Q1: TotallySymmetricMatrix,
+    Q1: FullySymmetricMatrix,
     player1: Player,
-    Q2: TotallySymmetricMatrix,
+    Q2: FullySymmetricMatrix,
     player2: Player | None = None,
     nr_of_episodes: int = 5000,
     rows: int = 3,

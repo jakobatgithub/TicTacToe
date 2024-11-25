@@ -9,7 +9,7 @@ from SymmetricMatrix import BaseMatrix, Matrix  # SymmetricMatrix, FullySymmetri
 if TYPE_CHECKING:
     from TicTacToe import TicTacToe  # Import only for type hinting
 
-from game_types import Action, Board, History, Params, Player, Reward, StateTransition, StateTransitions2
+from game_types import Action, Actions, Board, History, Params, Player, Reward, StateTransition, StateTransitions2
 
 
 class QLearningAgent(Agent):
@@ -43,7 +43,7 @@ class QLearningAgent(Agent):
 
         self.evaluation_data: dict[str, Any] = {"loss": [], "action_value": [], "histories": [], "rewards": []}
 
-    def get_action(self, state_transition: StateTransition, game: "TicTacToe"):
+    def get_action(self, state_transition: StateTransition, game: "TicTacToe") -> Action:
         next_board, reward, done = state_transition
         self.evaluation_data["rewards"].append(reward)
         if len(self.episode_history) > 0:
@@ -123,22 +123,22 @@ class QLearningAgent(Agent):
         )
         self.alpha = max(self.params["alpha_min"], self.params["alpha_start"] / (1 + episode / self.nr_of_episodes))
 
-    def get_valid_actions(self, board: Board):
+    def get_valid_actions(self, board: Board) -> Actions:
         return [i for i, cell in enumerate(board) if cell == " "]
 
-    def get_best_actions(self, board: Board, Q: BaseMatrix) -> list[int]:
+    def get_best_actions(self, board: Board, Q: BaseMatrix) -> Actions:
         actions = self.get_valid_actions(board)
         q_values = {action: Q.get(tuple(board), action) for action in actions}
         max_q = max(q_values.values())
         best_actions = [action for action, q in q_values.items() if q == max_q]
         return best_actions
 
-    def get_best_action(self, board: Board, Q: BaseMatrix) -> int:
+    def get_best_action(self, board: Board, Q: BaseMatrix) -> Action:
         best_actions = self.get_best_actions(board, Q)
         return np.random.choice(best_actions)
 
     # Choose an action based on Q-values
-    def choose_action(self, board: Board, epsilon: float):
+    def choose_action(self, board: Board, epsilon: float) -> Action:
         if random.uniform(0, 1) < epsilon:
             # Exploration: Choose a random move
             valid_actions = self.get_valid_actions(board)
@@ -164,22 +164,22 @@ class QPlayingAgent(Agent):
             self.on_game_end()
             return -1
 
-    def get_valid_actions(self, board: Board):
+    def get_valid_actions(self, board: Board) -> Actions:
         return [i for i, cell in enumerate(board) if cell == " "]
 
-    def get_best_actions(self, board: Board, Q: BaseMatrix) -> list[int]:
+    def get_best_actions(self, board: Board, Q: BaseMatrix) -> Actions:
         actions = self.get_valid_actions(board)
         q_values = {action: Q.get(tuple(board), action) for action in actions}
         max_q = max(q_values.values())
         best_actions = [action for action, q in q_values.items() if q == max_q]
         return best_actions
 
-    def get_best_action(self, board: Board, Q: BaseMatrix) -> int:
+    def get_best_action(self, board: Board, Q: BaseMatrix) -> Action:
         best_actions = self.get_best_actions(board, Q)
         return np.random.choice(best_actions)
 
     # Choose an action based on Q-values
-    def choose_action(self, board: Board):
+    def choose_action(self, board: Board) -> Action:
         action = int(self.get_best_action(board, self.Q))
         return action
 

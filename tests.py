@@ -1,3 +1,5 @@
+# type: ignore
+
 import unittest
 from typing import Any, Literal
 from unittest.mock import MagicMock, patch
@@ -401,7 +403,7 @@ class TestDeepQLearningAgent(unittest.TestCase):
         next_board = board[:]
         next_board[0] = "X"
         self.agent.episode_history = [(board, 0)]  # Simulate a previous move
-        self.agent.get_action((next_board, 1.0, False), None)  # Add experience
+        self.agent.get_action((next_board, 1.0, False), game=None)  # Add experience
         self.assertEqual(len(self.agent.replay_buffer), 1, "Replay buffer should contain one experience.")
 
     def test_training_step_updates_network(self) -> None:
@@ -412,7 +414,7 @@ class TestDeepQLearningAgent(unittest.TestCase):
         next_board[0] = "X"
         self.agent.episode_history = [(board, 0)]  # Simulate a previous move
         # Fill the replay buffer
-        for i in range(self.agent.batch_size):
+        for _ in range(self.agent.batch_size):
             self.agent.replay_buffer.add(
                 state=np.random.rand(self.params["rows"] ** 2),
                 action=0,
@@ -501,7 +503,7 @@ class TestAgentBase(unittest.TestCase):
         """Simulate GUI clicks to test MouseAgent."""
 
         class MockGame:
-            class MockDisplay:
+            class MockDisplay(TicTacToeDisplay):
                 def bind_click_handler(self, handler) -> None:
                     self.handler = handler
 
@@ -540,7 +542,7 @@ class TestAgentBase(unittest.TestCase):
         agent.selected_action = None
         action = agent.get_action((None, 0, False), game)
 
-        self.assertIsNone(action, "MouseAgent should return None if no action is selected.")
+        self.assertEqual(action, -1, "MouseAgent should return -1 if no action is selected.")
 
 
 class TestSymmetricMatrix(unittest.TestCase):

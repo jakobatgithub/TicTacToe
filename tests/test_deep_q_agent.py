@@ -2,12 +2,12 @@
 
 import unittest
 from typing import Any
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import numpy as np
 import torch
 
-from TicTacToe.DeepQAgent import DeepQLearningAgent, QNetwork, ReplayBuffer
+from TicTacToe.DeepQAgent import DeepQLearningAgent, DeepQPlayingAgent, QNetwork, ReplayBuffer
 
 
 class TestReplayBuffer(unittest.TestCase):
@@ -297,3 +297,65 @@ class TestDeepQLearningAgent(unittest.TestCase):
         self.agent.update_rates.assert_called_with(6)  # Incremented episode count
         self.assertEqual(len(self.agent.evaluation_data["histories"]), 1)
         self.assertEqual(len(self.agent.episode_history), 0)
+
+
+# Mock classes for dependencies
+class MockQNetwork(torch.nn.Module):
+    def forward(self, state_tensor):
+        return torch.tensor([[0.1, 0.5, 0.3, 0.7]])
+
+
+class MockTicTacToe:
+    def get_board(self):
+        return ["X", " ", "O", " ", " ", "X", "O", " ", " "]
+
+
+class TestDeepQPlayingAgent(unittest.TestCase):
+    def setUp(self):
+        self.q_network = MockQNetwork()
+        self.agent = DeepQPlayingAgent(q_network=self.q_network, player="X", switching=True)
+
+    def test_board_to_state(self):
+        board = ["X", " ", "O", " ", " ", "X", "O", " ", " "]
+        expected_state = np.array([[1, 0, -1, 0, 0, 1, -1, 0, 0]])
+        np.testing.assert_array_equal(self.agent.board_to_state(board), expected_state)
+
+    def test_state_to_board(self):
+        state = np.array([[1, 0, -1, 0, 0, 1, -1, 0, 0]])
+        expected_board = ["X", " ", "O", " ", " ", "X", "O", " ", " "]
+        self.assertEqual(self.agent.state_to_board(state), expected_board)
+
+    def test_get_valid_actions(self):
+        board = ["X", " ", "O", " ", " ", "X", "O", " ", " "]
+        expected_actions = [1, 3, 4, 7, 8]
+        self.assertEqual(self.agent.get_valid_actions(board), expected_actions)
+
+    def test_choose_action(self):
+        board = ["X", " ", "O", " ", " ", "X", "O", " ", " "]
+        action = self.agent.choose_action(board)
+        self.assertEqual(action, 3)  # Mock network outputs highest Q-value for index 3.
+
+    @patch("torch.load", return_value=MockQNetwork())
+    def test_q_network_loading(self, mock_load):
+        agent = DeepQPlayingAgent(q_network="mock_path.pth", player="X", switching=False)
+        self.assertIsInstance(agent.q_network, MockQNetwork)
+        mock_load.assert_called_once_with("mock_path.pth")
+
+    def test_get_action_not_done(self):
+        mock_game = MockTicTacToe()
+        state_transition = (None, None, False)  # State, action, and done flag.
+        action = self.agent.get_action(state_transition, mock_game)
+        self.assertEqual(action, 3)  # Mock network predicts action 3.
+
+    def test_get_action_done(self):
+        mock_game = MockTicTacToe()
+        state_transition = (None, None, True)  # Done flag is True.
+        action = self.agent.get_action(state_transition, mock_game)
+        self.assertEqual(action, -1)  # Game is over, no action taken.
+
+    def test_on_game_end(self):
+        initial_player = self.agent.player
+        initial_opponent = self.agent.opponent
+        self.agent.on_game_end(None)  # Pass None for game, not used.
+        self.assertEqual(self.agent.player, initial_opponent)
+        self.assertEqual(self.agent.opponent, initial_player)

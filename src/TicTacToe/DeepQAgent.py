@@ -7,12 +7,22 @@ import torch.nn as nn
 import torch.optim as optim
 
 import wandb
-from Agent import Agent
+from TicTacToe.Agent import Agent
 
 if TYPE_CHECKING:
-    from TicTacToe import TicTacToe  # Import only for type hinting
+    from TicTacToe.TicTacToe import TicTacToe  # Import only for type hinting
 
-from game_types import Action, Actions, Board, History, Player, Reward, State, StateTransition, StateTransitions2
+from TicTacToe.game_types import (
+    Action,
+    Actions,
+    Board,
+    History,
+    Player,
+    Reward,
+    State,
+    StateTransition,
+    StateTransitions2,
+)
 
 
 class ReplayBuffer:

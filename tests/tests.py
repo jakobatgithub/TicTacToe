@@ -7,11 +7,11 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 import torch
 
-from Agent import Agent, HumanAgent, MouseAgent, RandomAgent
-from DeepQAgent import DeepQLearningAgent, QNetwork, ReplayBuffer
-from Display import ConsoleDisplay, TicTacToeDisplay
-from SymmetricMatrix import FullySymmetricMatrix, SymmetricMatrix
-from TicTacToe import TicTacToe
+from TicTacToe.Agent import Agent, HumanAgent, MouseAgent, RandomAgent
+from TicTacToe.DeepQAgent import DeepQLearningAgent, QNetwork, ReplayBuffer
+from TicTacToe.Display import ConsoleDisplay, TicTacToeDisplay
+from TicTacToe.SymmetricMatrix import FullySymmetricMatrix, SymmetricMatrix
+from TicTacToe.TicTacToe import TicTacToe
 
 
 class TestTicTacToe(unittest.TestCase):

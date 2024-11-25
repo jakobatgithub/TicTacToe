@@ -2,14 +2,24 @@ import random
 from typing import TYPE_CHECKING, Any
 
 import numpy as np
-
 from Agent import Agent
-from SymmetricMatrix import BaseMatrix, Matrix  # SymmetricMatrix, FullySymmetricMatrix
+
+from TicTacToe.SymmetricMatrix import BaseMatrix, Matrix  # SymmetricMatrix, FullySymmetricMatrix
 
 if TYPE_CHECKING:
-    from TicTacToe import TicTacToe  # Import only for type hinting
+    from TicTacToe.TicTacToe import TicTacToe  # Import only for type hinting
 
-from game_types import Action, Actions, Board, History, Params, Player, Reward, StateTransition, StateTransitions2
+from TicTacToe.game_types import (
+    Action,
+    Actions,
+    Board,
+    History,
+    Params,
+    Player,
+    Reward,
+    StateTransition,
+    StateTransitions2,
+)
 
 
 class QLearningAgent(Agent):

@@ -2,13 +2,13 @@ from typing import Any, Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
-
 from Agent import RandomAgent
 from DeepQAgent import DeepQLearningAgent
-from game_types import Player
-from QAgent import QLearningAgent, QPlayingAgent
-from SymmetricMatrix import FullySymmetricMatrix
-from TicTacToe import TicTacToe
+
+from TicTacToe.game_types import Player
+from TicTacToe.QAgent import QLearningAgent, QPlayingAgent
+from TicTacToe.SymmetricMatrix import FullySymmetricMatrix
+from TicTacToe.TicTacToe import TicTacToe
 
 
 def average_array(array: list[float] | list[int], chunk_size: Optional[int] = None) -> list[float]:

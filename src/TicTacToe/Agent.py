@@ -3,10 +3,10 @@ from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from TicTacToe import TicTacToe  # Import only for type hinting
+    from TicTacToe.TicTacToe import TicTacToe  # Import only for type hinting
 
-from Display import TicTacToeDisplay
-from game_types import Action, Player, Players, StateTransition
+from TicTacToe.Display import TicTacToeDisplay
+from TicTacToe.game_types import Action, Player, Players, StateTransition
 
 
 class Agent(ABC):

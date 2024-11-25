@@ -6,7 +6,7 @@ from typing import Any, Callable, Tuple
 import dill  # type: ignore
 import numpy as np
 
-from game_types import Action, Player, State
+from TicTacToe.game_types import Action, Player, State
 
 Board = Tuple[str, ...]
 

@@ -1,9 +1,12 @@
 [tool.poetry]
 name = "tictactoe"
 version = "0.1.0"
-description = ""
-authors = ["Jakob <jakob@physik.tu-berlin.de>"]
-readme = "README.md"
+description = "A Tic Tac Toe game with advanced agents."
+authors = ["Your Name <your.email@example.com>"]
+packages = [
+    { include = "TicTacToe", from = "src" }
+]
+
 
 [tool.poetry.dependencies]
 python = "^3.12"
@@ -55,6 +58,14 @@ wcwidth = "0.2.13"
 ruff = "^0.8.0"
 ipykernel = "^6.29.5"
 matplotlib = "^3.9.2"
+pytest = "^8.3.3"
+
+[tool.poetry.dev-dependencies]
+pytest = "^8.3.3"
+
+[tool.poetry.scripts]
+# Example: CLI entry points
+# tictactoe = "TicTacToe.cli:main"
 
 
 [tool.poetry.group.dev.dependencies]

@@ -1,18 +1,21 @@
 import time
 import tkinter as tk
 from abc import ABC, abstractmethod
+from typing import Any, Callable
 
 from IPython.display import clear_output
+
+from my_types import Action, Board, Outcome
 
 
 class Display(ABC):
     @abstractmethod
-    def update_display(self, board, outcome=None):
+    def update_display(self, board: Board, outcome: Outcome = None) -> None:
         """Update the display with the given board state."""
         pass
 
     @abstractmethod
-    def set_message(self, message):
+    def set_message(self, message: str) -> None:
         """Display a message."""
         pass
 
@@ -25,11 +28,11 @@ class TicTacToeDisplay(tk.Tk, Display):
         self.waiting_time = waiting_time
 
         self.title(f"Tic-Tac-Toe {self.rows}x{self.cols}")
-        self.labels = []
+        self.labels: list[tk.Label] = []
         self.message_label = tk.Label(self, text="", font=("Arial", 16))
         self.message_label.grid(row=0, column=0, columnspan=self.cols)  # Span the entire top row
         self._init_display()
-        self.click_handler = None  # A callback for handling clicks
+        self.click_handler: Callable[[Action], None] | None = None  # A callback for handling clicks
         self.action_complete = tk.BooleanVar(value=False)  # Persistent variable to control wait state
 
     def _init_display(self) -> None:
@@ -42,13 +45,13 @@ class TicTacToeDisplay(tk.Tk, Display):
             label.bind("<Button-1>", lambda event, action=idx: self.handle_click(event, action))
             self.labels.append(label)
 
-    def handle_click(self, event, action) -> None:
+    def handle_click(self, event: Any, action: Action) -> None:
         """Handle a mouse click on the board."""
         if self.click_handler:
             self.click_handler(action)
             self.action_complete.set(True)  # Signal that the action is complete
 
-    def bind_click_handler(self, handler) -> None:
+    def bind_click_handler(self, handler: Callable[[Action], None]) -> None:
         """Bind the click handler for mouse input."""
         self.click_handler = handler
 
@@ -57,7 +60,7 @@ class TicTacToeDisplay(tk.Tk, Display):
         self.action_complete.set(False)  # Reset the variable before waiting
         self.wait_variable(self.action_complete)  # Suspend until an action occurs
 
-    def update_display(self, board, outcome=None) -> None:
+    def update_display(self, board: Board, outcome: Outcome = None) -> None:
         """Update the display with the given board state."""
         for i, value in enumerate(board):
             self.labels[i].config(text=value if value in ["X", "O"] else " ")
@@ -73,7 +76,7 @@ class TicTacToeDisplay(tk.Tk, Display):
         if outcome is not None:
             self.quit()
 
-    def set_message(self, message) -> None:
+    def set_message(self, message: str) -> None:
         """Update the message displayed at the top of the window."""
         self.message_label.config(text=message)
 
@@ -84,7 +87,7 @@ class ConsoleDisplay(Display):
         self.cols = cols
         self.waiting_time = waiting_time
 
-    def update_display(self, board, outcome=None) -> None:
+    def update_display(self, board: Board, outcome: Outcome = None) -> None:
         """Display the board dynamically in the console."""
         clear_output(wait=True)
         row_divider = "-" * (6 * self.rows - 1)
@@ -104,6 +107,6 @@ class ConsoleDisplay(Display):
 
         time.sleep(self.waiting_time)
 
-    def set_message(self, message) -> None:
+    def set_message(self, message: str) -> None:
         """Set a message for the console display."""
         print(message)

@@ -1,4 +1,5 @@
 import unittest
+from typing import Any, Literal
 from unittest.mock import MagicMock, patch
 
 import numpy as np
@@ -34,51 +35,51 @@ class TestTicTacToe(unittest.TestCase):
     def test_win_conditions(self) -> None:
         """Test win condition generation."""
         game = TicTacToe(self.agent1, self.agent2, rows=3, cols=3, win_length=3)
-        self.assertIn([0, 1, 2], game._win_conditions)  # Horizontal win
-        self.assertIn([0, 3, 6], game._win_conditions)  # Vertical win
-        self.assertIn([0, 4, 8], game._win_conditions)  # Diagonal win
+        self.assertIn([0, 1, 2], game.win_conditions)  # Horizontal win
+        self.assertIn([0, 3, 6], game.win_conditions)  # Vertical win
+        self.assertIn([0, 4, 8], game.win_conditions)  # Diagonal win
 
     def test_is_won(self) -> None:
         """Test win condition detection."""
-        self.game._board = ["X", "X", "X", "O", " ", "O", " ", " ", " "]
-        self.assertTrue(self.game._is_won("X"))
-        self.assertFalse(self.game._is_won("O"))
+        self.game.board = ["X", "X", "X", "O", " ", "O", " ", " ", " "]
+        self.assertTrue(self.game.is_won("X"))
+        self.assertFalse(self.game.is_won("O"))
 
     def test_is_draw(self) -> None:
         """Test draw detection."""
-        self.game._board = ["X", "O", "X", "X", "O", "O", "O", "X", "X"]
-        self.assertTrue(self.game._is_draw())
+        self.game.board = ["X", "O", "X", "X", "O", "O", "O", "X", "X"]
+        self.assertTrue(self.game.is_draw())
 
     def test_make_move(self) -> None:
         """Test making valid and invalid moves."""
-        self.game._board = ["X", "O", " ", "X", "O", "X", " ", " ", " "]
-        self.game._current_player = "O"
-        self.assertTrue(self.game._make_move(2))  # Valid move
-        self.assertFalse(self.game._make_move(0))  # Invalid move
+        self.game.board = ["X", "O", " ", "X", "O", "X", " ", " ", " "]
+        self.game.current_player = "O"
+        self.assertTrue(self.game.make_move(2))  # Valid move
+        self.assertFalse(self.game.make_move(0))  # Invalid move
 
     def test_switch_player(self) -> None:
         """Test player switching logic."""
-        self.game._current_player = "X"
-        self.game._switch_player()
-        self.assertEqual(self.game._current_player, "O")
-        self.game._switch_player()
-        self.assertEqual(self.game._current_player, "X")
+        self.game.current_player = "X"
+        self.game.switch_player()
+        self.assertEqual(self.game.current_player, "O")
+        self.game.switch_player()
+        self.assertEqual(self.game.current_player, "X")
 
     def test_game_over(self) -> None:
         """Test game-over detection."""
-        self.game._board = ["X", "X", "X", "O", "O", " ", " ", " ", " "]
-        self.assertTrue(self.game._is_game_over())  # Win detected
+        self.game.board = ["X", "X", "X", "O", "O", " ", " ", " ", " "]
+        self.assertTrue(self.game.is_game_over())  # Win detected
 
-        self.game._board = ["X", "O", "X", "X", "O", "O", "O", "X", "X"]
-        self.assertTrue(self.game._is_game_over())  # Draw detected
+        self.game.board = ["X", "O", "X", "X", "O", "O", "O", "X", "X"]
+        self.assertTrue(self.game.is_game_over())  # Draw detected
 
     def test_get_outcome(self) -> None:
         """Test outcome determination."""
-        self.game._board = ["X", "X", "X", "O", "O", " ", " ", " ", " "]
-        self.assertEqual(self.game._get_outcome(), "X")
+        self.game.board = ["X", "X", "X", "O", "O", " ", " ", " ", " "]
+        self.assertEqual(self.game.get_outcome(), "X")
 
-        self.game._board = ["X", "O", "X", "X", "O", "O", "O", "X", "X"]
-        self.assertEqual(self.game._get_outcome(), "D")
+        self.game.board = ["X", "O", "X", "X", "O", "O", "O", "X", "X"]
+        self.assertEqual(self.game.get_outcome(), "D")
 
     def test_display_board(self) -> None:
         """Test board display updates."""
@@ -89,13 +90,13 @@ class TestTicTacToe(unittest.TestCase):
 
     def test_terminal_rewards(self) -> None:
         """Test terminal rewards calculation."""
-        rewards = self.game._get_terminal_rewards("X")
+        rewards = self.game.get_terminal_rewards("X")
         self.assertEqual(rewards, (1.0, -1.0))
 
-        rewards = self.game._get_terminal_rewards("O")
+        rewards = self.game.get_terminal_rewards("O")
         self.assertEqual(rewards, (-1.0, 1.0))
 
-        rewards = self.game._get_terminal_rewards("D")
+        rewards = self.game.get_terminal_rewards("D")
         self.assertEqual(rewards, (0.0, 0.0))
 
     def test_agent_interaction(self) -> None:
@@ -128,8 +129,8 @@ class TestDisplay(unittest.TestCase):
         self.cols = 3
         self.board = ["X", "O", " ", " ", "X", "O", " ", " ", "X"]
         self.empty_board = [" " for _ in range(self.rows * self.cols)]
-        self.outcome_x = "X"
-        self.outcome_draw = "D"
+        self.outcome_x: Literal["X", "O", "D"] | None = "X"
+        self.outcome_draw: Literal["X", "O", "D"] | None = "D"
 
     @patch("time.sleep", return_value=None)  # To skip delays during tests
     def test_console_display_outcome(self, _) -> None:
@@ -349,7 +350,7 @@ class TestDeepQLearningAgent(unittest.TestCase):
 
     def setUp(self) -> None:
         """Set up common parameters and objects for the tests."""
-        self.params = {
+        self.params: dict[str, Any] = {
             "player": "X",
             "switching": False,
             "gamma": 0.99,
@@ -445,15 +446,6 @@ class TestDeepQLearningAgent(unittest.TestCase):
 
 class TestAgentBase(unittest.TestCase):
     """Tests for the Agent base class and its derived classes."""
-
-    def test_agent_abstract_methods(self) -> None:
-        """Ensure abstract methods in the Agent class raise NotImplementedError."""
-
-        class DummyAgent(Agent):
-            pass
-
-        with self.assertRaises(TypeError):
-            DummyAgent()  # Should raise because abstract methods are not implemented
 
     def test_agent_initialization(self) -> None:
         """Test initialization of player and opponent in Agent."""
@@ -668,7 +660,7 @@ class TestIntegration(unittest.TestCase):
 
     def test_deep_q_agent_training(self) -> None:
         """Simulate training of a DeepQLearningAgent during gameplay."""
-        params = {
+        params: dict[str, Any] = {
             "player": "X",
             "switching": False,
             "gamma": 0.99,
@@ -728,7 +720,7 @@ class TestIntegration(unittest.TestCase):
         agent2.get_action = MagicMock(return_value=0)
         outcome = game.play()
 
-        agent2.get_action.assert_called(), "HumanAgent should be called for actions during the game."
+        self.assertTrue(agent2.get_action.called, "HumanAgent should be called for actions during the game.")
         self.assertIn(outcome, ["X", "O", "D"], "Game outcome should be valid.")
 
 

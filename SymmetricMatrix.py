@@ -1,16 +1,21 @@
 from collections import defaultdict
 from itertools import product
+from typing import Any, Callable, Tuple
 
-import dill
+import dill  # type: ignore
 import numpy as np
 
+from my_types import Action, Player
 
-class LazyComputeDict(dict):
-    def __init__(self, compute_func, *args, **kwargs) -> None:
+Board = Tuple[str, ...]
+
+
+class LazyComputeDict(dict[Any, Any]):
+    def __init__(self, compute_func: Callable[..., Any], *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.compute_func = compute_func
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: Any):
         if key not in self:
             # Compute and store the value if it doesn't exist
             self[key] = self.compute_func(key)
@@ -18,7 +23,7 @@ class LazyComputeDict(dict):
 
 
 class Matrix:
-    def __init__(self, file=None, default_value=None) -> None:
+    def __init__(self, file: str | None = None, default_value: float | None = None) -> None:
         """
         Initialize a Matrix object.
 
@@ -39,15 +44,15 @@ class Matrix:
         """
         self.default_value = 0.0
         if default_value is None and file is None:
-            self.q_matrix = defaultdict(self._initialize_q_matrix)
+            self.q_matrix: dict[Any, Any] = defaultdict(self._initialize_q_matrix)
         elif default_value is None and file is not None:
             with open(file, "rb") as f:
-                self.q_matrix = dill.load(f)
+                self.q_matrix = dill.load(f)  # type: ignore
         elif file is None and default_value is not None:
             self.default_value = default_value
             self.q_matrix = defaultdict(self._initialize_q_matrix)
 
-    def _initialize_q_matrix(self):
+    def _initialize_q_matrix(self) -> dict[Any, Any]:
         """
         Initialize an empty dictionary for storing q-values for a given state.
 
@@ -59,39 +64,43 @@ class Matrix:
         state_dict : dict
             An empty dictionary for storing q-values for the given state.
         """
-        state_dict = defaultdict(lambda: self.default_value)
+        state_dict: dict[Any, Any] = defaultdict(lambda: self.default_value)
         return state_dict
 
-    def get(self, board=None, action=None):
-        """
-        Retrieve the q-value(s) for a given state-action pair.
+    def get(self, board: Board, action: Action) -> float:
+        return self.q_matrix[board][action]
 
-        Parameters
-        ----------
-        board : list or None, optional
-            The current state of the board represented as a list. If None,
-            the entire q_matrix is returned.
-        action : int or None, optional
-            The action taken at the given board state. If None, all q-values
-            for the given board state are returned.
+    # def get(self, board : Board | None = None, action : Action = None) -> Union[dict[Board, dict[int, float]], dict[int, float], float]:
+    #     """
+    #     Retrieve the q-value(s) for a given state-action pair.
 
-        Returns
-        -------
-        float or dict
-            If both board and action are provided, returns the q-value for
-            the specified state-action pair. If only the board is provided,
-            returns a dictionary of actions and their corresponding q-values
-            for the given state. If neither is provided, returns the entire
-            q_matrix.
-        """
-        if board is None and action is None:
-            return self.q_matrix
-        if action is None and board is not None:
-            return self.q_matrix[tuple(board)]
-        if action is not None and board is not None:
-            return self.q_matrix[tuple(board)][action]
+    #     Parameters
+    #     ----------
+    #     board : list or None, optional
+    #         The current state of the board represented as a list. If None,
+    #         the entire q_matrix is returned.
+    #     action : int or None, optional
+    #         The action taken at the given board state. If None, all q-values
+    #         for the given board state are returned.
 
-    def set(self, board, action, value) -> None:
+    #     Returns
+    #     -------
+    #     float or dict
+    #         If both board and action are provided, returns the q-value for
+    #         the specified state-action pair. If only the board is provided,
+    #         returns a dictionary of actions and their corresponding q-values
+    #         for the given state. If neither is provided, returns the entire
+    #         q_matrix.
+    #     """
+    #     if board is None:
+    #         return self.q_matrix
+    #     else:
+    #         if action is None:
+    #             return self.q_matrix[tuple(board)]
+    #         else:
+    #             return self.q_matrix[tuple(board)][action]
+
+    def set(self, board: Board, action: Action, value: float) -> None:
         """
         Set the q-value for a given state-action pair.
 
@@ -108,41 +117,43 @@ class Matrix:
 
 
 class SymmetricMatrix:
-    def __init__(self, file=None, default_value=None, lazy: bool = True, rows: int = 3) -> None:
+    def __init__(
+        self, file: str | None = None, default_value: float | None = None, lazy: bool = True, rows: int = 3
+    ) -> None:
         self.default_value = 0.0
         self.rows = rows
 
         if default_value is None and file is None:
-            self.qMatrix = defaultdict(self._initialize_q_matrix)
+            self.qMatrix: dict[Any, Any] = defaultdict(self._initialize_q_matrix)
         elif default_value is None and file is not None:
             with open(file, "rb") as f:
-                self.qMatrix = dill.load(f)
+                self.qMatrix = dill.load(f)  # type: ignore
 
         elif file is None and default_value is not None:
             self.default_value = default_value
             self.qMatrix = defaultdict(self._initialize_q_matrix)
 
         # Precompute symmetries and their inverses
-        self.transformations = [
-            lambda x: x,
-            lambda x: np.fliplr(x),
-            lambda x: np.flipud(x),
-            lambda x: np.flipud(np.fliplr(x)),
-            lambda x: np.transpose(x),
-            lambda x: np.fliplr(np.transpose(x)),
-            lambda x: np.flipud(np.transpose(x)),
-            lambda x: np.flipud(np.fliplr(np.transpose(x))),
+        self.transformations: list[Callable[..., Any]] = [
+            lambda x: x,  # type: ignore
+            lambda x: np.fliplr(x),  # type: ignore
+            lambda x: np.flipud(x),  # type: ignore
+            lambda x: np.flipud(np.fliplr(x)),  # type: ignore
+            lambda x: np.transpose(x),  # type: ignore
+            lambda x: np.fliplr(np.transpose(x)),  # type: ignore
+            lambda x: np.flipud(np.transpose(x)),  # type: ignore
+            lambda x: np.flipud(np.fliplr(np.transpose(x))),  # type: ignore
         ]
 
-        self.inverse_transformations = [
-            lambda x: x,
-            lambda x: np.fliplr(x),
-            lambda x: np.flipud(x),
-            lambda x: np.fliplr(np.flipud(x)),
-            lambda x: np.transpose(x),
-            lambda x: np.transpose(np.fliplr(x)),
-            lambda x: np.transpose(np.flipud(x)),
-            lambda x: np.transpose(np.fliplr(np.flipud(x))),
+        self.inverse_transformations: list[Callable[..., Any]] = [
+            lambda x: x,  # type: ignore
+            lambda x: np.fliplr(x),  # type: ignore
+            lambda x: np.flipud(x),  # type: ignore
+            lambda x: np.fliplr(np.flipud(x)),  # type: ignore
+            lambda x: np.transpose(x),  # type: ignore
+            lambda x: np.transpose(np.fliplr(x)),  # type: ignore
+            lambda x: np.transpose(np.flipud(x)),  # type: ignore
+            lambda x: np.transpose(np.fliplr(np.flipud(x))),  # type: ignore
         ]
 
         self.original_actions = np.array(range(self.rows * self.rows)).reshape(self.rows, self.rows)
@@ -164,22 +175,22 @@ class SymmetricMatrix:
             self.dict_transform = LazyComputeDict(self._get_canonical_symmetry_transform)
             self.dict_inverse_transform = LazyComputeDict(self._get_inverse_canonical_symmetry_transform)
             self.dict_canonical_actions = LazyComputeDict(
-                lambda board: self.dict_inverse_transform[board](self.original_actions).flatten().tolist()
+                lambda board: self.dict_inverse_transform[board](self.original_actions).flatten().tolist()  # type: ignore
             )
             self.dict_inverse_canonical_actions = LazyComputeDict(
-                lambda board: self.dict_transform[board](self.original_actions).flatten().tolist()
+                lambda board: self.dict_transform[board](self.original_actions).flatten().tolist()  # type: ignore
             )
         else:
             self._generate_all_dicts()
 
     def _generate_all_dicts(self) -> None:
         all_valid_boards = self._generate_all_valid_boards()
-        self.all_canonical_boards = set()
-        self.dict_canonical_board = {}
-        self.dict_transform = {}
-        self.dict_inverse_transform = {}
-        self.dict_canonical_actions = {}
-        self.dict_inverse_canonical_actions = {}
+        self.all_canonical_boards: set[Board] = set()
+        self.dict_canonical_board: dict[Board, Board] = {}
+        self.dict_transform: dict[Board, Callable[..., Any]] = {}
+        self.dict_inverse_transform: dict[Board, Callable[..., Any]] = {}
+        self.dict_canonical_actions: dict[Board, list[int]] = {}
+        self.dict_inverse_canonical_actions: dict[Board, list[int]] = {}
         for board in all_valid_boards:
             canonical_board, transform_idx = self._get_canonical_representation(board)
             self.all_canonical_boards.add(canonical_board)
@@ -193,37 +204,39 @@ class SymmetricMatrix:
                 self.dict_transform[board](self.original_actions).flatten().tolist()
             )
 
-        self.all_canonical_boards = list(self.all_canonical_boards)
-        self.all_canonical_actions = {}
+        # self.all_canonical_boards = list(self.all_canonical_boards)
+        self.all_canonical_actions: dict[Board, list[int]] = {}
         for board in self.all_canonical_boards:
             empty_positions = self.get_empty_positions(board)
             self.all_canonical_actions[board] = empty_positions
 
-    def _initialize_q_matrix(self):
-        state_dict = defaultdict(lambda: self.default_value)
+    def _initialize_q_matrix(self) -> dict[Any, Any]:
+        state_dict: dict[Any, Any] = defaultdict(lambda: self.default_value)
         return state_dict
 
-    def _board_to_matrix(self, board):
+    def _board_to_matrix(self, board: Board) -> np.ndarray[Any, Any]:
         """
         Convert a linear board to a rows x rows matrix for easier manipulation
         """
         return np.array(board).reshape(self.rows, self.rows)
 
-    def _matrix_to_board(self, matrix):
+    def _matrix_to_board(self, matrix: np.ndarray[Any, Any]) -> Board:
         """
         Convert a rows x rows matrix back to a linear board representation.
         """
         return matrix.flatten().tolist()
 
-    def _generate_all_valid_boards(self):
+    def _generate_all_valid_boards(self) -> list[Board]:
         symbols = [" ", "X", "O"]
-        all_boards = list(product(symbols, repeat=self.rows * self.rows))  # Generate all 3^(rows^2) combinations
+        all_boards: list[Board] = list(
+            product(symbols, repeat=self.rows * self.rows)
+        )  # Generate all 3^(rows^2) combinations
         # print(f"Total number of boards: {len(all_boards)}")
-        all_valid_boards = []
+        all_valid_boards: list[Board] = []
 
         for board in all_boards:
-            x_count = board.count("X")
-            o_count = board.count("O")
+            x_count: int = board.count("X")
+            o_count: int = board.count("O")
 
             # Valid boards must satisfy these conditions:
             if x_count == o_count or x_count == o_count + 1:
@@ -232,64 +245,69 @@ class SymmetricMatrix:
         # print(f"Number of valid boards: {len(all_valid_boards)}")
         return all_valid_boards
 
-    def _generate_symmetries(self, board):
+    def _generate_symmetries(self, board: Board) -> list[Board]:
         matrix = self._board_to_matrix(board)
         symmetries = [transform(matrix) for transform in self.transformations]
         return [self._matrix_to_board(sym) for sym in symmetries]
 
-    def _get_canonical_board(self, board):
-        symmetries = self._generate_symmetries(board)
+    def _get_canonical_board(self, board: Board):
+        symmetries: list[Board] = self._generate_symmetries(board)
         min_symmetry = min(symmetries)
         return tuple(min_symmetry)
 
-    def _get_canonical_symmetry_transform(self, board):
+    def _get_canonical_symmetry_transform(self, board: Board):
         symmetries = self._generate_symmetries(board)
         min_symmetry = min(symmetries)
         transform_idx = symmetries.index(min_symmetry)
         return self.transformations[transform_idx]
 
-    def _get_inverse_canonical_symmetry_transform(self, board):
+    def _get_inverse_canonical_symmetry_transform(self, board: Board):
         symmetries = self._generate_symmetries(board)
         min_symmetry = min(symmetries)
         transform_idx = symmetries.index(min_symmetry)
         return self.inverse_transformations[transform_idx]
 
-    def _get_canonical_representation(self, board):
+    def _get_canonical_representation(self, board: Board) -> tuple[Board, int]:
         symmetries = self._generate_symmetries(board)
         min_symmetry = min(symmetries)
         return tuple(min_symmetry), symmetries.index(min_symmetry)
 
-    def get_canonical_action(self, board, action):
+    def get_canonical_action(self, board: Board, action: int) -> int:
         return self.dict_canonical_actions[tuple(board)][action]
 
-    def get_canonical_board(self, board):
+    def get_canonical_board(self, board: Board) -> Board:
         return self.dict_canonical_board[tuple(board)]
 
-    def get_inverse_canonical_action(self, board, canonical_action):
+    def get_inverse_canonical_action(self, board: Board, canonical_action: int) -> int:
         return self.dict_inverse_canonical_actions[tuple(board)][canonical_action]
 
-    def canonicalize(self, board, action):
+    def canonicalize(self, board: Board, action: int) -> tuple[Board, Action]:
         canonical_board = self.get_canonical_board(board)
         canonical_action = self.get_canonical_action(board, action)
         return canonical_board, canonical_action
 
     # Generate all empty positions on the board
-    def get_empty_positions(self, board):
+    def get_empty_positions(self, board: Board):
         return [i for i, cell in enumerate(board) if cell == " "]
 
-    def get(self, board=None, action=None):
-        """
-        Retrieve the value for a state-action pair.
-        """
-        if board is None and action is None:
-            return self.qMatrix
-        if action is None and board is not None:
-            return self.qMatrix[self.get_canonical_board(board)]
-        if action is not None and board is not None:
-            canonical_board, canonical_action = self.canonicalize(board, action)
-            return self.qMatrix[canonical_board][canonical_action]
+    def get(self, board: Board, action: Action) -> float:
+        canonical_board, canonical_action = self.canonicalize(board, action)
+        return self.qMatrix[canonical_board][canonical_action]
 
-    def set(self, board, action, value) -> None:
+    # def get(self, board : Board | None = None, action : Action = None) -> Union[dict[Board, dict[int, float]], dict[int, float], float]:
+    #     """
+    #     Retrieve the value for a state-action pair.
+    #     """
+    #     if board is None:
+    #         return self.qMatrix
+    #     else:
+    #         if action is None:
+    #             return self.qMatrix[self.get_canonical_board(board)]
+    #         else:
+    #             canonical_board, canonical_action = self.canonicalize(board, action)
+    #             return self.qMatrix[canonical_board][canonical_action]
+
+    def set(self, board: Board, action: int, value: float) -> None:
         """
         Set the value for a state-action pair.
         """
@@ -298,16 +316,18 @@ class SymmetricMatrix:
 
 
 class TotallySymmetricMatrix(SymmetricMatrix):
-    def __init__(self, file=None, default_value=None, lazy: bool = True, rows: int = 3) -> None:
+    def __init__(
+        self, file: str | None = None, default_value: float | None = None, lazy: bool = True, rows: int = 3
+    ) -> None:
         # Call the parent initializer first
         super().__init__(file=file, default_value=default_value, lazy=lazy, rows=rows)
 
         # Override q_matrix initialization for TotallySymmetricMatrix
         if file is not None:
             with open(file, "rb") as f:
-                self.qMatrix = dill.load(f)
+                self.qMatrix: dict[Any, Any] = dill.load(f)  # type: ignore
         else:
-            self.qMatrix = defaultdict(lambda: self.default_value)
+            self.qMatrix: dict[Any, Any] = defaultdict(lambda: self.default_value)
 
         # Additional attributes specific to TotallySymmetricMatrix
         if lazy:
@@ -315,23 +335,23 @@ class TotallySymmetricMatrix(SymmetricMatrix):
         else:
             self._generate_all_next_canonical_boards()
 
-    def _create_level2_lazy_dict(self, compute_func):
-        def level1_compute(outer_key):
-            return LazyComputeDict(lambda inner_key: compute_func(outer_key, inner_key))
+    def _create_level2_lazy_dict(self, compute_func: Callable[..., Any]):
+        def level1_compute(outer_key: Any):
+            return LazyComputeDict(lambda inner_key: compute_func(outer_key, inner_key))  # type: ignore
 
         return LazyComputeDict(level1_compute)
 
-    def _get_next_canonical_board(self, canonical_board, canonical_action):
+    def _get_next_canonical_board(self, canonical_board: Board, canonical_action: Action) -> Board:
         next_board = self._get_next_board(canonical_board, canonical_action)
         next_canonical_board = self.get_canonical_board(next_board)
         return next_canonical_board
 
     def _generate_all_next_canonical_boards(self) -> None:
         # Generate canonical board-to-next canonical board mapping
-        all_next_canonical_boards = set()
-        self.canonical_board_to_next_canonical_board = {}
+        all_next_canonical_boards: set[Board] = set()
+        self.canonical_board_to_next_canonical_board: dict[Board, dict[Action, Board]] = {}
         for canonical_board in self.all_canonical_boards:
-            canonical_actions_to_next_canonical_board = {}
+            canonical_actions_to_next_canonical_board: dict[Action, Board] = {}
             for canonical_action in self.all_canonical_actions[canonical_board]:
                 next_board = self._get_next_board(canonical_board, canonical_action)
                 next_canonical_board = self.get_canonical_board(next_board)
@@ -340,38 +360,23 @@ class TotallySymmetricMatrix(SymmetricMatrix):
 
             self.canonical_board_to_next_canonical_board[canonical_board] = canonical_actions_to_next_canonical_board
 
-    def _get_next_board(self, board, action):
+    def _get_next_board(self, board: Board, action: Action) -> Board:
         new_board = list(board)
         next_player = self._get_next_player(board)
         new_board[action] = next_player
         return tuple(new_board)
 
-    def _get_next_player(self, board):
+    def _get_next_player(self, board: Board) -> Player:
         x_count = board.count("X")
         o_count = board.count("O")
         return "X" if x_count == o_count else "O"
 
-    def get(self, board=None, action=None):
-        """
-        Retrieve the value for a state-action pair.
-        """
-        if board is None and action is None:
-            return self.qMatrix
+    def get(self, board: Board, action: Action) -> float:
         canonical_board = self.get_canonical_board(board)
-        if action is None:
-            actions = self.get_empty_positions(board)
-            return [
-                self.qMatrix[
-                    self.canonical_board_to_next_canonical_board[canonical_board][
-                        self.get_canonical_action(board, action)
-                    ]
-                ]
-                for action in actions
-            ]
         canonical_action = self.get_canonical_action(board, action)
         return self.qMatrix[self.canonical_board_to_next_canonical_board[canonical_board][canonical_action]]
 
-    def set(self, board, action, value) -> None:
+    def set(self, board: Board, action: int, value: float) -> None:
         """
         Set the value for a state-action pair.
         """

@@ -1,4 +1,5 @@
 import random
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 import torch
@@ -8,9 +9,14 @@ import torch.optim as optim
 import wandb
 from Agent import Agent
 
+if TYPE_CHECKING:
+    from TicTacToe import TicTacToe  # Import only for type hinting
+
+from my_types import Action, Actions, Board, History, Player, StateTransition, StateTransitions2
+
 
 class ReplayBuffer:
-    def __init__(self, size: int, state_dim, device: str = "cpu") -> None:
+    def __init__(self, size: int, state_dim: int, device: str = "cpu") -> None:
         """
         Initialize the ReplayBuffer with a fixed size and GPU storage.
 
@@ -30,7 +36,9 @@ class ReplayBuffer:
         self.next_states = torch.zeros((size, state_dim), dtype=torch.float32, device=device)
         self.dones = torch.zeros(size, dtype=torch.bool, device=device)
 
-    def add(self, state, action, reward: float, next_state, done) -> None:
+    def add(
+        self, state: np.ndarray[Any, Any], action: Action, reward: float, next_state: np.ndarray[Any, Any], done: bool
+    ) -> None:
         """
         Add a new experience to the buffer.
 
@@ -77,18 +85,18 @@ class ReplayBuffer:
 
 # Neural Network for Q-function
 class QNetwork(nn.Module):
-    def __init__(self, input_dim, output_dim) -> None:
-        super(QNetwork, self).__init__()
+    def __init__(self, input_dim: int, output_dim: int) -> None:
+        super(QNetwork, self).__init__()  # type: ignore
         self.fc = nn.Sequential(
             nn.Linear(input_dim, 128), nn.ReLU(), nn.Linear(128, 64), nn.ReLU(), nn.Linear(64, output_dim)
         )
 
-    def forward(self, x):
+    def forward(self, x: np.ndarray[Any, Any]):
         return self.fc(x)
 
 
 class DeepQLearningAgent(Agent):
-    def __init__(self, params) -> None:
+    def __init__(self, params: dict[str, Any]) -> None:
         super().__init__(player=params["player"], switching=params["switching"])
         self.params = params
         self.debug = params["debug"]
@@ -107,10 +115,10 @@ class DeepQLearningAgent(Agent):
         self.q_update_count = 0
         self.target_update_count = 0
 
-        wandb.init(config=params)
+        wandb.init(config=params)  # type: ignore
 
-        self.episode_history = []
-        self.state_transitions = []
+        self.episode_history: History = []
+        self.state_transitions: StateTransitions2 = []
         self.rows = params["rows"]
         (state_size, action_size) = (self.rows**2, self.rows**2)
         self.device = torch.device(params["device"])
@@ -120,7 +128,7 @@ class DeepQLearningAgent(Agent):
         self.target_network.eval()
 
         self.optimizer = optim.Adam(self.q_network.parameters(), lr=self.learning_rate)
-        self.replay_buffer = ReplayBuffer(self.replay_buffer_length, self.rows**2, device=self.device)
+        self.replay_buffer = ReplayBuffer(self.replay_buffer_length, self.rows**2, device=params["device"])
 
         self.board_to_state_translation = {"X": 1, "O": -1, " ": 0}
         self.state_to_board_translation = {1: "X", -1: "O", 0: " "}
@@ -128,9 +136,15 @@ class DeepQLearningAgent(Agent):
         if self.debug:
             print(f"Player: {self.player}, opponent: {self.opponent}")
 
-        self.evaluation_data = {"loss": [], "action_value": [], "histories": [], "rewards": [], "valid_actions": []}
+        self.evaluation_data: dict[str, Any] = {
+            "loss": [],
+            "action_value": [],
+            "histories": [],
+            "rewards": [],
+            "valid_actions": [],
+        }
 
-    def get_action(self, state_transition, game):
+    def get_action(self, state_transition: StateTransition, game: "TicTacToe") -> int:
         next_board, reward, done = state_transition
         if len(self.episode_history) > 0:
             board, action = self.episode_history[-1]
@@ -176,15 +190,18 @@ class DeepQLearningAgent(Agent):
                     )
                 self.optimizer.zero_grad()
                 loss.backward()
-                self.optimizer.step()
+                self.optimizer.step()  # type: ignore
                 self.train_step_count += 1
 
         if not done:
             board = next_board
-            action = self.choose_action(board, epsilon=self.epsilon)
-            self.episode_history.append((board, action))
-            self.games_moves_count += 1
-            return action
+            if board is not None:
+                action = self.choose_action(board, epsilon=self.epsilon)
+                self.episode_history.append((board, action))
+                self.games_moves_count += 1
+                return action
+            else:
+                return -1
         else:
             # Update target network
             if self.episode_count % self.target_update_frequency == 0:
@@ -195,27 +212,27 @@ class DeepQLearningAgent(Agent):
             self.update_rates(self.episode_count)
             self.evaluation_data["histories"].append(self.episode_history)
             self.episode_history = []
-            return None
+            return -1
 
-    def board_to_state(self, board):
+    def board_to_state(self, board: Board):
         return np.array([self.board_to_state_translation[cell] for cell in board]).reshape(1, -1)
         # return [self.board_to_state_translation[cell] for cell in board]
 
-    def state_to_board(self, state):
+    def state_to_board(self, state: np.ndarray[Any, Any]) -> Board:
         flat_state = state.flatten()
         board = [self.state_to_board_translation[cell] for cell in flat_state]
         return board
 
-    def update_rates(self, episode) -> None:
+    def update_rates(self, episode: int) -> None:
         self.epsilon = max(
             self.params["epsilon_min"], self.params["epsilon_start"] / (1 + episode / self.nr_of_episodes)
         )
 
-    def get_valid_actions(self, board):
+    def get_valid_actions(self, board: Board):
         return [i for i, cell in enumerate(board) if cell == " "]
 
     # Choose an action based on Q-values
-    def choose_action(self, board, epsilon: float):
+    def choose_action(self, board: Board, epsilon: float) -> int:
         if random.uniform(0, 1) < epsilon:
             # Exploration: Choose a random move
             valid_actions = self.get_valid_actions(board)
@@ -225,7 +242,7 @@ class DeepQLearningAgent(Agent):
             state = self.board_to_state(board)
             state_tensor = torch.FloatTensor(state).unsqueeze(0).to(self.device)
             with torch.no_grad():
-                action = torch.argmax(self.q_network(state_tensor)).item()
+                action = int(torch.argmax(self.q_network(state_tensor)).item())
 
             if action in self.get_valid_actions(board):
                 self.evaluation_data["valid_actions"].append(1)
@@ -236,53 +253,53 @@ class DeepQLearningAgent(Agent):
 
 
 class DeepQPlayingAgent(Agent):
-    def __init__(self, q_network, player: str = "X", switching: bool = False) -> None:
+    def __init__(self, q_network: QNetwork | str, player: Player = "X", switching: bool = False) -> None:
         super().__init__(player=player, switching=switching)
         # self.device = torch.device('mps')
         self.device = torch.device("cpu")
         if isinstance(q_network, torch.nn.Module):
-            self.q_network = q_network.to(self.device)
-        elif isinstance(q_network, str):
-            self.q_network = torch.load(q_network).to(self.device)
+            self.q_network: QNetwork = q_network.to(self.device)
+        else:
+            self.q_network = torch.load(q_network).to(self.device)  # type: ignore
             self.q_network.eval()
 
         self.state_to_board_translation = {"X": 1, "O": -1, " ": 0}
-        board_to_state_translation = {}
+        self.board_to_state_translation: dict[int, str] = {}
         for key, value in self.state_to_board_translation.items():
-            board_to_state_translation[value] = key
+            self.board_to_state_translation[value] = key
 
-    def board_to_state(self, board):
+    def board_to_state(self, board: Board):
         return np.array([self.state_to_board_translation[cell] for cell in board]).reshape(1, -1)
 
-    def state_to_board(self, state):
+    def state_to_board(self, state: np.ndarray[Any, Any]) -> Board:
         flat_state = state.flatten()
         board = [self.board_to_state_translation[cell] for cell in flat_state]
         return board
 
     # Generate all empty positions on the board
-    def get_valid_actions(self, board):
+    def get_valid_actions(self, board: Board) -> Actions:
         return [i for i, cell in enumerate(board) if cell == " "]
 
-    def choose_action(self, board):
+    def choose_action(self, board: Board) -> int:
         # Exploitation: Choose the best known move
         state = self.board_to_state(board)
         state_tensor = torch.FloatTensor(state).unsqueeze(0).to(self.device)
         with torch.no_grad():
             q_values = self.q_network(state_tensor).squeeze().tolist()
 
-        action = np.argmax(q_values)
+        action = int(np.argmax(q_values))
         return action
 
-    def get_action(self, state_transition, game):
-        state, reward, done = state_transition
+    def get_action(self, state_transition: StateTransition, game: "TicTacToe") -> Action:
+        _, _, done = state_transition
         if not done:
             board = game.get_board()
             action = self.choose_action(board)
             return action
         else:
             self.on_game_end(game)
-            return None
+            return -1
 
-    def on_game_end(self, game) -> None:
+    def on_game_end(self, game: "TicTacToe") -> None:
         if self.switching:
             self.player, self.opponent = self.opponent, self.player

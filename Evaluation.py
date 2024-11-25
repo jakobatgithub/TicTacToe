@@ -1,14 +1,18 @@
+from typing import Any, Optional
+
 import matplotlib.pyplot as plt
 import numpy as np
 
 from Agent import RandomAgent
-from QAgent import QPlayingAgent
+from DeepQAgent import DeepQLearningAgent
+from my_types import Player
+from QAgent import QLearningAgent, QPlayingAgent
+from SymmetricMatrix import TotallySymmetricMatrix
 from TicTacToe import TicTacToe
-from typing import Optional, Sequence
 
 
-def average_array(array, chunk_size: Optional[int] = None):
-    means = []
+def average_array(array: list[float] | list[int], chunk_size: Optional[int] = None) -> list[float]:
+    means: list[float | int] = []
     if chunk_size is None:
         chunk_size = max((len(array) // 100, 1))
 
@@ -19,9 +23,9 @@ def average_array(array, chunk_size: Optional[int] = None):
     return means
 
 
-def plot_graphs(loss, action_value, rewards: Sequence[float]) -> None:
+def plot_graphs(loss: list[float], action_value: list[float], rewards: list[float]) -> None:
     # Create a figure with two subplots next to each other
-    fig, axs = plt.subplots(1, 3, figsize=(12, 3))  # 1 row, 2 columns
+    _, axs = plt.subplots(1, 3, figsize=(12, 3))  # type: ignore
 
     # Plot the first graph: Mean Loss
     chunk_size = max((len(loss) // 100, 1))
@@ -57,29 +61,29 @@ def plot_graphs(loss, action_value, rewards: Sequence[float]) -> None:
 
     # Adjust layout for better spacing
     plt.tight_layout()
-    plt.show()
+    plt.show()  # type: ignore
 
 
-def plot_valid_actions(learning_agent) -> None:
-    evaluation_data = learning_agent.evaluation_data
-    valid_actions = evaluation_data["valid_actions"]
+def plot_valid_actions(learning_agent: DeepQLearningAgent) -> None:
+    evaluation_data: dict[str, Any] = learning_agent.evaluation_data
+    valid_actions: list[int] = evaluation_data["valid_actions"]
     chunk_size = max((len(valid_actions) // 100, 1))
     mean_valid_actions = average_array(valid_actions)
     steps = [i * chunk_size for i in range(len(mean_valid_actions))]
-    fig, axs = plt.subplots(1, 1, figsize=(4, 3))  # 1 row, 2 columns
+    _, axs = plt.subplots(1, 1, figsize=(4, 3))  # type: ignore
 
-    axs.plot(steps[:-2], mean_valid_actions[:-2], label="Valid actions")
-    axs.set_title("Valid actions")
-    axs.set_xlabel("Training steps")
-    axs.set_ylabel("Fraction of valid actions")
-    axs.grid(True)
+    axs.plot(steps[:-2], mean_valid_actions[:-2], label="Valid actions")  # type: ignore
+    axs.set_title("Valid actions")  # type: ignore
+    axs.set_xlabel("Training steps")  # type: ignore
+    axs.set_ylabel("Fraction of valid actions")  # type: ignore
+    axs.grid(True)  # type: ignore
 
     # Adjust layout for better spacing
     plt.tight_layout()
-    plt.show()
+    plt.show()  # type: ignore
 
 
-def plot_evaluation_data(learning_agent) -> None:
+def plot_evaluation_data(learning_agent: DeepQLearningAgent) -> None:
     evaluation_data = learning_agent.evaluation_data
     loss = evaluation_data["loss"]
     action_value = evaluation_data["action_value"]
@@ -90,10 +94,10 @@ def plot_evaluation_data(learning_agent) -> None:
     plot_graphs(loss, action_value, rewards)
 
 
-def extract_values(dictionary):
+def extract_values(dictionary: dict[Any, float]) -> list[float]:
     """Extract all values from a potentially nested dictionary."""
-    values = []
-    for key, value in dictionary.items():
+    values: list[float] = []
+    for _, value in dictionary.items():
         if isinstance(value, dict):  # If the value is a dictionary, recurse
             values.extend(extract_values(value))
         else:
@@ -101,9 +105,8 @@ def extract_values(dictionary):
     return values
 
 
-def evaluate_and_plot_Q(learning_agent, player) -> None:
-    Q = learning_agent.Q
-    qMatrix = Q.get()
+def evaluate_and_plot_Q(learning_agent: QLearningAgent, player: Player) -> None:
+    qMatrix = learning_agent.Q.qMatrix
     qValues = extract_values(qMatrix)
     print(qValues)
     print(f"Total number of elements in Q for player {player}: {len(qValues)}")
@@ -121,17 +124,22 @@ def evaluate_and_plot_Q(learning_agent, player) -> None:
     print(f"Minimum: {min_q}")
     print(f"Maximum: {max_q}")
 
-    plt.figure(figsize=(10, 6))
-    plt.hist(qValues, bins=20, edgecolor="black", alpha=0.7)
-    plt.title(f"Histogram of Q-values for player {player}")
-    plt.xlabel("Q-value")
-    plt.ylabel("Frequency")
-    plt.grid(axis="y", linestyle="--", alpha=0.7)
-    plt.show()
+    plt.figure(figsize=(10, 6))  # type: ignore
+    plt.hist(qValues, bins=20, edgecolor="black", alpha=0.7)  # type: ignore
+    plt.title(f"Histogram of Q-values for player {player}")  # type: ignore
+    plt.xlabel("Q-value")  # type: ignore
+    plt.ylabel("Frequency")  # type: ignore
+    plt.grid(axis="y", linestyle="--", alpha=0.7)  # type: ignore
+    plt.show()  # type: ignore
 
 
 def QAgent_plays_against_RandomAgent(
-    Q, player, nr_of_episodes: int = 5000, rows: int = 3, cols: int = 3, win_length: int = 3
+    Q: TotallySymmetricMatrix,
+    player: Player,
+    nr_of_episodes: int = 5000,
+    rows: int = 3,
+    cols: int = 3,
+    win_length: int = 3,
 ) -> None:
     playing_agent1 = QPlayingAgent(Q, player=player, switching=False)
     opponent = "O" if player == "X" else "X"
@@ -140,7 +148,8 @@ def QAgent_plays_against_RandomAgent(
     outcomes = {"X": 0, "O": 0, "D": 0}
     for _ in range(nr_of_episodes):
         outcome = game.play()
-        outcomes[outcome] += 1
+        if outcome is not None:
+            outcomes[outcome] += 1
 
     print("Outcomes during playing:")
     print(
@@ -149,7 +158,14 @@ def QAgent_plays_against_RandomAgent(
 
 
 def QAgent_plays_against_QAgent(
-    Q1, player1, Q2, player2=None, nr_of_episodes: int = 5000, rows: int = 3, cols: int = 3, win_length: int = 3
+    Q1: TotallySymmetricMatrix,
+    player1: Player,
+    Q2: TotallySymmetricMatrix,
+    player2: Player | None = None,
+    nr_of_episodes: int = 5000,
+    rows: int = 3,
+    cols: int = 3,
+    win_length: int = 3,
 ) -> None:
     playing_agent1 = QPlayingAgent(Q1, player=player1, switching=False)
     if not player2:
@@ -158,9 +174,10 @@ def QAgent_plays_against_QAgent(
     playing_agent2 = QPlayingAgent(Q2, player=player2, switching=False)
     game = TicTacToe(playing_agent1, playing_agent2, display=None, rows=rows, cols=cols, win_length=win_length)
     outcomes = {"X": 0, "O": 0, "D": 0}
-    for episode in range(nr_of_episodes):
+    for _ in range(nr_of_episodes):
         outcome = game.play()
-        outcomes[outcome] += 1
+        if outcome is not None:
+            outcomes[outcome] += 1
 
     print("Outcomes during playing:")
     print(

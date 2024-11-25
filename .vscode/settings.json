@@ -1,0 +1,10 @@
+{
+    "python.analysis.inlayHints.callArgumentNames": "all",
+    "python.analysis.inlayHints.functionReturnTypes": false,
+    "python.analysis.inlayHints.pytestParameters": false,
+    "python.analysis.inlayHints.variableTypes": false,
+    "python.analysis.typeCheckingMode": "strict",
+    "workbench.editor.languageDetection": false,
+    "python.languageServer": "Pylance",
+    "python.analysis.diagnosticMode": "openFilesOnly"
+}

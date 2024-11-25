@@ -5,7 +5,7 @@ from typing import Any, Callable, Tuple
 import dill  # type: ignore
 import numpy as np
 
-from my_types import Action, Player
+from game_types import Action, Player
 
 Board = Tuple[str, ...]
 

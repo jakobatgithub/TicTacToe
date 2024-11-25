@@ -5,7 +5,7 @@ from typing import Any, Callable
 
 from IPython.display import clear_output
 
-from my_types import Action, Board, Outcome
+from game_types import Action, Board, Outcome
 
 
 class Display(ABC):

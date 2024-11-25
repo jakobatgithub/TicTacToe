@@ -9,7 +9,7 @@ from SymmetricMatrix import TotallySymmetricMatrix
 if TYPE_CHECKING:
     from TicTacToe import TicTacToe  # Import only for type hinting
 
-from my_types import Action, Board, History, Params, Player, Reward, StateTransition, StateTransitions2
+from game_types import Action, Board, History, Params, Player, Reward, StateTransition, StateTransitions2
 
 
 class QLearningAgent(Agent):

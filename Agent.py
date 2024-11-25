@@ -6,7 +6,7 @@ if TYPE_CHECKING:
     from TicTacToe import TicTacToe  # Import only for type hinting
 
 from Display import TicTacToeDisplay
-from my_types import Action, Player, Players, StateTransition
+from game_types import Action, Player, Players, StateTransition
 
 
 class Agent(ABC):

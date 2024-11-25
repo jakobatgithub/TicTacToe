@@ -5,7 +5,7 @@ import numpy as np
 
 from Agent import RandomAgent
 from DeepQAgent import DeepQLearningAgent
-from my_types import Player
+from game_types import Player
 from QAgent import QLearningAgent, QPlayingAgent
 from SymmetricMatrix import TotallySymmetricMatrix
 from TicTacToe import TicTacToe

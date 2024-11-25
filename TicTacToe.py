@@ -1,6 +1,6 @@
 from Agent import Agent, MouseAgent
 from Display import Display, TicTacToeDisplay
-from my_types import Action, Actions, Board, History, Outcome, Player, Reward, StateTransition
+from game_types import Action, Actions, Board, History, Outcome, Player, Reward, StateTransition
 
 
 class TicTacToe:

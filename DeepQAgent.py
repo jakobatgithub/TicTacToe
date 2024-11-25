@@ -12,7 +12,7 @@ from Agent import Agent
 if TYPE_CHECKING:
     from TicTacToe import TicTacToe  # Import only for type hinting
 
-from my_types import Action, Actions, Board, History, Player, StateTransition, StateTransitions2
+from game_types import Action, Actions, Board, History, Player, StateTransition, StateTransitions2
 
 
 class ReplayBuffer:

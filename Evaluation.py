@@ -60,7 +60,7 @@ def plot_graphs(loss: list[float], action_value: list[float], rewards: list[floa
     axs[2].grid(True)
 
     # Adjust layout for better spacing
-    plt.tight_layout()
+    plt.tight_layout()  # type: ignore
     plt.show()  # type: ignore
 
 
@@ -79,7 +79,7 @@ def plot_valid_actions(learning_agent: DeepQLearningAgent) -> None:
     axs.grid(True)  # type: ignore
 
     # Adjust layout for better spacing
-    plt.tight_layout()
+    plt.tight_layout()  # type: ignore
     plt.show()  # type: ignore
 
 

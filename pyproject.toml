@@ -59,6 +59,7 @@ ruff = "^0.8.0"
 ipykernel = "^6.29.5"
 matplotlib = "^3.9.2"
 pytest = "^8.3.3"
+coverage = "^7.6.8"
 
 [tool.poetry.dev-dependencies]
 pytest = "^8.3.3"
@@ -70,6 +71,7 @@ pytest = "^8.3.3"
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^4.0.1"
+coverage = "^7.6.8"
 
 [build-system]
 requires = ["poetry-core"]

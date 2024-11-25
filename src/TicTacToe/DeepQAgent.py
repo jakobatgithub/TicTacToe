@@ -152,33 +152,51 @@ class DeepQLearningAgent(Agent):
             "valid_actions": [],
         }
 
-    def train_step(self) -> tuple[float, float]:
+    def get_action(self, state_transition: StateTransition, game: "TicTacToe") -> Action:
+        next_board, reward, done = state_transition
+
+        if len(self.episode_history) > 0:
+            self._update_state_transitions_and_replay_buffer(next_board, reward, done)
+            if len(self.replay_buffer) >= self.batch_size:
+                self._train_network(reward)
+
+        if not done:
+            return self._handle_incomplete_game(next_board)
+        else:
+            self._handle_game_completion()
+            return -1
+
+    def _update_state_transitions_and_replay_buffer(self, next_board: Board | None, reward: Reward, done: bool) -> None:
+        board, action = self.episode_history[-1]
+        self.state_transitions.append((board, action, next_board, reward, done))
+
+        state = self.board_to_state(board)
+        next_state = (
+            self.board_to_state(next_board) if next_board is not None else self.board_to_state(["X"] * (self.rows**2))
+        )
+
+        self.replay_buffer.add(state, action, reward, next_state, done)
+
+    def _train_network(self, reward: Reward) -> None:
         states, actions, rewards, next_states, dones = self.replay_buffer.sample(self.batch_size)
 
         q_values = self.q_network(states).gather(1, actions.unsqueeze(1)).squeeze(1)
         next_q_values = self.target_network(next_states).max(1, keepdim=True)[0].squeeze(1)
         targets = rewards + (~dones) * self.gamma * next_q_values
 
-        # print(f"states.shape = {states.shape}")
-        # print(f"q_values.shape = {q_values.shape}")
-        # print(f"next_q_values.shape = {next_q_values.shape}")
-        # print(f"(~dones).shape = {(~dones).shape}")
-        # print(f"rewards.shape = {rewards.shape}")
-        # print(f"targets.shape = {targets.shape}")
-
         loss = nn.MSELoss()(q_values, targets)
+        self._log_training_metrics(loss.item(), next_q_values.mean().item(), reward)
+
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()  # type: ignore
         self.train_step_count += 1
-        return loss.item(), next_q_values.mean().item()
 
-    def log_evaluation_data(self, loss: float, mean_q_values: float, reward: Reward) -> None:
+    def _log_training_metrics(self, loss: float, next_q_values: float, reward: Reward) -> None:
         self.evaluation_data["loss"].append(loss)
-        self.evaluation_data["action_value"].append(mean_q_values)
+        self.evaluation_data["action_value"].append(next_q_values)
         self.evaluation_data["rewards"].append(reward)
 
-        # Buffer Wandb Metrics
         if self.train_step_count % self.wandb_logging_frequency == 0:
             wandb.log(
                 {
@@ -192,45 +210,23 @@ class DeepQLearningAgent(Agent):
                 }
             )
 
-    def add_state_transition(self, next_board: Board | None, reward: Reward, done: bool) -> None:
-        board, action = self.episode_history[-1]
-        self.state_transitions.append((board, action, next_board, reward, done))
-        state = self.board_to_state(board)
-        if next_board is None:
-            next_state = self.board_to_state(["X"] * (self.rows**2))  # is not needed
-        else:
-            next_state = self.board_to_state(next_board)
+    def _handle_incomplete_game(self, next_board: Board | None) -> Action:
+        if next_board is not None:
+            action = self.choose_action(next_board, epsilon=self.epsilon)
+            self.episode_history.append((next_board, action))
+            self.games_moves_count += 1
+            return action
+        return -1
 
-        self.replay_buffer.add(state, action, reward, next_state, done)
+    def _handle_game_completion(self) -> None:
+        if self.episode_count % self.target_update_frequency == 0:
+            self.target_network.load_state_dict(self.q_network.state_dict())
+            self.target_update_count += 1
 
-    def get_action(self, state_transition: StateTransition, game: "TicTacToe") -> int:
-        next_board, reward, done = state_transition
-        if len(self.episode_history) > 0:
-            self.add_state_transition(next_board, reward, done)
-            if len(self.replay_buffer) >= self.batch_size:
-                loss, mean_q_values = self.train_step()
-                self.log_evaluation_data(loss, mean_q_values, reward)
-
-        if not done:
-            board = next_board
-            if board is not None:
-                action = self.choose_action(board, epsilon=self.epsilon)
-                self.episode_history.append((board, action))
-                self.games_moves_count += 1
-                return action
-            else:
-                return -1
-        else:
-            # Update target network
-            if self.episode_count % self.target_update_frequency == 0:
-                self.target_network.load_state_dict(self.q_network.state_dict())
-                self.target_update_count += 1
-
-            self.episode_count += 1
-            self.update_rates(self.episode_count)
-            self.evaluation_data["histories"].append(self.episode_history)
-            self.episode_history = []
-            return -1
+        self.episode_count += 1
+        self.update_rates(self.episode_count)
+        self.evaluation_data["histories"].append(self.episode_history)
+        self.episode_history = []
 
     def board_to_state(self, board: Board):
         return np.array([self.board_to_state_translation[cell] for cell in board]).reshape(1, -1)

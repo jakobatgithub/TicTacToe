@@ -6,7 +6,7 @@ from typing import Any, Callable, Tuple
 import dill  # type: ignore
 import numpy as np
 
-from game_types import Action, Player
+from game_types import Action, Player, State
 
 Board = Tuple[str, ...]
 
@@ -181,10 +181,10 @@ class SymmetricMatrix(BaseMatrix):
         state_dict: dict[Any, Any] = defaultdict(lambda: self.default_value)
         return state_dict
 
-    def _board_to_matrix(self, board: Board) -> np.ndarray[Any, Any]:
+    def _board_to_matrix(self, board: Board) -> State:
         return np.array(board).reshape(self.rows, self.rows)
 
-    def _matrix_to_board(self, matrix: np.ndarray[Any, Any]) -> Board:
+    def _matrix_to_board(self, matrix: State) -> Board:
         return matrix.flatten().tolist()
 
     def _generate_all_valid_boards(self) -> list[Board]:

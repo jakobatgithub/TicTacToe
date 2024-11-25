@@ -12,7 +12,7 @@ from Agent import Agent
 if TYPE_CHECKING:
     from TicTacToe import TicTacToe  # Import only for type hinting
 
-from game_types import Action, Actions, Board, History, Player, StateTransition, StateTransitions2
+from game_types import Action, Actions, Board, History, Player, Reward, State, StateTransition, StateTransitions2
 
 
 class ReplayBuffer:
@@ -36,9 +36,7 @@ class ReplayBuffer:
         self.next_states = torch.zeros((size, state_dim), dtype=torch.float32, device=device)
         self.dones = torch.zeros(size, dtype=torch.bool, device=device)
 
-    def add(
-        self, state: np.ndarray[Any, Any], action: Action, reward: float, next_state: np.ndarray[Any, Any], done: bool
-    ) -> None:
+    def add(self, state: State, action: Action, reward: Reward, next_state: State, done: bool) -> None:
         """
         Add a new experience to the buffer.
 
@@ -91,7 +89,7 @@ class QNetwork(nn.Module):
             nn.Linear(input_dim, 128), nn.ReLU(), nn.Linear(128, 64), nn.ReLU(), nn.Linear(64, output_dim)
         )
 
-    def forward(self, x: np.ndarray[Any, Any]):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.fc(x)
 
 
@@ -218,7 +216,7 @@ class DeepQLearningAgent(Agent):
         return np.array([self.board_to_state_translation[cell] for cell in board]).reshape(1, -1)
         # return [self.board_to_state_translation[cell] for cell in board]
 
-    def state_to_board(self, state: np.ndarray[Any, Any]) -> Board:
+    def state_to_board(self, state: State) -> Board:
         flat_state = state.flatten()
         board = [self.state_to_board_translation[cell] for cell in flat_state]
         return board
@@ -271,7 +269,7 @@ class DeepQPlayingAgent(Agent):
     def board_to_state(self, board: Board):
         return np.array([self.state_to_board_translation[cell] for cell in board]).reshape(1, -1)
 
-    def state_to_board(self, state: np.ndarray[Any, Any]) -> Board:
+    def state_to_board(self, state: State) -> Board:
         flat_state = state.flatten()
         board = [self.board_to_state_translation[cell] for cell in flat_state]
         return board

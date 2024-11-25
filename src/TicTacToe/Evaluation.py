@@ -2,9 +2,9 @@ from typing import Any, Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
-from Agent import RandomAgent
-from DeepQAgent import DeepQLearningAgent
 
+from TicTacToe.Agent import RandomAgent
+from TicTacToe.DeepQAgent import DeepQLearningAgent
 from TicTacToe.game_types import Player
 from TicTacToe.QAgent import QLearningAgent, QPlayingAgent
 from TicTacToe.SymmetricMatrix import FullySymmetricMatrix

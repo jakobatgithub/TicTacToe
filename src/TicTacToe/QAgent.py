@@ -2,8 +2,8 @@ import random
 from typing import TYPE_CHECKING, Any
 
 import numpy as np
-from Agent import Agent
 
+from TicTacToe.Agent import Agent
 from TicTacToe.SymmetricMatrix import BaseMatrix, Matrix  # SymmetricMatrix, FullySymmetricMatrix
 
 if TYPE_CHECKING:

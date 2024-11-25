@@ -1,8 +1,7 @@
 # %%
-from Agent import MouseAgent
-from DeepQAgent import DeepQPlayingAgent
-from Display import TicTacToeDisplay
-
+from TicTacToe.Agent import MouseAgent
+from TicTacToe.DeepQAgent import DeepQPlayingAgent
+from TicTacToe.Display import TicTacToeDisplay
 from TicTacToe.TicTacToe import TicTacToe
 
 rows = 4

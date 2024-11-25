@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 from collections import defaultdict
 from itertools import product
 from typing import Any, Callable, Tuple
@@ -22,30 +23,67 @@ class LazyComputeDict(dict[Any, Any]):
         return super().__getitem__(key)
 
 
-class Matrix:
+class BaseMatrix(ABC):
+    """
+    Abstract base class for Q-value matrices.
+    Defines the shared interface and enforces implementation of key methods.
+    """
+
+    def __init__(self, file: str | None = None, default_value: float = 0.0) -> None:
+        self.default_value = default_value
+        if file:
+            with open(file, "rb") as f:
+                self.qMatrix: dict[Any, Any] = dill.load(f)  # type: ignore
+        else:
+            self.qMatrix: dict[Any, Any] = defaultdict(self._initialize_q_matrix)
+
+    def _initialize_q_matrix(self) -> dict[Any, Any]:
+        """
+        Initialize an empty dictionary for storing Q-values for a given state.
+        """
+        return defaultdict(lambda: self.default_value)
+
+    @abstractmethod
+    def get(self, board: Board, action: Action) -> float:
+        """
+        Get the Q-value for a state-action pair.
+        Must be implemented by subclasses.
+        """
+        pass
+
+    @abstractmethod
+    def set(self, board: Board, action: Action, value: float) -> None:
+        """
+        Set the Q-value for a state-action pair.
+        Must be implemented by subclasses.
+        """
+        pass
+
+
+class Matrix(BaseMatrix):
     def __init__(self, file: str | None = None, default_value: float | None = None) -> None:
         self.default_value = 0.0
         if default_value is None and file is None:
-            self.q_matrix: dict[Any, Any] = defaultdict(self._initialize_q_matrix)
+            self.qMatrix: dict[Any, Any] = defaultdict(self._initialize_q_matrix)
         elif default_value is None and file is not None:
             with open(file, "rb") as f:
-                self.q_matrix = dill.load(f)  # type: ignore
+                self.qMatrix = dill.load(f)  # type: ignore
         elif file is None and default_value is not None:
             self.default_value = default_value
-            self.q_matrix = defaultdict(self._initialize_q_matrix)
+            self.qMatrix = defaultdict(self._initialize_q_matrix)
 
     def _initialize_q_matrix(self) -> dict[Any, Any]:
         state_dict: dict[Any, Any] = defaultdict(lambda: self.default_value)
         return state_dict
 
     def get(self, board: Board, action: Action) -> float:
-        return self.q_matrix[board][action]
+        return self.qMatrix[board][action]
 
     def set(self, board: Board, action: Action, value: float) -> None:
-        self.q_matrix[tuple(board)][action] = value
+        self.qMatrix[tuple(board)][action] = value
 
 
-class SymmetricMatrix:
+class SymmetricMatrix(BaseMatrix):
     def __init__(
         self, file: str | None = None, default_value: float | None = None, lazy: bool = True, rows: int = 3
     ) -> None:
@@ -229,7 +267,7 @@ class FullySymmetricMatrix(SymmetricMatrix):
         # Call the parent initializer first
         super().__init__(file=file, default_value=default_value, lazy=lazy, rows=rows)
 
-        # Override q_matrix initialization for TotallySymmetricMatrix
+        # Override qMatrix initialization for TotallySymmetricMatrix
         if file is not None:
             with open(file, "rb") as f:
                 self.qMatrix: dict[Any, Any] = dill.load(f)  # type: ignore

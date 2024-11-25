@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any
 import numpy as np
 
 from Agent import Agent
-from SymmetricMatrix import FullySymmetricMatrix, SymmetricMatrix
+from SymmetricMatrix import BaseMatrix, FullySymmetricMatrix
 
 if TYPE_CHECKING:
     from TicTacToe import TicTacToe  # Import only for type hinting
@@ -24,9 +24,9 @@ class QLearningAgent(Agent):
         self.terminal_q_updates = params["terminal_q_updates"]
 
         # Initialize matrices
-        # self.Q = Matrix(default_value=params['Q_initial_value'])
-        # self.Q = SymmetricMatrix(default_value=params['Q_initial_value'], lazy=params['lazy_evaluation'], rows=params['rows'])
-        self.Q: SymmetricMatrix = FullySymmetricMatrix(
+        # self.Q: BaseMatrix = Matrix(default_value=params['Q_initial_value'])
+        # self.Q: BaseMatrix = SymmetricMatrix(default_value=params['Q_initial_value'], lazy=params['lazy_evaluation'], rows=params['rows'])
+        self.Q: BaseMatrix = FullySymmetricMatrix(
             default_value=params["Q_initial_value"], lazy=params["lazy_evaluation"], rows=params["rows"]
         )
 
@@ -126,14 +126,14 @@ class QLearningAgent(Agent):
     def get_valid_actions(self, board: Board):
         return [i for i, cell in enumerate(board) if cell == " "]
 
-    def get_best_actions(self, board: Board, Q: SymmetricMatrix) -> list[int]:
+    def get_best_actions(self, board: Board, Q: BaseMatrix) -> list[int]:
         actions = self.get_valid_actions(board)
         q_values = {action: Q.get(tuple(board), action) for action in actions}
         max_q = max(q_values.values())
         best_actions = [action for action, q in q_values.items() if q == max_q]
         return best_actions
 
-    def get_best_action(self, board: Board, Q: SymmetricMatrix) -> int:
+    def get_best_action(self, board: Board, Q: BaseMatrix) -> int:
         best_actions = self.get_best_actions(board, Q)
         return np.random.choice(best_actions)
 
@@ -150,9 +150,9 @@ class QLearningAgent(Agent):
 
 
 class QPlayingAgent(Agent):
-    def __init__(self, Q: SymmetricMatrix, player: Player = "X", switching: bool = False) -> None:
+    def __init__(self, Q: BaseMatrix, player: Player = "X", switching: bool = False) -> None:
         super().__init__(player=player, switching=switching)
-        self.Q: SymmetricMatrix = Q
+        self.Q: BaseMatrix = Q
 
     def get_action(self, state_transition: StateTransition, game: "TicTacToe") -> Action:
         _, _, done = state_transition
@@ -167,14 +167,14 @@ class QPlayingAgent(Agent):
     def get_valid_actions(self, board: Board):
         return [i for i, cell in enumerate(board) if cell == " "]
 
-    def get_best_actions(self, board: Board, Q: SymmetricMatrix) -> list[int]:
+    def get_best_actions(self, board: Board, Q: BaseMatrix) -> list[int]:
         actions = self.get_valid_actions(board)
         q_values = {action: Q.get(tuple(board), action) for action in actions}
         max_q = max(q_values.values())
         best_actions = [action for action, q in q_values.items() if q == max_q]
         return best_actions
 
-    def get_best_action(self, board: Board, Q: SymmetricMatrix) -> int:
+    def get_best_action(self, board: Board, Q: BaseMatrix) -> int:
         best_actions = self.get_best_actions(board, Q)
         return np.random.choice(best_actions)
 

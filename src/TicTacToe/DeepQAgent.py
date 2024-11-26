@@ -10,7 +10,7 @@ import wandb
 from TicTacToe.Agent import Agent
 
 if TYPE_CHECKING:
-    from TicTacToe.TicTacToe import TicTacToe  # Import only for type hinting
+    from TicTacToe.TicTacToe import TwoPlayerBoardGame  # Import only for type hinting
 
 from TicTacToe.game_types import (
     Action,
@@ -152,7 +152,7 @@ class DeepQLearningAgent(Agent):
             "valid_actions": [],
         }
 
-    def get_action(self, state_transition: StateTransition, game: "TicTacToe") -> Action:
+    def get_action(self, state_transition: StateTransition, game: "TwoPlayerBoardGame") -> Action:
         next_board, reward, done = state_transition
 
         if len(self.episode_history) > 0:
@@ -304,7 +304,7 @@ class DeepQPlayingAgent(Agent):
         action = int(np.argmax(q_values))
         return action
 
-    def get_action(self, state_transition: StateTransition, game: "TicTacToe") -> Action:
+    def get_action(self, state_transition: StateTransition, game: "TwoPlayerBoardGame") -> Action:
         _, _, done = state_transition
         if not done:
             board = game.get_board()
@@ -314,6 +314,6 @@ class DeepQPlayingAgent(Agent):
             self.on_game_end(game)
             return -1
 
-    def on_game_end(self, game: "TicTacToe") -> None:
+    def on_game_end(self, game: "TwoPlayerBoardGame") -> None:
         if self.switching:
             self.player, self.opponent = self.opponent, self.player

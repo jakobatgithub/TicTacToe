@@ -7,7 +7,7 @@ from TicTacToe.Agent import Agent
 from TicTacToe.SymmetricMatrix import BaseMatrix, Matrix  # SymmetricMatrix, FullySymmetricMatrix
 
 if TYPE_CHECKING:
-    from TicTacToe.TicTacToe import TicTacToe  # Import only for type hinting
+    from TicTacToe.TicTacToe import TwoPlayerBoardGame  # Import only for type hinting
 
 from TicTacToe.game_types import (
     Action,
@@ -53,7 +53,7 @@ class QLearningAgent(Agent):
 
         self.evaluation_data: dict[str, Any] = {"loss": [], "action_value": [], "histories": [], "rewards": []}
 
-    def get_action(self, state_transition: StateTransition, game: "TicTacToe") -> Action:
+    def get_action(self, state_transition: StateTransition, game: "TwoPlayerBoardGame") -> Action:
         next_board, reward, done = state_transition
         self.evaluation_data["rewards"].append(reward)
         if len(self.episode_history) > 0:
@@ -164,7 +164,7 @@ class QPlayingAgent(Agent):
         super().__init__(player=player, switching=switching)
         self.Q: BaseMatrix = Q
 
-    def get_action(self, state_transition: StateTransition, game: "TicTacToe") -> Action:
+    def get_action(self, state_transition: StateTransition, game: "TwoPlayerBoardGame") -> Action:
         _, _, done = state_transition
         if not done:
             board = game.get_board()

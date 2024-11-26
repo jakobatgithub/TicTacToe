@@ -167,6 +167,20 @@ Q_{k,j}+\sum_{l=0}^{n-1}P_{k,l}Q_{l,j}-\sum_{m=0}^{n-1}Q_{k,m}P_{m,j}-\sum_{m=0}
 \end_inset
 
 
+\begin_inset Formula
+\begin{align*}
+q & =Q\left(\bm{s},a\right)=Q\left(\bm{G}\cdot\bm{s},T\left(a\right)\right)\\
+V\left(\bm{v}\right) & =V\left(\bm{G}\cdot\bm{v}\right)\\
+\bm{v} & =\bm{h}\left(\bm{s},a\right)=\bm{\mathcal{A}}\left(a\right)\cdot\bm{s}\\
+\bm{G}\cdot\bm{v} & =\bm{G}\cdot\bm{h}\left(\bm{s},a\right)=\bm{h}\left(\bm{G}\cdot\bm{s},T\left(a\right)\right)\\
+\bm{h}\left(\bm{s},a\right) & =\bm{G}^{-1}\cdot\bm{h}\left(\bm{G}\cdot\bm{s},T\left(a\right)\right)\\
+\bm{\mathcal{A}}\left(a\right)\cdot\bm{s} & =\bm{G}^{-1}\cdot\bm{\mathcal{A}}\left(T\left(a\right)\right)\cdot\bm{G}\cdot\bm{s}\\
+\bm{\mathcal{A}}\left(a\right) & =\bm{G}^{-1}\cdot\bm{\mathcal{A}}\left(T\left(a\right)\right)\cdot\bm{G}
+\end{align*}
+
+\end_inset
+
+
 \end_layout
 
 \end_body

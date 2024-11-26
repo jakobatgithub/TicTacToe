@@ -4,7 +4,7 @@ import unittest
 from unittest.mock import patch
 
 from TicTacToe.Agent import Agent, HumanAgent, MouseAgent, RandomAgent
-from TicTacToe.Display import TicTacToeDisplay
+from TicTacToe.Display import ScreenDisplay
 
 
 class TestAgentBase(unittest.TestCase):
@@ -64,7 +64,7 @@ class TestAgentBase(unittest.TestCase):
         """Simulate GUI clicks to test MouseAgent."""
 
         class MockGame:
-            class MockDisplay(TicTacToeDisplay):
+            class MockDisplay(ScreenDisplay):
                 def bind_click_handler(self, handler) -> None:
                     self.handler = handler
 

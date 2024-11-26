@@ -20,7 +20,7 @@ class Display(ABC):
         pass
 
 
-class TicTacToeDisplay(tk.Tk, Display):
+class ScreenDisplay(tk.Tk, Display):
     def __init__(self, rows: int = 3, cols: int = 3, waiting_time: float = 0.25) -> None:
         super().__init__()
         self.rows = rows

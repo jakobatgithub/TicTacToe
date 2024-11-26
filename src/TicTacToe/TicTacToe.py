@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import List, Optional, Tuple
 
 from TicTacToe.Agent import Agent, MouseAgent
-from TicTacToe.Display import Display, TicTacToeDisplay
+from TicTacToe.Display import Display, ScreenDisplay
 from TicTacToe.game_types import Action, Actions, Board, History, Outcome, Reward, StateTransition
 
 
@@ -22,6 +22,7 @@ class TwoPlayerBoardGame(ABC):
         self._cols = cols
         self._agent1 = agent1
         self._agent2 = agent2
+        self._validate_display_and_agents()
         self.board = self.initialize_board(rows, cols)
         self.current_player = self._agent1.player
         self._history: History = []
@@ -30,6 +31,11 @@ class TwoPlayerBoardGame(ABC):
         if self._agent1.player == self._agent2.player:
             raise ValueError("Players must be different")
         self._initialize()
+
+    def _validate_display_and_agents(self) -> None:
+        if isinstance(self._agent1, MouseAgent) or isinstance(self._agent2, MouseAgent):
+            if not isinstance(self.display, ScreenDisplay):
+                raise ValueError("MouseAgent can only be used with TicTacToeDisplay")
 
     @abstractmethod
     def _initialize(self) -> None:
@@ -112,12 +118,6 @@ class TicTacToe(TwoPlayerBoardGame):
             raise ValueError("Tic Tac Toe board must be square")
         self._win_length = win_length
         super().__init__(agent1, agent2, display, waiting_time, rows, cols)
-        self._validate_display_and_agents()
-
-    def _validate_display_and_agents(self) -> None:
-        if isinstance(self._agent1, MouseAgent) or isinstance(self._agent2, MouseAgent):
-            if not isinstance(self.display, TicTacToeDisplay):
-                raise ValueError("MouseAgent can only be used with TicTacToeDisplay")
 
     def _initialize(self) -> None:
         self.board = self.initialize_board(self._rows, self._cols)

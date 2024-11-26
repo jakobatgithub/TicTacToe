@@ -4,7 +4,7 @@ import unittest
 from unittest.mock import MagicMock
 
 from TicTacToe.Agent import MouseAgent, RandomAgent
-from TicTacToe.Display import ConsoleDisplay, TicTacToeDisplay
+from TicTacToe.Display import ConsoleDisplay, ScreenDisplay
 from TicTacToe.TicTacToe import TicTacToe
 
 
@@ -13,7 +13,7 @@ class TestTicTacToe(unittest.TestCase):
         """Set up the common test environment."""
         self.agent1 = RandomAgent(player="X")
         self.agent2 = RandomAgent(player="O")
-        self.display = MagicMock(spec=TicTacToeDisplay)
+        self.display = MagicMock(spec=ScreenDisplay)
         self.game = TicTacToe(self.agent1, self.agent2)
 
     def test_initialize_board(self) -> None:

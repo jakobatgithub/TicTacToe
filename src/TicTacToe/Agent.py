@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from TicTacToe.TicTacToe import TwoPlayerBoardGame  # Import only for type hinting
 
-from TicTacToe.Display import TicTacToeDisplay
+from TicTacToe.Display import ScreenDisplay
 from TicTacToe.game_types import Action, Player, Players, StateTransition
 
 
@@ -88,7 +88,7 @@ class MouseAgent(Agent):
         :return: An integer representing the selected move.
         """
         self.selected_action = -1
-        if isinstance(game.display, TicTacToeDisplay):
+        if isinstance(game.display, ScreenDisplay):
             game.display.bind_click_handler(self.handle_click)  # Bind the click handler
             game.display.wait_for_player_action()  # Wait for the user to select an action
 

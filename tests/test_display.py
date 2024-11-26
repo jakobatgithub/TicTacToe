@@ -4,7 +4,7 @@ import unittest
 from typing import Literal
 from unittest.mock import MagicMock, patch
 
-from TicTacToe.Display import ConsoleDisplay, TicTacToeDisplay
+from TicTacToe.Display import ConsoleDisplay, ScreenDisplay
 
 
 class TestDisplay(unittest.TestCase):
@@ -37,14 +37,14 @@ class TestDisplay(unittest.TestCase):
 
     def test_tkinter_display_initialization(self) -> None:
         """Test TicTacToeDisplay initializes labels correctly."""
-        display = TicTacToeDisplay(rows=self.rows, cols=self.cols)
+        display = ScreenDisplay(rows=self.rows, cols=self.cols)
         self.assertEqual(len(display.labels), self.rows * self.cols)
         for label in display.labels:
             self.assertEqual(label.cget("text"), " ")
 
     def test_tkinter_display_update(self) -> None:
         """Test TicTacToeDisplay updates board correctly."""
-        display = TicTacToeDisplay(rows=self.rows, cols=self.cols)
+        display = ScreenDisplay(rows=self.rows, cols=self.cols)
         for label in display.labels:
             label.config = MagicMock()
 
@@ -55,7 +55,7 @@ class TestDisplay(unittest.TestCase):
 
     def test_tkinter_display_outcome(self) -> None:
         """Test TicTacToeDisplay handles outcomes correctly."""
-        display = TicTacToeDisplay(rows=self.rows, cols=self.cols)
+        display = ScreenDisplay(rows=self.rows, cols=self.cols)
         display.set_message = MagicMock()
 
         display.update_display(self.board, outcome=self.outcome_x)
@@ -66,7 +66,7 @@ class TestDisplay(unittest.TestCase):
 
     def test_tkinter_display_message(self) -> None:
         """Test TicTacToeDisplay sets messages correctly."""
-        display = TicTacToeDisplay(rows=self.rows, cols=self.cols)
+        display = ScreenDisplay(rows=self.rows, cols=self.cols)
         display.message_label.config = MagicMock()
 
         display.set_message("Player X's turn")
@@ -74,7 +74,7 @@ class TestDisplay(unittest.TestCase):
 
     def test_tkinter_wait_for_action(self) -> None:
         """Test TicTacToeDisplay waits for player action."""
-        display = TicTacToeDisplay(rows=self.rows, cols=self.cols)
+        display = ScreenDisplay(rows=self.rows, cols=self.cols)
         display.wait_variable = MagicMock()
 
         display.wait_for_player_action()
@@ -82,7 +82,7 @@ class TestDisplay(unittest.TestCase):
 
     def test_tkinter_click_handler(self) -> None:
         """Test TicTacToeDisplay click handler functionality."""
-        display = TicTacToeDisplay(rows=self.rows, cols=self.cols)
+        display = ScreenDisplay(rows=self.rows, cols=self.cols)
         mock_handler = MagicMock()
         display.bind_click_handler(mock_handler)
 
@@ -92,7 +92,7 @@ class TestDisplay(unittest.TestCase):
 
     def test_tkinter_display_quit_on_outcome(self) -> None:
         """Test TicTacToeDisplay calls quit after an outcome."""
-        display = TicTacToeDisplay(rows=self.rows, cols=self.cols)
+        display = ScreenDisplay(rows=self.rows, cols=self.cols)
         display.quit = MagicMock()
 
         display.update_display(self.board, outcome=self.outcome_x)

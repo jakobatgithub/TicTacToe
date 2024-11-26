@@ -12,6 +12,7 @@ repos:
     # Run the linter.
     - id: ruff
       args: [ --fix ]
+      exclude: '.*\.ipynb$'  # Regex to exclude Jupyter notebook files
     # Sort imports.
     - id: ruff
       args: ["check", "--select", "I", "--fix"]

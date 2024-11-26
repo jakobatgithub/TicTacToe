@@ -7,7 +7,6 @@ packages = [
     { include = "TicTacToe", from = "src" }
 ]
 
-
 [tool.poetry.dependencies]
 python = "^3.12"
 asttokens = "2.4.1"
@@ -64,11 +63,6 @@ coverage = "^7.6.8"
 [tool.poetry.dev-dependencies]
 pytest = "^8.3.3"
 
-[tool.poetry.scripts]
-# Example: CLI entry points
-# tictactoe = "TicTacToe.cli:main"
-
-
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^4.0.1"
 coverage = "^7.6.8"
@@ -77,19 +71,13 @@ coverage = "^7.6.8"
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
-
 [tool.ruff]
 # Set the maximum line length to 79.
 line-length = 120
 
-
-[tool.ruff.lint]
-# Add the `line-too-long` rule to the enforced rule set.
-extend-select = [
-#    "E501",
-#    "UP",  # pyupgrade
-#    "D",   # pydocstyle
-]
-
-# [tool.ruff.lint.pydocstyle]
-# convention = "google"
+[tool.coverage.run]
+omit = [
+    # omit this single file
+    "src/TicTacToe/Evaluation.py",
+    "src/TicTacToe/DisplayTest.py",
+    ]

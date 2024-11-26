@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from TicTacToe.TicTacToe import TicTacToe  # Import only for type hinting
+    from TicTacToe.TicTacToe import TwoPlayerBoardGame  # Import only for type hinting
 
 from TicTacToe.Display import TicTacToeDisplay
 from TicTacToe.game_types import Action, Player, Players, StateTransition
@@ -24,7 +24,7 @@ class Agent(ABC):
         return self.players[1] if player == self.players[0] else self.players[0]
 
     @abstractmethod
-    def get_action(self, state_transition: StateTransition, game: "TicTacToe") -> Action:
+    def get_action(self, state_transition: StateTransition, game: "TwoPlayerBoardGame") -> Action:
         """
         Decides the next action based on the current game state.
         :param game: An instance of the Tic-Tac-Toe game.
@@ -34,7 +34,7 @@ class Agent(ABC):
 
 
 class RandomAgent(Agent):
-    def get_action(self, state_transition: StateTransition, game: "TicTacToe") -> Action:
+    def get_action(self, state_transition: StateTransition, game: "TwoPlayerBoardGame") -> Action:
         _, _, done = state_transition
         if not done:
             valid_actions = game.get_valid_actions()
@@ -43,13 +43,13 @@ class RandomAgent(Agent):
             self.on_game_end(game)
             return -1
 
-    def on_game_end(self, game: "TicTacToe") -> None:
+    def on_game_end(self, game: "TwoPlayerBoardGame") -> None:
         if self.switching:
             self.player, self.opponent = self.opponent, self.player
 
 
 class HumanAgent(Agent):
-    def get_action(self, state_transition: StateTransition, game: "TicTacToe") -> Action:
+    def get_action(self, state_transition: StateTransition, game: "TwoPlayerBoardGame") -> Action:
         _, _, done = state_transition
         if not done:
             valid_actions = game.get_valid_actions()
@@ -70,7 +70,7 @@ class HumanAgent(Agent):
             self.on_game_end(game)
             return -1
 
-    def on_game_end(self, game: "TicTacToe") -> None:
+    def on_game_end(self, game: "TwoPlayerBoardGame") -> None:
         if self.switching:
             self.player, self.opponent = self.opponent, self.player
 
@@ -80,7 +80,7 @@ class MouseAgent(Agent):
         super().__init__(player)
         self.selected_action = None  # Stores the clicked action
 
-    def get_action(self, state_transition: StateTransition, game: "TicTacToe") -> Action:
+    def get_action(self, state_transition: StateTransition, game: "TwoPlayerBoardGame") -> Action:
         """
         Waits for a mouse click and returns the corresponding position.
         :param state_transition: Not used for a human player.

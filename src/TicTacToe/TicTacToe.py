@@ -1,51 +1,153 @@
+from abc import ABC, abstractmethod
+from typing import List, Optional, Tuple
+
 from TicTacToe.Agent import Agent, MouseAgent
 from TicTacToe.Display import Display, TicTacToeDisplay
-from TicTacToe.game_types import Action, Actions, Board, History, Outcome, Player, Reward, StateTransition
+from TicTacToe.game_types import Action, Actions, Board, History, Outcome, Reward, StateTransition
 
 
-class TicTacToe:
+class TwoPlayerBoardGame(ABC):
     def __init__(
         self,
         agent1: Agent,
         agent2: Agent,
-        display: Display | None = None,
+        display: Optional[Display] = None,
+        waiting_time: float = 1.0,
+        rows: int = 3,
+        cols: int = 3,
+    ) -> None:
+        self.display = display
+        self._waiting_time = waiting_time
+        self._rows = rows
+        self._cols = cols
+        self._agent1 = agent1
+        self._agent2 = agent2
+        self.board = self.initialize_board(rows, cols)
+        self.current_player = self._agent1.player
+        self._history: History = []
+        self._done: bool = False
+        self._invalid_move: bool = False
+        if self._agent1.player == self._agent2.player:
+            raise ValueError("Players must be different")
+        self._initialize()
+
+    @abstractmethod
+    def _initialize(self) -> None:
+        pass
+
+    @staticmethod
+    @abstractmethod
+    def initialize_board(rows: int, cols: int) -> Board:
+        pass
+
+    @abstractmethod
+    def make_move(self, action: Action) -> bool:
+        pass
+
+    @abstractmethod
+    def switch_player(self) -> None:
+        pass
+
+    @abstractmethod
+    def is_game_over(self) -> bool:
+        pass
+
+    @abstractmethod
+    def get_outcome(self) -> Outcome:
+        pass
+
+    @abstractmethod
+    def display_board(self, board: Board, outcome: Outcome = None) -> None:
+        pass
+
+    @abstractmethod
+    def get_terminal_rewards(self, outcome: Outcome) -> Tuple[Reward, Reward]:
+        pass
+
+    @abstractmethod
+    def get_valid_actions(self) -> Actions:
+        pass
+
+    def play(self) -> Outcome:
+        self._initialize()
+        while not self.is_game_over():
+            self.display_board(self.board)
+
+            if self.current_player == self._agent1.player:
+                state_transition: StateTransition = (self.board[:], 0.0, False)
+                action = self._agent1.get_action(state_transition, self)
+            else:
+                state_transition: StateTransition = (self.board[:], 0.0, False)
+                action = self._agent2.get_action(state_transition, self)
+
+            self._history.append((self.board[:], action))
+            if self.make_move(action):
+                self.switch_player()
+
+        outcome = self.get_outcome()
+        self.display_board(self.board, outcome)
+        rewards = self.get_terminal_rewards(outcome)
+        self._agent1.get_action((None, rewards[0], True), self)
+        self._agent2.get_action((None, rewards[1], True), self)
+
+        return outcome
+
+
+class TicTacToe(TwoPlayerBoardGame):
+    def __init__(
+        self,
+        agent1: Agent,
+        agent2: Agent,
+        display: Optional[Display] = None,
         waiting_time: float = 1.0,
         rows: int = 3,
         cols: int = 3,
         win_length: int = 3,
     ) -> None:
-        self.display = None
-        self._waiting_time = waiting_time
-        if cols != rows:
-            raise ValueError("Board must be square")
-
-        self._agent1 = agent1
-        self._agent2 = agent2
-        self._rows = rows
-        self._cols = cols
+        if rows != cols:
+            raise ValueError("Tic Tac Toe board must be square")
         self._win_length = win_length
-        self._generate_win_conditions()
-        self._initialize()
-        if display is not None:
-            self.display = display
-            self.start_game()
+        super().__init__(agent1, agent2, display, waiting_time, rows, cols)
+        self._validate_display_and_agents()
 
-    def start_game(self) -> None:
+    def _validate_display_and_agents(self) -> None:
         if isinstance(self._agent1, MouseAgent) or isinstance(self._agent2, MouseAgent):
             if not isinstance(self.display, TicTacToeDisplay):
-                raise ValueError("Mouse agent can only be used with TicTacToeDisplay")
+                raise ValueError("MouseAgent can only be used with TicTacToeDisplay")
 
-        if isinstance(self.display, TicTacToeDisplay):
-            # For GUI: Schedule game logic
-            self.display.after(0, self.play)
-            self.display.mainloop()
-        else:
-            # For Console: Run game logic directly
-            self.play()
+    def _initialize(self) -> None:
+        self.board = self.initialize_board(self._rows, self._cols)
+        self.current_player = "X"
+        self._history = []
+        self._done = False
+        self._invalid_move = False
+        self.win_conditions = self._generate_win_conditions()
 
     @staticmethod
-    def initialize_board(rows: int = 3, cols: int = 3) -> Board:
+    def initialize_board(rows: int, cols: int) -> Board:
         return [" " for _ in range(rows * cols)]
+
+    def _generate_win_conditions(self) -> List[List[int]]:
+        rows, cols, win_length = self._rows, self._cols, self._win_length
+        conditions = []
+
+        for row in range(rows):
+            for col in range(cols - win_length + 1):
+                conditions.append([row * cols + col + i for i in range(win_length)])
+
+        for col in range(cols):
+            for row in range(rows - win_length + 1):
+                conditions.append([col + (row + i) * cols for i in range(win_length)])
+
+        for row in range(rows - win_length + 1):
+            for col in range(cols - win_length + 1):
+                conditions.append([(row + i) * cols + col + i for i in range(win_length)])
+
+        for row in range(rows - win_length + 1):
+            for col in range(win_length - 1, cols):
+                conditions.append([(row + i) * cols + col - i for i in range(win_length)])
+
+        return conditions
 
     def make_move(self, action: Action) -> bool:
         if action in self.get_valid_actions():
@@ -58,40 +160,15 @@ class TicTacToe:
     def switch_player(self) -> None:
         self.current_player = "O" if self.current_player == "X" else "X"
 
-    def _generate_win_conditions(self) -> None:
-        rows = self._rows
-        cols = self._cols
-        win_length = self._win_length
-        self.win_conditions: list[list[int]] = []
-
-        for row in range(cols):
-            for start_col in range(rows - win_length + 1):
-                self.win_conditions.append([start_col + row * rows + offset for offset in range(win_length)])
-
-        for col in range(rows):
-            for start_row in range(cols - win_length + 1):
-                self.win_conditions.append([col + (start_row + offset) * rows for offset in range(win_length)])
-
-        for row in range(cols - win_length + 1):
-            for col in range(rows - win_length + 1):
-                self.win_conditions.append([(col + offset) + (row + offset) * rows for offset in range(win_length)])
-
-        for row in range(cols - win_length + 1):
-            for col in range(win_length - 1, rows):
-                self.win_conditions.append([(col - offset) + (row + offset) * rows for offset in range(win_length)])
-
-    def is_won(self, player: str) -> bool:
-        for condition in self.win_conditions:
-            if all(self.board[pos] == player for pos in condition):
-                return True
-        return False
-
-    def is_draw(self) -> bool:
-        return " " not in self.board
-
     def is_game_over(self) -> bool:
         self._done = self.is_won("X") or self.is_won("O") or self.is_draw() or self._invalid_move
         return self._done
+
+    def is_won(self, player: str) -> bool:
+        return any(all(self.board[pos] == player for pos in condition) for condition in self.win_conditions)
+
+    def is_draw(self) -> bool:
+        return " " not in self.board
 
     def get_outcome(self) -> Outcome:
         if self.is_won("X") or (self._invalid_move and self.current_player == "O"):
@@ -103,79 +180,22 @@ class TicTacToe:
         else:
             return None
 
-    def _initialize(self) -> None:
-        self._done: bool = False
-        self._invalid_move: bool = False
-        self.board: Board = self.initialize_board(self._rows, self._cols)
-        self.current_player: Player = "X"
-        self._history: History = []
-        if self._agent1.player == self._agent2.player:
-            raise ValueError("Players must be different")
-
-    @staticmethod
-    def get_valid_actions_from_board(board: Board) -> Actions:
-        return [i for i, cell in enumerate(board) if cell == " "]
-
-    def get_valid_actions(self) -> Actions:
-        return self.get_valid_actions_from_board(self.board)
-
-    def get_board(self) -> Board:
-        return self.board
-
-    def get_history(self) -> History:
-        return self._history
-
-    def get_current_player(self) -> Player:
-        return self.current_player
-
-    def get_done(self) -> bool:
-        return self._done
-
     def display_board(self, board: Board, outcome: Outcome = None) -> None:
         if self.display is not None:
             self.display.update_display(board, outcome)
 
-    def _get_step_rewards(self):
+    def get_terminal_rewards(self, outcome: Outcome) -> Tuple[Reward, Reward]:
+        if outcome == "D":
+            return 0.0, 0.0
+        elif outcome == self._agent1.player:
+            return 1.0, -1.0
+        elif outcome == self._agent2.player:
+            return -1.0, 1.0
         return 0.0, 0.0
 
-    def get_terminal_rewards(self, outcome: Outcome) -> tuple[Reward, Reward]:
-        if outcome is not None:
-            if outcome == "D":
-                return 0.0, 0.0
-            elif outcome == self._agent1.player:
-                return 1.0, -1.0
-            elif outcome == self._agent2.player:
-                return -1.0, 1.0
-        return 0.0, 0.0
+    def get_valid_actions(self) -> Actions:
+        return [i for i, cell in enumerate(self.board) if cell == " "]
 
-    def play(self) -> Outcome:
-        self._initialize()
-        step_reward1, step_reward2 = 0.0, 0.0
-        terminal_reward1, terminal_reward2 = 0.0, 0.0
-
-        while not self.is_game_over():
-            self.display_board(self.board)
-
-            if self.current_player == self._agent1.player:
-                state_transition1: StateTransition = (self.board[:], step_reward1, False)  # board, reward, done
-                action = self._agent1.get_action(state_transition1, self)
-                step_reward1 = 0.0
-            else:
-                state_transition2: StateTransition = (self.board[:], step_reward2, False)  # board, reward, done
-                action = self._agent2.get_action(state_transition2, self)
-                step_reward2 = 0.0
-
-            self._history.append((self.board[:], action))
-            if self.make_move(action):
-                step_reward1, step_reward2 = self._get_step_rewards()
-                self.switch_player()
-
-        outcome = self.get_outcome()
-        self.display_board(self.board, outcome)
-        terminal_reward1, terminal_reward2 = self.get_terminal_rewards(outcome)
-        state_transition1 = (None, terminal_reward1, True)  # board, reward, done
-        state_transition2 = (None, terminal_reward2, True)  # board, reward, done
-        self._agent1.get_action(state_transition1, self)
-        self._agent2.get_action(state_transition2, self)
-
-        return outcome
+    @staticmethod
+    def get_valid_actions_from_board(board: Board) -> Actions:
+        return [i for i, cell in enumerate(board) if cell == " "]

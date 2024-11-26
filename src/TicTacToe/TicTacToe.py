@@ -45,6 +45,10 @@ class TwoPlayerBoardGame(ABC):
         pass
 
     @abstractmethod
+    def get_board(self) -> Board:
+        pass
+
+    @abstractmethod
     def switch_player(self) -> None:
         pass
 
@@ -199,3 +203,6 @@ class TicTacToe(TwoPlayerBoardGame):
     @staticmethod
     def get_valid_actions_from_board(board: Board) -> Actions:
         return [i for i, cell in enumerate(board) if cell == " "]
+
+    def get_board(self) -> Board:
+        return self.board

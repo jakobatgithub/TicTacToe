@@ -129,7 +129,7 @@ class TicTacToe(TwoPlayerBoardGame):
 
     def _generate_win_conditions(self) -> List[List[int]]:
         rows, cols, win_length = self._rows, self._cols, self._win_length
-        conditions = []
+        conditions: List[List[int]] = []
 
         for row in range(rows):
             for col in range(cols - win_length + 1):

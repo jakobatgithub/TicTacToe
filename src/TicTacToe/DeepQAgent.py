@@ -260,7 +260,7 @@ class DeepQLearningAgent(Agent):
         return [i for i, cell in enumerate(board) if cell == " "]
 
     # Choose an action based on Q-values
-    def choose_action(self, board: Board, epsilon: float) -> int:
+    def choose_action(self, board: Board, epsilon: float) -> Action:
         if random.uniform(0, 1) < epsilon:
             # Exploration: Choose a random move
             valid_actions = self.get_valid_actions(board)
@@ -314,12 +314,21 @@ class DeepQPlayingAgent(Agent):
 
     def choose_action(self, board: Board) -> int:
         # Exploitation: Choose the best known move
+        action = self.get_best_action(board, self.q_network)
+        return action
+
+    def get_best_action(self, board: Board, QNet: QNetwork) -> Action:
         state = self.board_to_state(board)
         state_tensor = torch.FloatTensor(state).unsqueeze(0).to(self.device)
         with torch.no_grad():
-            q_values = self.q_network(state_tensor).squeeze().tolist()
+            q_values = QNet(state_tensor).squeeze()
+            max_q = torch.max(q_values)
+            max_q_indices = torch.nonzero(q_values == max_q, as_tuple=False)
+            if len(max_q_indices) > 1:
+                action = int(max_q_indices[torch.randint(len(max_q_indices), (1,))].item())
+            else:
+                action = int(max_q_indices)
 
-        action = int(np.argmax(q_values))
         return action
 
     def get_action(self, state_transition: StateTransition, game: "TwoPlayerBoardGame") -> Action:

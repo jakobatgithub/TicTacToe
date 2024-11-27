@@ -161,6 +161,7 @@ class TestDeepQLearningAgent(unittest.TestCase):
             "wandb_logging_frequency": 5,
             "rows": 3,
             "device": "cpu",
+            "wandb": False,
         }
         self.agent = DeepQLearningAgent(self.params)
 

@@ -39,6 +39,7 @@ class TestIntegration(unittest.TestCase):
             "wandb_logging_frequency": 5,
             "rows": 3,
             "device": "cpu",
+            "wandb": False,
         }
         agent1 = DeepQLearningAgent(params)
         agent2 = RandomAgent(player="O")

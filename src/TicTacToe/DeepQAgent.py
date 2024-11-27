@@ -115,14 +115,15 @@ class DeepQLearningAgent(Agent):
         self.learning_rate = params["learning_rate"]
         self.replay_buffer_length = params["replay_buffer_length"]
         self.wandb_logging_frequency = params["wandb_logging_frequency"]
-
+        self.wandb = params["wandb"]
         self.episode_count = 0
         self.games_moves_count = 0
         self.train_step_count = 0
         self.q_update_count = 0
         self.target_update_count = 0
 
-        wandb.init(config=params)  # type: ignore
+        if self.wandb:
+            wandb.init(config=params)  # type: ignore
 
         self.episode_history: History = []
         self.state_transitions: StateTransitions2 = []
@@ -193,17 +194,19 @@ class DeepQLearningAgent(Agent):
 
     def _log_training_metrics(self) -> None:
         if self.train_step_count % self.wandb_logging_frequency == 0:
-            wandb.log(
-                {
-                    "loss": np.mean(self.evaluation_data["loss"]),
-                    "action_value": np.mean(self.evaluation_data["action_value"]),
-                    "mean_reward": np.mean(self.evaluation_data["rewards"]),
-                    "var_reward": np.var(self.evaluation_data["rewards"]),
-                    "episode_count": self.episode_count,
-                    "train_step_count": self.train_step_count,
-                    "epsilon": self.epsilon,
-                }
-            )
+            if self.wandb:
+                wandb.log(
+                    {
+                        "loss": np.mean(self.evaluation_data["loss"]),
+                        "action_value": np.mean(self.evaluation_data["action_value"]),
+                        "mean_reward": np.mean(self.evaluation_data["rewards"]),
+                        "var_reward": np.var(self.evaluation_data["rewards"]),
+                        "episode_count": self.episode_count,
+                        "train_step_count": self.train_step_count,
+                        "epsilon": self.epsilon,
+                    }
+                )
+
             self.evaluation_data: dict[str, Any] = {
                 "loss": [],
                 "action_value": [],

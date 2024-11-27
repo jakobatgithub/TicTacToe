@@ -3,8 +3,9 @@ from typing import Any, Optional
 import matplotlib.pyplot as plt
 import numpy as np
 
+import wandb
 from TicTacToe.Agent import RandomAgent
-from TicTacToe.DeepQAgent import DeepQLearningAgent
+from TicTacToe.DeepQAgent import DeepQLearningAgent, DeepQPlayingAgent
 from TicTacToe.game_types import Player
 from TicTacToe.QAgent import QLearningAgent, QPlayingAgent
 from TicTacToe.SymmetricMatrix import FullySymmetricMatrix
@@ -183,3 +184,73 @@ def QAgent_plays_against_QAgent(
     print(
         f"X wins: {outcomes['X']/nr_of_episodes}, O wins: {outcomes['O']/nr_of_episodes}, draws: {outcomes['D']/nr_of_episodes}"
     )
+
+
+def evaluate_performance(
+    learning_agent1: DeepQLearningAgent,
+    learning_agent2: DeepQLearningAgent,
+    rows: int = 3,
+    win_length: int = 3,
+    wandb_logging: bool = True,
+) -> None:
+    q_network1 = learning_agent1.q_network
+    playing_agent1 = DeepQPlayingAgent(q_network1, player="X", switching=False)
+    random_agent2 = RandomAgent(player="O", switching=False)
+
+    game = TicTacToe(playing_agent1, random_agent2, display=None, rows=rows, cols=rows, win_length=win_length)
+    nr_of_episodes = 1000
+    outcomes = {"X": 0, "O": 0, "D": 0}
+    for _ in range(nr_of_episodes):
+        outcome = game.play()
+        if outcome is not None:
+            outcomes[outcome] += 1
+
+    mode = "X_against_random:"
+    if wandb_logging:
+        wandb.log(
+            {
+                f"{mode} X wins": outcomes["X"] / nr_of_episodes,
+                f"{mode} O wins": outcomes["O"] / nr_of_episodes,
+                f"{mode} draws": outcomes["D"] / nr_of_episodes,
+            }
+        )
+
+    q_network2 = learning_agent2.q_network
+    playing_agent2 = DeepQPlayingAgent(q_network2, player="O", switching=False)
+    random_agent1 = RandomAgent(player="X", switching=False)
+
+    game = TicTacToe(random_agent1, playing_agent2, display=None, rows=rows, cols=rows, win_length=win_length)
+    nr_of_episodes = 1000
+    outcomes = {"X": 0, "O": 0, "D": 0}
+    for _ in range(nr_of_episodes):
+        outcome = game.play()
+        if outcome is not None:
+            outcomes[outcome] += 1
+
+    mode = "O_against_random:"
+    if wandb_logging:
+        wandb.log(
+            {
+                f"{mode} X wins": outcomes["X"] / nr_of_episodes,
+                f"{mode} O wins": outcomes["O"] / nr_of_episodes,
+                f"{mode} draws": outcomes["D"] / nr_of_episodes,
+            }
+        )
+
+    game = TicTacToe(playing_agent1, playing_agent2, display=None, rows=rows, cols=rows, win_length=win_length)
+    nr_of_episodes = 1000
+    outcomes = {"X": 0, "O": 0, "D": 0}
+    for _ in range(nr_of_episodes):
+        outcome = game.play()
+        if outcome is not None:
+            outcomes[outcome] += 1
+
+    mode = "X_against_O:"
+    if wandb_logging:
+        wandb.log(
+            {
+                f"{mode} X wins": outcomes["X"] / nr_of_episodes,
+                f"{mode} O wins": outcomes["O"] / nr_of_episodes,
+                f"{mode} draws": outcomes["D"] / nr_of_episodes,
+            }
+        )

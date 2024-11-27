@@ -159,7 +159,6 @@ class TestDeepQLearningAgent(unittest.TestCase):
             "learning_rate": 0.001,
             "replay_buffer_length": 100,
             "wandb_logging_frequency": 5,
-            "debug": False,
             "rows": 3,
             "device": "cpu",
         }

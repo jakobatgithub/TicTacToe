@@ -107,7 +107,6 @@ class DeepQLearningAgent(Agent):
     def __init__(self, params: dict[str, Any]) -> None:
         super().__init__(player=params["player"], switching=params["switching"])
         self.params = params
-        self.debug = params["debug"]
         self.gamma = params["gamma"]
         self.epsilon = params["epsilon_start"]
         self.nr_of_episodes = params["nr_of_episodes"]
@@ -140,9 +139,6 @@ class DeepQLearningAgent(Agent):
 
         self.board_to_state_translation = {"X": 1, "O": -1, " ": 0}
         self.state_to_board_translation = {1: "X", -1: "O", 0: " "}
-
-        if self.debug:
-            print(f"Player: {self.player}, opponent: {self.opponent}")
 
         self.evaluation_data: dict[str, Any] = {
             "loss": [],

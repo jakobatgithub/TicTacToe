@@ -1,8 +1,11 @@
 # type: ignore
 
 import unittest
+from collections import defaultdict
+from unittest.mock import MagicMock, patch
 
-from TicTacToe.SymmetricMatrix import FullySymmetricMatrix, Matrix, SymmetricMatrix
+from TicTacToe.game_types import Action, Board
+from TicTacToe.SymmetricMatrix import BaseMatrix, FullySymmetricMatrix, Matrix, SymmetricMatrix
 
 
 class TestSymmetricMatrix(unittest.TestCase):
@@ -190,3 +193,51 @@ class TestSymmetricMatrix(unittest.TestCase):
         # next_board_2 = ["X", "O", "X", " ", "X", "O", " ", " ", " "]
         value_2 = self.fully_symmetric_matrix.get(board_2, action_2)
         self.assertEqual(value_1, value_2, "Different actions leading to equal next boards yield the same Q-value.")
+
+
+class TestMatrix(BaseMatrix):
+    def get(self, board: Board, action: Action) -> float:
+        return self.qMatrix[board][action]
+
+    def set(self, board: Board, action: Action, value: float) -> None:
+        self.qMatrix[board][action] = value
+
+
+# Test suite
+class TestBaseMatrix(unittest.TestCase):
+    def setUp(self):
+        self.default_value = 0.5
+        self.matrix = TestMatrix(default_value=self.default_value)
+
+    def test_initialization_without_file(self):
+        """Test initialization without a file."""
+        self.assertIsInstance(self.matrix.qMatrix, defaultdict)
+        self.assertEqual(self.matrix.default_value, self.default_value)
+
+    @patch("builtins.open", new_callable=MagicMock)
+    @patch("dill.load")
+    def test_initialization_with_file(self, mock_dill_load, mock_open):
+        """Test initialization with a file."""
+        mock_dill_load.return_value = {"mock_key": "mock_value"}
+        matrix = TestMatrix(file="dummy_path")
+        mock_open.assert_called_once_with("dummy_path", "rb")
+        self.assertEqual(matrix.qMatrix, {"mock_key": "mock_value"})
+
+    def test_initialize_q_matrix(self):
+        """Test that _initialize_q_matrix returns the correct default structure."""
+        initial_matrix = self.matrix._initialize_q_matrix()
+        self.assertIsInstance(initial_matrix, defaultdict)
+        self.assertEqual(initial_matrix["nonexistent_key"], self.default_value)
+
+    def test_get_and_set(self):
+        """Test get and set methods through the concrete subclass."""
+        board = (" ") * 9
+        action = 6
+        value = 1.23
+
+        # Initially, the value should be the default
+        self.assertEqual(self.matrix.get(board, action), self.default_value)
+
+        # After setting, the value should be updated
+        self.matrix.set(board, action, value)
+        self.assertEqual(self.matrix.get(board, action), value)

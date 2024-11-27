@@ -148,7 +148,6 @@ class DeepQLearningAgent(Agent):
             "loss": [],
             "action_value": [],
             "rewards": [],
-            "valid_actions": [],
         }
 
     def get_action(self, state_transition: StateTransition, game: "TwoPlayerBoardGame") -> Action:
@@ -202,15 +201,17 @@ class DeepQLearningAgent(Agent):
                 {
                     "loss": np.mean(self.evaluation_data["loss"]),
                     "action_value": np.mean(self.evaluation_data["action_value"]),
-                    "reward": np.mean(self.evaluation_data["rewards"]),
+                    "mean_reward": np.mean(self.evaluation_data["rewards"]),
+                    "var_reward": np.var(self.evaluation_data["rewards"]),
                     "episode_count": self.episode_count,
+                    "train_step_count": self.train_step_count,
+                    "epsilon": self.epsilon,
                 }
             )
             self.evaluation_data: dict[str, Any] = {
                 "loss": [],
                 "action_value": [],
                 "rewards": [],
-                "valid_actions": [],
             }
 
     def _handle_incomplete_game(self, next_board: Board | None) -> Action:

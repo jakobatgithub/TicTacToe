@@ -74,6 +74,21 @@ class TestQLearningAgent(unittest.TestCase):
         self.assertEqual(action, 2)
         self.assertEqual(len(self.agent.episode_history), 1)
 
+        with patch.object(self.agent, "choose_action", return_value=5):
+            action = self.agent.get_action(state_transition, game_mock)
+
+        self.assertEqual(action, 5)
+        self.assertEqual(len(self.agent.episode_history), 2)
+
+        self.agent.terminal_q_updates = False
+        with patch.object(self.agent, "choose_action", return_value=3):
+            with patch.object(self.agent, "q_update", return_value=(0, 0)) as q_update_mock:
+                action = self.agent.get_action(state_transition, game_mock)
+
+        self.assertEqual(action, 3)
+        q_update_mock.assert_called_once()
+        self.assertEqual(len(self.agent.episode_history), 3)
+
     def test_get_action_game_ends(self):
         state_transition = (["X", "O", " ", " ", " ", " ", " ", " ", " "], 1, True)
         game_mock = MagicMock()

@@ -66,7 +66,7 @@ class ReplayBuffer:
         self.index = (self.index + 1) % self.size
         self.current_size = min(self.current_size + 1, self.size)
 
-    def sample(self, batch_size: int):
+    def sample(self, batch_size: int) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         """
         Sample a batch of experiences from the buffer directly on the GPU.
 
@@ -177,18 +177,31 @@ class DeepQLearningAgent(Agent):
 
         self.replay_buffer.add(state, action, reward, next_state, done)
 
-    def _train_network(self, reward: Reward) -> None:
-        states, actions, rewards, next_states, dones = self.replay_buffer.sample(self.batch_size)
-
+    def compute_loss(
+        self, samples: tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]
+    ) -> tuple[torch.Tensor, float]:
+        states, actions, rewards, next_states, dones = samples
         q_values = self.q_network(states).gather(1, actions.unsqueeze(1)).squeeze(1)
         next_q_values = self.target_network(next_states).max(1, keepdim=True)[0].squeeze(1)
         targets = rewards + (~dones) * self.gamma * next_q_values
+        return nn.MSELoss()(q_values, targets), next_q_values.mean().item()
 
-        loss = nn.MSELoss()(q_values, targets)
-        self._log_training_metrics(loss.item(), next_q_values.mean().item(), reward)
+    def _train_network(self, reward: Reward) -> None:
+        samples = self.replay_buffer.sample(self.batch_size)
+
+        # states, actions, rewards, next_states, dones = self.replay_buffer.sample(self.batch_size)
+
+        # q_values = self.q_network(states).gather(1, actions.unsqueeze(1)).squeeze(1)
+        # next_q_values = self.target_network(next_states).max(1, keepdim=True)[0].squeeze(1)
+        # targets = rewards + (~dones) * self.gamma * next_q_values
+
+        # loss = nn.MSELoss()(q_values, targets)
+        loss, next_q_values = self.compute_loss(samples)
+
+        self._log_training_metrics(loss.item(), next_q_values, reward)
 
         self.optimizer.zero_grad()
-        loss.backward()
+        loss.backward()  # type: ignore
         self.optimizer.step()  # type: ignore
         self.train_step_count += 1
 

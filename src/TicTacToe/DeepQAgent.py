@@ -184,7 +184,8 @@ class DeepQLearningAgent(Agent):
         q_values = self.q_network(states).gather(1, actions.unsqueeze(1)).squeeze(1)
         next_q_values = self.target_network(next_states).max(1, keepdim=True)[0].squeeze(1)
         targets = rewards + (~dones) * self.gamma * next_q_values
-        return nn.MSELoss()(q_values, targets), next_q_values.mean().item()
+        avg_next_q_value = next_q_values.mean().item()
+        return nn.MSELoss()(q_values, targets), avg_next_q_value
 
     def _train_network(self, reward: Reward) -> None:
         samples = self.replay_buffer.sample(self.batch_size)

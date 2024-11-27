@@ -266,18 +266,22 @@ class DeepQLearningAgent(Agent):
             valid_actions = self.get_valid_actions(board)
             return random.choice(valid_actions)
         else:
-            # Exploitation: Choose the best known move
-            state = self.board_to_state(board)
-            state_tensor = torch.FloatTensor(state).unsqueeze(0).to(self.device)
-            with torch.no_grad():
-                action = int(torch.argmax(self.q_network(state_tensor)).item())
-
-            if action in self.get_valid_actions(board):
-                self.evaluation_data["valid_actions"].append(1)
-            else:
-                self.evaluation_data["valid_actions"].append(0)
-
+            action = self.get_best_action(board, self.q_network)
             return action
+
+    def get_best_action(self, board: Board, QNet: QNetwork) -> Action:
+        state = self.board_to_state(board)
+        state_tensor = torch.FloatTensor(state).unsqueeze(0).to(self.device)
+        with torch.no_grad():
+            q_values = QNet(state_tensor).squeeze()
+            max_q = torch.max(q_values)
+            max_q_indices = torch.nonzero(q_values == max_q, as_tuple=False)
+            if len(max_q_indices) > 1:
+                action = int(max_q_indices[torch.randint(len(max_q_indices), (1,))].item())
+            else:
+                action = int(max_q_indices)
+
+        return action
 
 
 class DeepQPlayingAgent(Agent):

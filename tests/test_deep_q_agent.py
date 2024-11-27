@@ -344,6 +344,34 @@ class TestDeepQLearningAgent(unittest.TestCase):
         self.assertAlmostEqual(loss.item(), nn.MSELoss()(expected_q_values, expected_targets).item(), places=5)
         self.assertAlmostEqual(next_q_mean, expected_next_q_values.mean().item(), places=5)
 
+    @patch("torch.randint", wraps=torch.randint)
+    def test_single_max_q_value(self, mock_randint):
+        # Mock the QNetwork output
+        mock_qnet = MagicMock()
+        mock_qnet.return_value = torch.tensor([[1.0, 2.0, 3.0, 5.0]])
+
+        self.agent.board_to_state = MagicMock()
+        # Call the method
+        result = self.agent.get_best_action("mock_board", mock_qnet)
+
+        # Assertions
+        self.assertEqual(result, 3)  # Index of the maximum Q-value
+        mock_randint.assert_not_called()  # No randomness needed when there's a single max
+
+    @patch("torch.randint", wraps=torch.randint)
+    def test_multiple_max_q_values(self, mock_randint):
+        # Mock the QNetwork output with multiple max values
+        mock_qnet = MagicMock()
+        mock_qnet.return_value = torch.tensor([[1.0, 3.0, 3.0, 0.0]])
+        self.agent.board_to_state = MagicMock()
+
+        # Call the method
+        result = self.agent.get_best_action("mock_board", mock_qnet)
+
+        # Assertions
+        self.assertIn(result, [1, 2])  # Result must be one of the max Q-value indices
+        mock_randint.assert_called_once_with(2, (1,))  # Called to resolve the tie
+
 
 # Mock classes for dependencies
 class MockQNetwork(torch.nn.Module):

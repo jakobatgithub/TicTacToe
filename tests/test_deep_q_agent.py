@@ -6,6 +6,7 @@ from unittest.mock import MagicMock, patch
 
 import numpy as np
 import torch
+import torch.nn as nn
 
 from TicTacToe.DeepQAgent import DeepQLearningAgent, DeepQPlayingAgent, QNetwork, ReplayBuffer
 
@@ -272,7 +273,7 @@ class TestDeepQLearningAgent(unittest.TestCase):
 
     def test_handle_incomplete_game(self):
         # Mock inputs
-        next_board = [["X", "O", ""], ["O", "X", ""], ["", "", ""]]
+        next_board = ["X", "O", " ", "O", "X", " ", " ", " ", " "]
         self.agent.choose_action = MagicMock(return_value=4)
 
         # Call the method
@@ -297,6 +298,51 @@ class TestDeepQLearningAgent(unittest.TestCase):
         self.agent.update_rates.assert_called_with(6)  # Incremented episode count
         self.assertEqual(len(self.agent.evaluation_data["histories"]), 1)
         self.assertEqual(len(self.agent.episode_history), 0)
+
+    def test_state_to_board(self):
+        mock_state = MagicMock()
+        mock_state.flatten.return_value = [0, 1, -1, 1, 0]
+        expected_board = [" ", "X", "O", "X", " "]
+        result = self.agent.state_to_board(mock_state)
+        self.assertEqual(result, expected_board)
+
+    def test_compute_loss(self):
+        size = 8
+        state_dim = 9
+        # Define mock behaviors for q_network and target_network
+        self.agent.q_network = MagicMock()
+        self.agent.target_network = MagicMock()
+
+        q_network_return_value = torch.zeros((size, state_dim))
+        q_network_return_value[3, 1] = 1
+        self.agent.q_network.return_value = q_network_return_value
+        target_network_return_value = torch.zeros((size, state_dim))
+        target_network_return_value[1, 5] = 2
+        self.agent.target_network.return_value = target_network_return_value
+
+        states = torch.zeros((size, state_dim), dtype=torch.float32)
+        actions = torch.zeros(size, dtype=torch.int64)
+        actions[3] = 1
+        rewards = torch.zeros(size, dtype=torch.float32)
+        rewards[4] = 1
+        next_states = torch.zeros((size, state_dim), dtype=torch.float32)
+        dones = torch.zeros(size, dtype=torch.bool)
+
+        samples = (states, actions, rewards, next_states, dones)
+
+        # Expected outputs
+        expected_q_values = torch.zeros(size, dtype=torch.float32)
+        expected_q_values[3] = 1
+        expected_next_q_values = torch.zeros(size, dtype=torch.float32)
+        expected_next_q_values[1] = 2
+        expected_targets = rewards + (~dones) * self.agent.gamma * expected_next_q_values
+
+        # Compute loss using the mocked function
+        loss, next_q_mean = self.agent.compute_loss(samples)
+
+        # Assert correct computations
+        self.assertAlmostEqual(loss.item(), nn.MSELoss()(expected_q_values, expected_targets).item(), places=5)
+        self.assertAlmostEqual(next_q_mean, expected_next_q_values.mean().item(), places=5)
 
 
 # Mock classes for dependencies

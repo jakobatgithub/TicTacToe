@@ -257,20 +257,6 @@ class TestDeepQLearningAgent(unittest.TestCase):
         self.agent.board_to_state.assert_called()
         self.assertEqual(len(self.agent.state_transitions), 1)
 
-    def test_log_training_metrics(self):
-        # Mock inputs
-        loss = 0.1
-        next_q_values = 0.5
-        reward = 1.0
-
-        # Call the method
-        self.agent._log_training_metrics(loss, next_q_values, reward)
-
-        # Assertions
-        self.assertIn(0.1, self.agent.evaluation_data["loss"])
-        self.assertIn(0.5, self.agent.evaluation_data["action_value"])
-        self.assertIn(1.0, self.agent.evaluation_data["rewards"])
-
     def test_handle_incomplete_game(self):
         # Mock inputs
         next_board = ["X", "O", " ", "O", "X", " ", " ", " ", " "]
@@ -296,7 +282,6 @@ class TestDeepQLearningAgent(unittest.TestCase):
 
         # Assertions
         self.agent.update_rates.assert_called_with(6)  # Incremented episode count
-        self.assertEqual(len(self.agent.evaluation_data["histories"]), 1)
         self.assertEqual(len(self.agent.episode_history), 0)
 
     def test_state_to_board(self):
@@ -338,11 +323,10 @@ class TestDeepQLearningAgent(unittest.TestCase):
         expected_targets = rewards + (~dones) * self.agent.gamma * expected_next_q_values
 
         # Compute loss using the mocked function
-        loss, next_q_mean = self.agent.compute_loss(samples)
+        loss = self.agent.compute_loss(samples)
 
         # Assert correct computations
         self.assertAlmostEqual(loss.item(), nn.MSELoss()(expected_q_values, expected_targets).item(), places=5)
-        self.assertAlmostEqual(next_q_mean, expected_next_q_values.mean().item(), places=5)
 
     @patch("torch.randint", wraps=torch.randint)
     def test_single_max_q_value(self, mock_randint):

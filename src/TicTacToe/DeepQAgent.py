@@ -147,18 +147,18 @@ class DeepQLearningAgent(Agent):
         self.evaluation_data: dict[str, Any] = {
             "loss": [],
             "action_value": [],
-            "histories": [],
             "rewards": [],
             "valid_actions": [],
         }
 
     def get_action(self, state_transition: StateTransition, game: "TwoPlayerBoardGame") -> Action:
         next_board, reward, done = state_transition
+        self.evaluation_data["rewards"].append(reward)
 
         if len(self.episode_history) > 0:
             self._update_state_transitions_and_replay_buffer(next_board, reward, done)
             if len(self.replay_buffer) >= self.batch_size:
-                self._train_network(reward)
+                self._train_network()
 
         if not done:
             return self._handle_incomplete_game(next_board)
@@ -179,50 +179,39 @@ class DeepQLearningAgent(Agent):
 
     def compute_loss(
         self, samples: tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]
-    ) -> tuple[torch.Tensor, float]:
+    ) -> torch.Tensor:
         states, actions, rewards, next_states, dones = samples
         q_values = self.q_network(states).gather(1, actions.unsqueeze(1)).squeeze(1)
         next_q_values = self.target_network(next_states).max(1, keepdim=True)[0].squeeze(1)
         targets = rewards + (~dones) * self.gamma * next_q_values
-        avg_next_q_value = next_q_values.mean().item()
-        return nn.MSELoss()(q_values, targets), avg_next_q_value
+        return nn.MSELoss()(q_values, targets)
 
-    def _train_network(self, reward: Reward) -> None:
+    def _train_network(self) -> None:
         samples = self.replay_buffer.sample(self.batch_size)
-
-        # states, actions, rewards, next_states, dones = self.replay_buffer.sample(self.batch_size)
-
-        # q_values = self.q_network(states).gather(1, actions.unsqueeze(1)).squeeze(1)
-        # next_q_values = self.target_network(next_states).max(1, keepdim=True)[0].squeeze(1)
-        # targets = rewards + (~dones) * self.gamma * next_q_values
-
-        # loss = nn.MSELoss()(q_values, targets)
-        loss, next_q_values = self.compute_loss(samples)
-
-        self._log_training_metrics(loss.item(), next_q_values, reward)
-
+        loss = self.compute_loss(samples)
         self.optimizer.zero_grad()
         loss.backward()  # type: ignore
         self.optimizer.step()  # type: ignore
+        self.evaluation_data["loss"].append(loss.item())
+        self._log_training_metrics()
         self.train_step_count += 1
 
-    def _log_training_metrics(self, loss: float, next_q_values: float, reward: Reward) -> None:
-        self.evaluation_data["loss"].append(loss)
-        self.evaluation_data["action_value"].append(next_q_values)
-        self.evaluation_data["rewards"].append(reward)
-
+    def _log_training_metrics(self) -> None:
         if self.train_step_count % self.wandb_logging_frequency == 0:
             wandb.log(
                 {
-                    "loss": sum(self.evaluation_data["loss"][-self.wandb_logging_frequency :])
-                    / self.wandb_logging_frequency,
-                    "action_value": sum(self.evaluation_data["action_value"][-self.wandb_logging_frequency :])
-                    / self.wandb_logging_frequency,
-                    "reward": sum(self.evaluation_data["rewards"][-self.wandb_logging_frequency :])
-                    / self.wandb_logging_frequency,
+                    "loss": np.mean(self.evaluation_data["loss"]),
+                    "action_value": np.mean(self.evaluation_data["action_value"]),
+                    "reward": np.mean(self.evaluation_data["rewards"]),
                     "episode_count": self.episode_count,
                 }
             )
+            self.evaluation_data: dict[str, Any] = {
+                "loss": [],
+                "action_value": [],
+                "rewards": [],
+                "valid_actions": [],
+            }
 
     def _handle_incomplete_game(self, next_board: Board | None) -> Action:
         if next_board is not None:
@@ -239,7 +228,6 @@ class DeepQLearningAgent(Agent):
 
         self.episode_count += 1
         self.update_rates(self.episode_count)
-        self.evaluation_data["histories"].append(self.episode_history)
         self.episode_history = []
 
     def board_to_state(self, board: Board):
@@ -275,6 +263,9 @@ class DeepQLearningAgent(Agent):
         with torch.no_grad():
             q_values = QNet(state_tensor).squeeze()
             max_q = torch.max(q_values)
+
+            self.evaluation_data["action_value"].append(max_q)
+
             max_q_indices = torch.nonzero(q_values == max_q, as_tuple=False)
             if len(max_q_indices) > 1:
                 action = int(max_q_indices[torch.randint(len(max_q_indices), (1,))].item())

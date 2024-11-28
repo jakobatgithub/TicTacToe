@@ -385,7 +385,6 @@ class TestDeepQLearningAgent(unittest.TestCase):
 
         samples = (states, actions, rewards, next_states, dones)
         symmetrized_loss = self.agent.compute_symmetrized_loss(samples)
-        print(f"symmetrized_loss = {symmetrized_loss.item()}")
 
         transformed_board = [" ", " ", "X", " ", " ", " ", " ", " ", " "]
         transformed_action = 5
@@ -411,8 +410,6 @@ class TestDeepQLearningAgent(unittest.TestCase):
             transformed_dones,
         )
         transformed_symmetrized_loss = self.agent.compute_symmetrized_loss(transformed_samples)
-        print(f"transformed_symmetrized_loss = {transformed_symmetrized_loss.item()}")
-
         self.assertAlmostEqual(symmetrized_loss.item(), transformed_symmetrized_loss.item(), places=5)
 
 

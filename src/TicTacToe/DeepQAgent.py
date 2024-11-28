@@ -1,5 +1,5 @@
 import random
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Callable
 
 import numpy as np
 import torch
@@ -147,6 +147,55 @@ class DeepQLearningAgent(Agent):
             "rewards": [],
         }
 
+        self.transformations: list[Any] = [
+            lambda x: x,  # type: ignore Identity
+            lambda x: np.fliplr(x),  # type: ignore Horizontal reflection
+            lambda x: np.flipud(x),  # type: ignore Vertical reflection
+            lambda x: np.flipud(np.fliplr(x)),  # type: ignore Vertical reflection
+            lambda x: np.transpose(x),  # type: ignore Diagonal reflection (TL-BR)
+            lambda x: np.fliplr(np.transpose(x)),  # type: ignore Horizontal reflection
+            lambda x: np.flipud(np.transpose(x)),  # type: ignore Vertical reflection
+            lambda x: np.flipud(np.fliplr(np.transpose(x))),  # type: ignore Vertical reflection
+        ]
+        self.compute_symmetrized_loss = self.create_symmetrized_loss(self.compute_loss, self.transformations, self.rows)
+
+    def create_symmetrized_loss(
+        self, loss: Callable[..., Any], transformations: list[Any], rows: int
+    ) -> Callable[..., Any]:
+        indices = np.array(list(range(rows * rows)), dtype=int).reshape(rows, rows)
+        permutations = np.array([transform(indices).flatten().tolist() for transform in transformations], dtype=int)
+        inverse_permutations_list: list[Any] = []
+        for permutation in permutations:
+            inverse_permutation = np.empty_like(permutation)
+            inverse_permutation[permutation] = np.arange(len(permutation))
+            inverse_permutations_list.append(inverse_permutation)
+
+        permutations = torch.tensor(permutations)
+        inverse_permutations = torch.tensor(np.array(inverse_permutations_list, dtype=int))
+
+        def symmetrized_loss(samples: tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]):
+            (states, actions, rewards, next_states, dones) = samples
+
+            symmetric_loss = 0.0
+            for permutation, inverse_permutation in zip(permutations, inverse_permutations):
+                transformed_states = states[:, permutation]
+                transformed_actions = torch.tensor([inverse_permutation[action] for action in actions])
+                transformed_next_states = next_states[:, permutation]
+                transformed_samples = (transformed_states, transformed_actions, rewards, transformed_next_states, dones)
+                symmetric_loss += loss(transformed_samples)
+            return symmetric_loss / len(permutations)
+
+        return symmetrized_loss
+
+    def compute_loss(
+        self, samples: tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]
+    ) -> torch.Tensor:
+        states, actions, rewards, next_states, dones = samples
+        q_values = self.q_network(states).gather(1, actions.unsqueeze(1)).squeeze(1)
+        next_q_values = self.target_network(next_states).max(1, keepdim=True)[0].squeeze(1)
+        targets = rewards + (~dones) * self.gamma * next_q_values
+        return nn.MSELoss()(q_values, targets)
+
     def get_action(self, state_transition: StateTransition, game: "TwoPlayerBoardGame") -> Action:
         next_board, reward, done = state_transition
         self.evaluation_data["rewards"].append(reward)
@@ -173,18 +222,10 @@ class DeepQLearningAgent(Agent):
 
         self.replay_buffer.add(state, action, reward, next_state, done)
 
-    def compute_loss(
-        self, samples: tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]
-    ) -> torch.Tensor:
-        states, actions, rewards, next_states, dones = samples
-        q_values = self.q_network(states).gather(1, actions.unsqueeze(1)).squeeze(1)
-        next_q_values = self.target_network(next_states).max(1, keepdim=True)[0].squeeze(1)
-        targets = rewards + (~dones) * self.gamma * next_q_values
-        return nn.MSELoss()(q_values, targets)
-
     def _train_network(self) -> None:
         samples = self.replay_buffer.sample(self.batch_size)
-        loss = self.compute_loss(samples)
+        # loss = self.compute_loss(samples)
+        loss = self.compute_symmetrized_loss(samples)
         self.optimizer.zero_grad()
         loss.backward()  # type: ignore
         self.optimizer.step()  # type: ignore

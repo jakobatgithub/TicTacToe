@@ -356,6 +356,14 @@ class TestDeepQLearningAgent(unittest.TestCase):
         self.assertIn(result, [1, 2])  # Result must be one of the max Q-value indices
         mock_randint.assert_called_once_with(2, (1,))  # Called to resolve the tie
 
+    def test_permutation_generation(self):
+        board = np.array(["X", " ", " ", " ", " ", " ", " ", " ", " "])
+        action = 1
+        transformations = [lambda x: x, lambda x: np.rot90(x, k=3)]
+        permutations, inverse_permutations = self.agent.generate_permutations(transformations, 3)
+        self.assertListEqual(list(board[permutations[1]]), [" ", " ", "X", " ", " ", " ", " ", " ", " "])
+        self.assertEqual(inverse_permutations[1][action], 5)
+
     def test_symmetrized_loss(self):
         self.agent.q_network = MagicMock()
         self.agent.target_network = MagicMock()

@@ -5,8 +5,8 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-
 import wandb
+
 from TicTacToe.Agent import Agent
 
 if TYPE_CHECKING:
@@ -159,9 +159,7 @@ class DeepQLearningAgent(Agent):
         ]
         self.compute_symmetrized_loss = self.create_symmetrized_loss(self.compute_loss, self.transformations, self.rows)
 
-    def create_symmetrized_loss(
-        self, loss: Callable[..., Any], transformations: list[Any], rows: int
-    ) -> Callable[..., Any]:
+    def generate_permutations(self, transformations: list[Any], rows: int) -> tuple[torch.Tensor, torch.Tensor]:
         indices = np.array(list(range(rows * rows)), dtype=int).reshape(rows, rows)
         permutations = np.array([transform(indices).flatten().tolist() for transform in transformations], dtype=int)
         inverse_permutations_list: list[Any] = []
@@ -172,6 +170,12 @@ class DeepQLearningAgent(Agent):
 
         permutations = torch.tensor(permutations)
         inverse_permutations = torch.tensor(np.array(inverse_permutations_list, dtype=int))
+        return permutations, inverse_permutations
+
+    def create_symmetrized_loss(
+        self, loss: Callable[..., Any], transformations: list[Any], rows: int
+    ) -> Callable[..., Any]:
+        permutations, inverse_permutations = self.generate_permutations(transformations, rows)
 
         def symmetrized_loss(samples: tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]):
             (states, actions, rewards, next_states, dones) = samples

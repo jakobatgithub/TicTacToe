@@ -131,6 +131,9 @@ class DeepQLearningAgent(Agent):
         (state_size, action_size) = (self.rows**2, self.rows**2)
         self.device = torch.device(params["device"])
         self.q_network = QNetwork(state_size, action_size).to(self.device)
+        if params["load_network"]:  # type: ignore load_network
+            self.q_network.load_state_dict(torch.load(params["load_network"]))  # type: ignore
+
         self.target_network = QNetwork(state_size, action_size).to(self.device)
         self.target_network.load_state_dict(self.q_network.state_dict())
         self.target_network.eval()

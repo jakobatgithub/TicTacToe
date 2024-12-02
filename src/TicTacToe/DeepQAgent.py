@@ -69,11 +69,22 @@ class ReplayBuffer:
     def sample(self, batch_size: int) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         """
         Sample a batch of experiences from the buffer directly on the GPU.
+        Ensure the most recently added experience is always included.
 
         :param batch_size: Number of experiences to sample.
         :return: A tuple of sampled tensors (states, actions, rewards, next_states, dones).
         """
-        indices = torch.randint(0, self.current_size, (batch_size,), device=self.device)
+        if self.current_size < batch_size:
+            raise ValueError("Not enough experiences in the buffer to sample a batch.")
+
+        # Ensure the last added element is always included
+        last_index = self.current_size - 1  # Index of the most recent addition
+        batch_size -= 1  # Reduce batch size for random sampling
+
+        # Randomly sample the remaining indices
+        indices = torch.randint(0, self.current_size - 1, (batch_size,), device=self.device)  # Exclude the last element
+        indices = torch.cat([indices, torch.tensor([last_index], device=self.device)])  # Add the last element
+
         return (
             self.states[indices],
             self.actions[indices],

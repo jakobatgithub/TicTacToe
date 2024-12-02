@@ -195,6 +195,7 @@ class TestDeepQLearningAgent(unittest.TestCase):
             "device": "cpu",
             "wandb": False,
             "load_network": False,
+            "shared_replay_buffer": False,
         }
         self.agent = DeepQLearningAgent(self.params)
 

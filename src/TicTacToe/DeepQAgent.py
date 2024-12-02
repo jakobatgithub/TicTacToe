@@ -150,7 +150,10 @@ class DeepQLearningAgent(Agent):
         self.target_network.eval()
 
         self.optimizer = optim.Adam(self.q_network.parameters(), lr=self.learning_rate)
-        self.replay_buffer = ReplayBuffer(self.replay_buffer_length, self.rows**2, device=params["device"])
+        if params["shared_replay_buffer"]:
+            self.replay_buffer = params["shared_replay_buffer"]
+        else:
+            self.replay_buffer = ReplayBuffer(self.replay_buffer_length, self.rows**2, device=params["device"])
 
         self.board_to_state_translation = {"X": 1, "O": -1, " ": 0}
         self.state_to_board_translation = {1: "X", -1: "O", 0: " "}

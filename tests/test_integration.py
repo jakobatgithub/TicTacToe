@@ -41,6 +41,7 @@ class TestIntegration(unittest.TestCase):
             "device": "cpu",
             "wandb": False,
             "load_network": False,
+            "shared_replay_buffer": False,
         }
         agent1 = DeepQLearningAgent(params)
         agent2 = RandomAgent(player="O")

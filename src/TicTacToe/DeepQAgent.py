@@ -285,8 +285,13 @@ class DeepQLearningAgent(Agent):
         return board
 
     def update_rates(self, episode: int) -> None:
+        epsilon_0 = self.params["epsilon_start"]
+        epsilon_1 = self.params["epsilon_min"]
+        t_1 = self.params["nr_of_episodes"]
+        t = episode
         self.epsilon = max(
-            self.params["epsilon_min"], self.params["epsilon_start"] / (1 + episode / self.nr_of_episodes)
+            epsilon_1,
+            t_1 * epsilon_0 * epsilon_1 / (t * (epsilon_0 - epsilon_1) + t_1 * epsilon_1),
         )
 
     def get_valid_actions(self, board: Board):

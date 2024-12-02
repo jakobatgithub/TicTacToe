@@ -162,6 +162,7 @@ class TestDeepQLearningAgent(unittest.TestCase):
             "rows": 3,
             "device": "cpu",
             "wandb": False,
+            "load_network": False,
         }
         self.agent = DeepQLearningAgent(self.params)
 

@@ -40,6 +40,7 @@ class TestIntegration(unittest.TestCase):
             "rows": 3,
             "device": "cpu",
             "wandb": False,
+            "load_network": False,
         }
         agent1 = DeepQLearningAgent(params)
         agent2 = RandomAgent(player="O")

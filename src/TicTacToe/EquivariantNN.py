@@ -13,7 +13,7 @@ def permutation_matrix(permutation: list[Any]) -> np.ndarray[Any, Any]:
     return np.eye(n, dtype=int)[permutation]
 
 
-def get_matrix_pattern(Bs: list[Any], nn: int, mm: int) -> np.ndarray[Any, Any]:
+def get_matrix_pattern(Bs: list[Any], nn: int, mm: int) -> torch.Tensor:
     Bs = [Matrix(B) for B in Bs]
 
     def WB(W: Callable[..., Any], B: list[Any], x1: float, x2: float, y1: float, y2: float):
@@ -64,52 +64,34 @@ def get_matrix_pattern(Bs: list[Any], nn: int, mm: int) -> np.ndarray[Any, Any]:
 
         matrix_pattern.append(row)  # type: ignore
 
-    return np.array(matrix_pattern)
-
-
-def get_mask_tied_groups(Bs: list[Any], n: int, m: int) -> tuple[torch.Tensor, list[list[tuple[int, int]]]]:
-    matrix_pattern = get_matrix_pattern(Bs, n, m)
-    mask = torch.tensor(matrix_pattern.copy())
-    mask[mask > 0] = 1
-
-    ties = list(set(matrix_pattern.flatten()))
-    tied_groups = [
-        [
-            (i, j)
-            for i in range(matrix_pattern.shape[0])
-            for j in range(matrix_pattern.shape[1])
-            if matrix_pattern[i, j] == tie
-        ]
-        for tie in ties
-        if tie != 0
-    ]
-
-    return mask, tied_groups
+    return torch.tensor(np.array(matrix_pattern, dtype=np.float32))
 
 
 class EquivariantLayer(nn.Module):
-    def __init__(self, input_dim: int, output_dim: int, mask: torch.Tensor, tied_groups: list[list[tuple[int, int]]]):
+    def __init__(self, input_dim: int, output_dim: int, matrix_pattern: torch.Tensor):
         super(EquivariantLayer, self).__init__()  # type: ignore
 
-        # Validate dimensions
-        assert mask.shape == (input_dim, output_dim), "Mask dimensions must match weight dimensions."
-
-        # Save mask and tied groups
+        # Get and save mask
+        mask = self._get_mask(matrix_pattern)
         self.register_buffer("mask", mask)
-        self.tied_groups = tied_groups
 
         # Create a trainable parameter for each tied group
-        self.tied_weights = nn.ParameterList([nn.Parameter(torch.randn(1)) for _ in tied_groups])
+        nr_of_ties = self._get_nr_of_ties(matrix_pattern)
+        self.tied_weights = nn.ParameterList(values=[nn.Parameter(torch.randn(1)) for _ in range(nr_of_ties)])
 
         # Precompute a mapping from tied groups
-        self.register_buffer("weight_matrix", torch.zeros_like(mask, dtype=torch.float32))
-        self._generate_weight_matrix()
+        self.register_buffer("weight_matrix", torch.zeros_like(matrix_pattern, dtype=torch.float32))
+        self.weight_matrix = matrix_pattern
 
-    def _generate_weight_matrix(self):
-        """Precompute the group mapping in the weight matrix."""
-        for group_idx, group in enumerate(self.tied_groups):
-            for i, j in group:
-                self.weight_matrix[i, j] = group_idx + 1  # Assign group index (1-based)
+    def _get_mask(self, matrix_pattern: torch.Tensor) -> torch.Tensor:
+        mask = matrix_pattern.clone()
+        mask[mask > 0] = 1
+        return mask
+
+    def _get_nr_of_ties(self, matrix_pattern: torch.Tensor) -> int:
+        ties = list(set(matrix_pattern.detach().numpy().flatten()))  # type: ignore
+        tied_groups = [1 for tie in ties if tie != 0]
+        return len(tied_groups)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         # Construct the weight matrix dynamically

@@ -48,7 +48,7 @@ class TestEquivariantLayer(unittest.TestCase):
 
         weight_pattern = get_weight_pattern(self.groupMatrices, n, m)
         self.assertEqual(weight_pattern.shape, (input_dim, output_dim))
-        self.assertEqual(weight_pattern.dtype, torch.float32)
+        self.assertEqual(weight_pattern.dtype, torch.int64)
 
         unique_elements = set(weight_pattern.detach().numpy().flatten())
         self.assertNotIn(0, unique_elements)
@@ -60,7 +60,7 @@ class TestEquivariantLayer(unittest.TestCase):
 
         weight_pattern = get_weight_pattern(self.groupMatrices, n, m)
         self.assertEqual(weight_pattern.shape, (input_dim, output_dim))
-        self.assertEqual(weight_pattern.dtype, torch.float32)
+        self.assertEqual(weight_pattern.dtype, torch.int64)
 
         unique_elements = set(weight_pattern.detach().numpy().flatten())
         self.assertNotIn(0, unique_elements)
@@ -72,7 +72,7 @@ class TestEquivariantLayer(unittest.TestCase):
 
         weight_pattern = get_weight_pattern(self.groupMatrices, n, m)
         self.assertEqual(weight_pattern.shape, (input_dim, output_dim))
-        self.assertEqual(weight_pattern.dtype, torch.float32)
+        self.assertEqual(weight_pattern.dtype, torch.int64)
 
         unique_elements = set(weight_pattern.detach().numpy().flatten())
 
@@ -85,7 +85,7 @@ class TestEquivariantLayer(unittest.TestCase):
 
         weight_pattern = get_weight_pattern(self.groupMatrices, n, m)
         self.assertEqual(weight_pattern.shape, (input_dim, output_dim))
-        self.assertEqual(weight_pattern.dtype, torch.float32)
+        self.assertEqual(weight_pattern.dtype, torch.int64)
 
         unique_elements = set(weight_pattern.detach().numpy().flatten())
         self.assertEqual(len(unique_elements), 325)
@@ -97,7 +97,7 @@ class TestEquivariantLayer(unittest.TestCase):
 
         weight_pattern = get_weight_pattern(self.groupMatrices, n, m)
         self.assertEqual(weight_pattern.shape, (input_dim, output_dim))
-        self.assertEqual(weight_pattern.dtype, torch.float32)
+        self.assertEqual(weight_pattern.dtype, torch.int64)
 
         unique_elements = set(weight_pattern.detach().numpy().flatten())
         self.assertEqual(len(unique_elements), 780)
@@ -109,7 +109,7 @@ class TestEquivariantLayer(unittest.TestCase):
 
         bias_pattern = get_bias_pattern(self.groupMatrices, m)
         self.assertEqual(bias_pattern.shape, (output_dim,))
-        self.assertEqual(bias_pattern.dtype, torch.float32)
+        self.assertEqual(bias_pattern.dtype, torch.int64)
 
         unique_elements = set(bias_pattern.detach().numpy().flatten())
         self.assertEqual(len(unique_elements), 3)

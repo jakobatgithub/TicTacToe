@@ -14,9 +14,6 @@ def permutation_matrix(permutation: list[Any]) -> np.ndarray[Any, Any]:
 
 
 def get_weight_pattern(Bs: List[Any], nn: int, mm: int) -> torch.Tensor:
-    """
-    Determine equivalence classes of a matrix under symmetry transformations.
-    """
     # Convert Bs to numpy arrays
     Bs = [np.array(B).astype(np.float32) for B in Bs]
 
@@ -58,7 +55,7 @@ def get_weight_pattern(Bs: List[Any], nn: int, mm: int) -> torch.Tensor:
             weight_pattern[i, j] = equivalence_classes[transformed_values]
 
     # Convert to torch tensor
-    return torch.tensor(weight_pattern, dtype=torch.float32)
+    return torch.tensor(weight_pattern, dtype=torch.int64)
 
 
 def get_bias_pattern(Bs: list[Any], mm: int) -> torch.Tensor:
@@ -100,7 +97,7 @@ def get_bias_pattern(Bs: list[Any], mm: int) -> torch.Tensor:
         val = b_invariant_under_Bs(b, x1_val, x2_val, Bs)
         bias_pattern.append(result_mapping[sp.simplify(val)])  # type: ignore
 
-    return torch.tensor(np.array(bias_pattern, dtype=np.float32))
+    return torch.tensor(np.array(bias_pattern, dtype=np.int64))
 
 
 class EquivariantLayer(nn.Module):
@@ -127,13 +124,13 @@ class EquivariantLayer(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         # Construct the weight matrix dynamically
-        weight = torch.zeros_like(self.weight_pattern)
+        weight = torch.zeros_like(self.weight_pattern, dtype=torch.float32)
         for group_idx, tied_param in enumerate(self.matrix_params):
             weight[self.weight_pattern == group_idx + 1] = tied_param
 
         weight[self.weight_pattern == 0] = 0.0
 
-        bias = torch.zeros_like(self.bias_pattern)
+        bias = torch.zeros_like(self.bias_pattern, dtype=torch.float32)
         for group_idx, tied_param in enumerate(self.bias_params):
             bias[self.bias_pattern == group_idx + 1] = tied_param
 

@@ -6,7 +6,13 @@ from typing import Any
 import numpy as np
 import torch
 
-from TicTacToe.EquivariantNN import EquivariantLayer, get_bias_pattern, get_weight_pattern, permutation_matrix
+from TicTacToe.EquivariantNN import (
+    EquivariantLayer,
+    EquivariantNN,
+    get_bias_pattern,
+    get_weight_pattern,
+    permutation_matrix,
+)
 
 
 class TestEquivariantLayer(unittest.TestCase):
@@ -47,6 +53,42 @@ class TestEquivariantLayer(unittest.TestCase):
         unique_elements = set(weight_pattern.detach().numpy().flatten())
         self.assertEqual(len(unique_elements), 15)
         self.assertNotIn(0, unique_elements)
+
+    # def test_get_weight_pattern_large_m(self) -> None:
+    #     n, m = 1, 3
+    #     input_dim, output_dim = (2 * n + 1) ** 2, (2 * m + 1) ** 2
+
+    #     weight_pattern = get_weight_pattern(self.groupMatrices, n, m)
+    #     self.assertEqual(weight_pattern.shape, (input_dim, output_dim))
+    #     self.assertEqual(weight_pattern.dtype, torch.float32)
+
+    #     unique_elements = set(weight_pattern.detach().numpy().flatten())
+    #     self.assertEqual(len(unique_elements), 66)
+    #     self.assertNotIn(0, unique_elements)
+
+    # def test_get_weight_pattern_large_n(self) -> None:
+    #     n, m = 3, 1
+    #     input_dim, output_dim = (2 * n + 1) ** 2, (2 * m + 1) ** 2
+
+    #     weight_pattern = get_weight_pattern(self.groupMatrices, n, m)
+    #     self.assertEqual(weight_pattern.shape, (input_dim, output_dim))
+    #     self.assertEqual(weight_pattern.dtype, torch.float32)
+
+    #     unique_elements = set(weight_pattern.detach().numpy().flatten())
+    #     self.assertEqual(len(unique_elements), 66)
+    #     self.assertNotIn(0, unique_elements)
+
+    # def test_get_weight_pattern_large_n_large_m(self) -> None:
+    #     n, m = 3, 3
+    #     input_dim, output_dim = (2 * n + 1) ** 2, (2 * m + 1) ** 2
+
+    #     weight_pattern = get_weight_pattern(self.groupMatrices, n, m)
+    #     self.assertEqual(weight_pattern.shape, (input_dim, output_dim))
+    #     self.assertEqual(weight_pattern.dtype, torch.float32)
+
+    #     unique_elements = set(weight_pattern.detach().numpy().flatten())
+    #     self.assertEqual(len(unique_elements), 325)
+    #     self.assertNotIn(0, unique_elements)
 
     def test_get_bias_pattern(self) -> None:
         m = 1
@@ -151,3 +193,23 @@ class TestEquivariantLayer(unittest.TestCase):
         x = torch.zeros(1, input_dim)  # Batch size 2, input_dim
         output = layer(x)
         self.assertTrue(output[0, 4] == 0.0)
+
+    def test_EquivariantNN(self) -> None:
+        n, m = 1, 1
+        input_dim, output_dim = (2 * n + 1) ** 2, (2 * m + 1) ** 2
+
+        equivariant_nn = EquivariantNN(self.groupMatrices)
+        x = torch.zeros(2, input_dim)
+        output = equivariant_nn(x)
+        self.assertEqual(output.shape, (2, output_dim))
+
+        for transform in self.transformations:
+            P = torch.tensor(
+                permutation_matrix(
+                    transform(np.arange((2 * n + 1) ** 2, dtype=np.int64).reshape(2 * n + 1, 2 * n + 1)).flatten()
+                ),
+                dtype=torch.float32,
+            )
+            self.assertAlmostEqual(
+                torch.linalg.norm(equivariant_nn(x @ P.T) - output @ P.T).detach().numpy(), 0.0, places=4
+            )

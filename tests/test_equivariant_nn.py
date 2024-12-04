@@ -51,44 +51,57 @@ class TestEquivariantLayer(unittest.TestCase):
         self.assertEqual(weight_pattern.dtype, torch.float32)
 
         unique_elements = set(weight_pattern.detach().numpy().flatten())
+        self.assertNotIn(0, unique_elements)
         self.assertEqual(len(unique_elements), 15)
+
+    def test_get_weight_pattern_large_m(self) -> None:
+        n, m = 1, 3
+        input_dim, output_dim = (2 * n + 1) ** 2, (2 * m + 1) ** 2
+
+        weight_pattern = get_weight_pattern(self.groupMatrices, n, m)
+        self.assertEqual(weight_pattern.shape, (input_dim, output_dim))
+        self.assertEqual(weight_pattern.dtype, torch.float32)
+
+        unique_elements = set(weight_pattern.detach().numpy().flatten())
+        self.assertNotIn(0, unique_elements)
+        self.assertEqual(len(unique_elements), 66)
+
+    def test_get_weight_pattern_large_n(self) -> None:
+        n, m = 3, 1
+        input_dim, output_dim = (2 * n + 1) ** 2, (2 * m + 1) ** 2
+
+        weight_pattern = get_weight_pattern(self.groupMatrices, n, m)
+        self.assertEqual(weight_pattern.shape, (input_dim, output_dim))
+        self.assertEqual(weight_pattern.dtype, torch.float32)
+
+        unique_elements = set(weight_pattern.detach().numpy().flatten())
+
+        self.assertEqual(len(unique_elements), 66)
         self.assertNotIn(0, unique_elements)
 
-    # def test_get_weight_pattern_large_m(self) -> None:
-    #     n, m = 1, 3
-    #     input_dim, output_dim = (2 * n + 1) ** 2, (2 * m + 1) ** 2
+    def test_get_weight_pattern_large_n_large_m(self) -> None:
+        n, m = 3, 3
+        input_dim, output_dim = (2 * n + 1) ** 2, (2 * m + 1) ** 2
 
-    #     weight_pattern = get_weight_pattern(self.groupMatrices, n, m)
-    #     self.assertEqual(weight_pattern.shape, (input_dim, output_dim))
-    #     self.assertEqual(weight_pattern.dtype, torch.float32)
+        weight_pattern = get_weight_pattern(self.groupMatrices, n, m)
+        self.assertEqual(weight_pattern.shape, (input_dim, output_dim))
+        self.assertEqual(weight_pattern.dtype, torch.float32)
 
-    #     unique_elements = set(weight_pattern.detach().numpy().flatten())
-    #     self.assertEqual(len(unique_elements), 66)
-    #     self.assertNotIn(0, unique_elements)
+        unique_elements = set(weight_pattern.detach().numpy().flatten())
+        self.assertEqual(len(unique_elements), 325)
+        self.assertNotIn(0, unique_elements)
 
-    # def test_get_weight_pattern_large_n(self) -> None:
-    #     n, m = 3, 1
-    #     input_dim, output_dim = (2 * n + 1) ** 2, (2 * m + 1) ** 2
+    def test_get_weight_pattern_very_large_n_large_m(self) -> None:
+        n, m = 5, 3
+        input_dim, output_dim = (2 * n + 1) ** 2, (2 * m + 1) ** 2
 
-    #     weight_pattern = get_weight_pattern(self.groupMatrices, n, m)
-    #     self.assertEqual(weight_pattern.shape, (input_dim, output_dim))
-    #     self.assertEqual(weight_pattern.dtype, torch.float32)
+        weight_pattern = get_weight_pattern(self.groupMatrices, n, m)
+        self.assertEqual(weight_pattern.shape, (input_dim, output_dim))
+        self.assertEqual(weight_pattern.dtype, torch.float32)
 
-    #     unique_elements = set(weight_pattern.detach().numpy().flatten())
-    #     self.assertEqual(len(unique_elements), 66)
-    #     self.assertNotIn(0, unique_elements)
-
-    # def test_get_weight_pattern_large_n_large_m(self) -> None:
-    #     n, m = 3, 3
-    #     input_dim, output_dim = (2 * n + 1) ** 2, (2 * m + 1) ** 2
-
-    #     weight_pattern = get_weight_pattern(self.groupMatrices, n, m)
-    #     self.assertEqual(weight_pattern.shape, (input_dim, output_dim))
-    #     self.assertEqual(weight_pattern.dtype, torch.float32)
-
-    #     unique_elements = set(weight_pattern.detach().numpy().flatten())
-    #     self.assertEqual(len(unique_elements), 325)
-    #     self.assertNotIn(0, unique_elements)
+        unique_elements = set(weight_pattern.detach().numpy().flatten())
+        self.assertEqual(len(unique_elements), 780)
+        self.assertNotIn(0, unique_elements)
 
     def test_get_bias_pattern(self) -> None:
         m = 1

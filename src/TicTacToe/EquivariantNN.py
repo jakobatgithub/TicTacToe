@@ -1,11 +1,11 @@
 from itertools import product
-from typing import Any, Callable
+from typing import Any, Callable, Dict, List, Tuple
 
 import numpy as np
 import sympy as sp
 import torch
 import torch.nn as nn
-from sympy import Abs, Matrix
+from sympy import Matrix
 
 
 def permutation_matrix(permutation: list[Any]) -> np.ndarray[Any, Any]:
@@ -13,58 +13,52 @@ def permutation_matrix(permutation: list[Any]) -> np.ndarray[Any, Any]:
     return np.eye(n, dtype=int)[permutation]
 
 
-def get_weight_pattern(Bs: list[Any], nn: int, mm: int) -> torch.Tensor:
-    Bs = [Matrix(B) for B in Bs]
+def get_weight_pattern(Bs: List[Any], nn: int, mm: int) -> torch.Tensor:
+    """
+    Determine equivalence classes of a matrix under symmetry transformations.
+    """
+    # Convert Bs to numpy arrays
+    Bs = [np.array(B).astype(np.float32) for B in Bs]
 
-    def W_transformed_by_B(W: Callable[..., Any], B: list[Any], x1: float, x2: float, y1: float, y2: float):
-        x = Matrix([x1, x2])  # Input vector x
-        y = Matrix([y1, y2])  # Input vector y
+    # Define ranges
+    value_range1 = np.arange(-nn, nn + 1)
+    value_range2 = np.arange(-mm, mm + 1)
 
-        X = B @ x
-        Y = B @ y
+    # Precompute all combinations of (x, y) indices
+    x_combinations = np.array(list(product(value_range1, repeat=2)))
+    y_combinations = np.array(list(product(value_range2, repeat=2)))
 
-        det_B = Abs(B.det())  # type: ignore
-        return det_B * W(X[0], X[1], Y[0], Y[1])
+    # Dictionary to group equivalent elements
+    equivalence_classes: Dict[Tuple[float, float, float, float], int] = {}
+    class_counter = 1  # Start labeling from 1
 
-    # Define WW function
-    def W_invariant_under_Bs(W: Callable[..., Any], x1: float, x2: float, y1: float, y2: float, Bs: list[Any]) -> Any:
-        Ws = 0  # Initialize the sum
-        for B in Bs:
-            Ws += W_transformed_by_B(W, B, x1, x2, y1, y2)
-        return Ws
+    # Output matrix
+    weight_pattern = np.zeros((len(x_combinations), len(y_combinations)), dtype=int)
 
-    def W(x1: float, x2: float, y1: float, y2: float) -> Any:
-        return sp.Symbol(f"W({x1},{x2},{y1},{y2})")
+    # Process each pair of indices
+    for i, x in enumerate(x_combinations):
+        for j, y in enumerate(y_combinations):
+            transformed_values: List[Any] | Tuple[Any] = []
+            for B in Bs:
+                # Apply symmetry transformations
+                X = B @ x
+                Y = B @ y
+                # Use rounded transformed coordinates as a key
+                transformed_values.append((round(X[0], 6), round(X[1], 6), round(Y[0], 6), round(Y[1], 6)))
 
-    value_range1 = range(-nn, nn + 1)
-    value_range2 = range(-mm, mm + 1)
+            # Deduplicate transformed values
+            transformed_values = tuple(sorted(transformed_values))
 
-    results: list[Any] = []
-    for x1_val, x2_val in product(value_range1, repeat=2):
-        for y1_val, y2_val in product(value_range2, repeat=2):
-            val = W_invariant_under_Bs(W, x1_val, x2_val, y1_val, y2_val, Bs)
-            results.append(sp.simplify(val))  # type: ignore
+            # Assign equivalence class
+            if transformed_values not in equivalence_classes:
+                equivalence_classes[transformed_values] = class_counter
+                class_counter += 1
 
-    # Deduplicate results and map unique values to indices
-    unique_results = list(sp.ordered(set(results)))  # type: ignore
-    result_mapping = {}
-    for idx, val in enumerate(unique_results):
-        if val != 0:
-            result_mapping[val] = idx + 1
-        elif val == 0:
-            result_mapping[val] = 0
+            # Store the class label in the output matrix
+            weight_pattern[i, j] = equivalence_classes[transformed_values]
 
-    # Organize results into a symbolic matrix
-    weight_pattern: list[list[Any]] = []
-    for x1_val, x2_val in product(value_range1, repeat=2):
-        row = []
-        for y1_val, y2_val in product(value_range2, repeat=2):
-            val = W_invariant_under_Bs(W, x1_val, x2_val, y1_val, y2_val, Bs)
-            row.append(result_mapping[sp.simplify(val)])  # type: ignore
-
-        weight_pattern.append(row)  # type: ignore
-
-    return torch.tensor(np.array(weight_pattern, dtype=np.float32))
+    # Convert to torch tensor
+    return torch.tensor(weight_pattern, dtype=torch.float32)
 
 
 def get_bias_pattern(Bs: list[Any], mm: int) -> torch.Tensor:

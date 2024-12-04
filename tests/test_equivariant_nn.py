@@ -6,7 +6,7 @@ from typing import Any
 import numpy as np
 import torch
 
-from TicTacToe.EquivariantNN import EquivariantLayer, get_matrix_pattern, permutation_matrix
+from TicTacToe.EquivariantNN import EquivariantLayer, get_bias_pattern, get_weight_pattern, permutation_matrix
 
 
 class TestEquivariantLayer(unittest.TestCase):
@@ -36,16 +36,28 @@ class TestEquivariantLayer(unittest.TestCase):
             lambda x: np.flipud(np.fliplr(np.transpose(x))),
         ]
 
-    def test_get_matrix_pattern(self) -> None:
+    def test_get_weight_pattern(self) -> None:
         n, m = 1, 1
         input_dim, output_dim = (2 * n + 1) ** 2, (2 * m + 1) ** 2
 
-        matrix_pattern = get_matrix_pattern(self.groupMatrices, n, m)
-        self.assertEqual(matrix_pattern.shape, (input_dim, output_dim))
-        self.assertEqual(matrix_pattern.dtype, torch.float32)
+        weight_pattern = get_weight_pattern(self.groupMatrices, n, m)
+        self.assertEqual(weight_pattern.shape, (input_dim, output_dim))
+        self.assertEqual(weight_pattern.dtype, torch.float32)
 
-        unique_elements = set(matrix_pattern.detach().numpy().flatten())
+        unique_elements = set(weight_pattern.detach().numpy().flatten())
         self.assertEqual(len(unique_elements), 15)
+        self.assertNotIn(0, unique_elements)
+
+    def test_get_bias_pattern(self) -> None:
+        m = 1
+        output_dim = (2 * m + 1) ** 2
+
+        bias_pattern = get_bias_pattern(self.groupMatrices, m)
+        self.assertEqual(bias_pattern.shape, (output_dim,))
+        self.assertEqual(bias_pattern.dtype, torch.float32)
+
+        unique_elements = set(bias_pattern.detach().numpy().flatten())
+        self.assertEqual(len(unique_elements), 3)
         self.assertNotIn(0, unique_elements)
 
     def test_EquivariantLayer(self) -> None:
@@ -53,11 +65,19 @@ class TestEquivariantLayer(unittest.TestCase):
         input_dim, output_dim = (2 * n + 1) ** 2, (2 * m + 1) ** 2
 
         # Initialize the custom layer
-        matrix_pattern = get_matrix_pattern(self.groupMatrices, n, m)
-        layer = EquivariantLayer(input_dim=input_dim, output_dim=output_dim, matrix_pattern=matrix_pattern)
-        weight_matrix = list(layer.weight_matrix.detach().numpy().flatten().astype(np.int64))
-        matrix_pattern = list(get_matrix_pattern(self.groupMatrices, n, m).flatten())
-        self.assertListEqual(weight_matrix, matrix_pattern)
+        weight_pattern = get_weight_pattern(self.groupMatrices, n, m)
+        bias_pattern = get_bias_pattern(self.groupMatrices, m)
+        layer = EquivariantLayer(
+            input_dim=input_dim, output_dim=output_dim, weight_pattern=weight_pattern, bias_pattern=bias_pattern
+        )
+
+        layer_weight_pattern = list(layer.weight_pattern.detach().numpy().flatten().astype(np.int64))
+        list_weight_pattern = list(weight_pattern.detach().numpy().flatten().astype(np.int64))
+        self.assertListEqual(layer_weight_pattern, list_weight_pattern)
+
+        layer_bias_pattern = list(layer.bias_pattern.detach().numpy().flatten().astype(np.int64))
+        list_bias_pattern = list(bias_pattern.detach().numpy().flatten().astype(np.int64))
+        self.assertListEqual(layer_bias_pattern, list_bias_pattern)
 
         # Test the layer with input data
         x = torch.randn(2, input_dim)  # Batch size 2, input_dim
@@ -71,3 +91,63 @@ class TestEquivariantLayer(unittest.TestCase):
                 dtype=torch.float32,
             )
             self.assertAlmostEqual(torch.linalg.norm(layer(x @ P.T) - output @ P.T).detach().numpy(), 0.0, places=5)
+
+    def test_EquivariantLayer_masked(self) -> None:
+        n, m = 1, 1
+        input_dim, output_dim = (2 * n + 1) ** 2, (2 * m + 1) ** 2
+
+        # Initialize the custom layer
+        weight_pattern = get_weight_pattern(self.groupMatrices, n, m)
+        weight_pattern[:, 4] = 0
+        bias_pattern = get_bias_pattern(self.groupMatrices, m)
+        bias_pattern[:] = 0
+        layer = EquivariantLayer(
+            input_dim=input_dim, output_dim=output_dim, weight_pattern=weight_pattern, bias_pattern=bias_pattern
+        )
+
+        layer_weight_pattern = list(layer.weight_pattern.detach().numpy().flatten().astype(np.int64))
+        list_weight_pattern = list(weight_pattern.detach().numpy().flatten().astype(np.int64))
+        self.assertListEqual(layer_weight_pattern, list_weight_pattern)
+
+        layer_bias_pattern = list(layer.bias_pattern.detach().numpy().flatten().astype(np.int64))
+        list_bias_pattern = list(bias_pattern.detach().numpy().flatten().astype(np.int64))
+        self.assertListEqual(layer_bias_pattern, list_bias_pattern)
+
+        x = torch.ones(1, input_dim)  # Batch size 2, input_dim
+        output = layer(x)
+        self.assertEqual(output[0, 4], 0.0)
+
+        x = torch.zeros(1, input_dim)  # Batch size 2, input_dim
+        output = layer(x)
+        self.assertTrue(all([out == 0.0 for out in output[0]]))
+
+        # Test the layer with input data
+        x = torch.randn(20, input_dim)  # Batch size 2, input_dim
+        output = layer(x)
+        for transform in self.transformations:
+            P = torch.tensor(
+                permutation_matrix(
+                    transform(np.arange((2 * n + 1) ** 2, dtype=np.int64).reshape(2 * n + 1, 2 * n + 1)).flatten()
+                ),
+                dtype=torch.float32,
+            )
+            self.assertAlmostEqual(torch.linalg.norm(layer(x @ P.T) - output @ P.T).detach().numpy(), 0.0, places=5)
+
+        weight_pattern = get_weight_pattern(self.groupMatrices, n, m)
+        bias_pattern = get_bias_pattern(self.groupMatrices, m)
+        bias_pattern[4] = 0
+        layer = EquivariantLayer(
+            input_dim=input_dim, output_dim=output_dim, weight_pattern=weight_pattern, bias_pattern=bias_pattern
+        )
+
+        layer_weight_pattern = list(layer.weight_pattern.detach().numpy().flatten().astype(np.int64))
+        list_weight_pattern = list(weight_pattern.detach().numpy().flatten().astype(np.int64))
+        self.assertListEqual(layer_weight_pattern, list_weight_pattern)
+
+        layer_bias_pattern = list(layer.bias_pattern.detach().numpy().flatten().astype(np.int64))
+        list_bias_pattern = list(bias_pattern.detach().numpy().flatten().astype(np.int64))
+        self.assertListEqual(layer_bias_pattern, list_bias_pattern)
+
+        x = torch.zeros(1, input_dim)  # Batch size 2, input_dim
+        output = layer(x)
+        self.assertTrue(output[0, 4] == 0.0)

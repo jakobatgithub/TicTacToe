@@ -11,6 +11,11 @@ def permutation_matrix(permutation: list[Any]) -> np.ndarray[Any, Any]:
     return np.eye(n, dtype=int)[permutation]
 
 
+def get_number_of_unique_elements(pattern: torch.Tensor) -> int:
+    unique_elements = set(pattern.detach().numpy().flatten())  # type: ignore
+    return len(unique_elements)
+
+
 def get_weight_pattern(Bs: List[Any], nn: int, mm: int) -> torch.Tensor:
     # Define ranges
     value_range1 = np.arange(-nn, nn + 1)
@@ -134,33 +139,46 @@ class EquivariantNN(nn.Module):
     def __init__(self, groupMatrices: list[Any]) -> None:
         super(EquivariantNN, self).__init__()  # type: ignore
 
-        n, m1, m2, m3 = 1, 3, 3, 1
-        input_dim = (2 * n + 1) ** 2
-        output_dim1 = (2 * m1 + 1) ** 2
-        output_dim2 = (2 * m2 + 1) ** 2
-        output_dim3 = (2 * m3 + 1) ** 2
+        m0, m1, m2, m3 = 1, 7, 5, 1
+        dim0 = (2 * m0 + 1) ** 2
+        dim1 = (2 * m1 + 1) ** 2
+        dim2 = (2 * m2 + 1) ** 2
+        dim3 = (2 * m3 + 1) ** 2
 
         self.groupMatrices = groupMatrices
 
-        weight_pattern1 = get_weight_pattern(self.groupMatrices, n, m1)
+        weight_pattern1 = get_weight_pattern(self.groupMatrices, m0, m1)
         bias_pattern1 = get_bias_pattern(self.groupMatrices, m1)
         equivariant_layer1 = EquivariantLayer(
-            input_dim=input_dim, output_dim=output_dim1, weight_pattern=weight_pattern1, bias_pattern=bias_pattern1
+            input_dim=dim0, output_dim=dim1, weight_pattern=weight_pattern1, bias_pattern=bias_pattern1
         )
         weight_pattern2 = get_weight_pattern(self.groupMatrices, m1, m2)
         bias_pattern2 = get_bias_pattern(self.groupMatrices, m2)
         equivariant_layer2 = EquivariantLayer(
-            input_dim=output_dim1, output_dim=output_dim2, weight_pattern=weight_pattern2, bias_pattern=bias_pattern2
+            input_dim=dim1, output_dim=dim2, weight_pattern=weight_pattern2, bias_pattern=bias_pattern2
         )
         weight_pattern3 = get_weight_pattern(self.groupMatrices, m2, m3)
         bias_pattern3 = get_bias_pattern(self.groupMatrices, m3)
         equivariant_layer3 = EquivariantLayer(
-            input_dim=output_dim2, output_dim=output_dim3, weight_pattern=weight_pattern3, bias_pattern=bias_pattern3
+            input_dim=dim2, output_dim=dim3, weight_pattern=weight_pattern3, bias_pattern=bias_pattern3
         )
 
         self.fc_equivariant = nn.Sequential(
             equivariant_layer1, nn.ReLU(), equivariant_layer2, nn.ReLU(), equivariant_layer3
         )
+        number_of_weights = (
+            get_number_of_unique_elements(weight_pattern1)
+            + get_number_of_unique_elements(weight_pattern2)
+            + get_number_of_unique_elements(weight_pattern3)
+        )
+        print(f"Number of matrix weights: {number_of_weights}")
+
+        number_of_biases = (
+            get_number_of_unique_elements(bias_pattern1)
+            + get_number_of_unique_elements(bias_pattern2)
+            + get_number_of_unique_elements(bias_pattern3)
+        )
+        print(f"Number of biases: {number_of_biases}")
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.fc_equivariant(x)

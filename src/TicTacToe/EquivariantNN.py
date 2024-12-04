@@ -14,6 +14,8 @@ def permutation_matrix(permutation: list[Any]) -> np.ndarray[Any, Any]:
 
 
 def get_matrix_pattern(Bs: list[Any], nn: int, mm: int) -> np.ndarray[Any, Any]:
+    Bs = [Matrix(B) for B in Bs]
+
     def WB(W: Callable[..., Any], B: list[Any], x1: float, x2: float, y1: float, y2: float):
         x = Matrix([x1, x2])  # Input vector x
         y = Matrix([y1, y2])  # Input vector y
@@ -119,4 +121,15 @@ class EquivariantLayer(nn.Module):
         masked_weight = weight * self.mask
 
         # Compute the output
-        return x @ masked_weight + 0  # Add bias if needed
+        return x @ masked_weight  # TODO: Add bias
+
+
+class EquivariantNN(nn.Module):
+    def __init__(self, input_dim: int, output_dim: int, groupMatrices: list[Any]) -> None:
+        super(EquivariantNN, self).__init__()  # type: ignore
+        self.fc = nn.Sequential(
+            nn.Linear(input_dim, 128), nn.ReLU(), nn.Linear(128, 64), nn.ReLU(), nn.Linear(64, output_dim)
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.fc(x)

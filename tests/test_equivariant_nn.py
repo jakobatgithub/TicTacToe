@@ -5,7 +5,6 @@ from typing import Any
 
 import numpy as np
 import torch
-from sympy import Matrix
 
 from TicTacToe.EquivariantNN import EquivariantLayer, get_mask_tied_groups, get_matrix_pattern, permutation_matrix
 
@@ -15,16 +14,16 @@ class TestEquivariantLayer(unittest.TestCase):
 
     def setUp(self) -> None:
         # Define transformation matrices
-        B0 = Matrix([[1, 0], [0, 1]])
-        B1 = Matrix([[-1, 0], [0, -1]])
-        B2 = Matrix([[-1, 0], [0, 1]])
-        B3 = Matrix([[1, 0], [0, -1]])
-        B4 = Matrix([[0, 1], [1, 0]])
-        B5 = Matrix([[0, -1], [1, 0]])
-        B6 = Matrix([[0, 1], [-1, 0]])
-        B7 = Matrix([[0, -1], [-1, 0]])
-        self.Bs = [B0, B1, B2, B3, B4, B5, B6, B7]
-        # Bs = [B0, B2]
+        B0 = [[1, 0], [0, 1]]
+        B1 = [[-1, 0], [0, -1]]
+        B2 = [[-1, 0], [0, 1]]
+        B3 = [[1, 0], [0, -1]]
+        B4 = [[0, 1], [1, 0]]
+        B5 = [[0, -1], [1, 0]]
+        B6 = [[0, 1], [-1, 0]]
+        B7 = [[0, -1], [-1, 0]]
+        self.groupMatrices = [B0, B1, B2, B3, B4, B5, B6, B7]
+        # self.groupMatrices = [B0, B2]
 
         self.transformations: list[Any] = [
             lambda x: x,
@@ -41,7 +40,7 @@ class TestEquivariantLayer(unittest.TestCase):
         n, m = 1, 1
         input_dim, output_dim = (2 * n + 1) ** 2, (2 * m + 1) ** 2
 
-        matrix_pattern = get_matrix_pattern(self.Bs, n, m)
+        matrix_pattern = get_matrix_pattern(self.groupMatrices, n, m)
 
         self.assertEqual(matrix_pattern.shape, (input_dim, output_dim))
         self.assertEqual(matrix_pattern.dtype, np.int64)
@@ -58,7 +57,7 @@ class TestEquivariantLayer(unittest.TestCase):
     def test_get_mask_tied_groups(self) -> None:
         n, m = 1, 1
         input_dim, output_dim = (2 * n + 1) ** 2, (2 * m + 1) ** 2
-        mask, tied_groups = get_mask_tied_groups(self.Bs, n, m)
+        mask, tied_groups = get_mask_tied_groups(self.groupMatrices, n, m)
 
         # # Display the mask matrix
         # print("\nMask Matrix:\n")
@@ -77,7 +76,7 @@ class TestEquivariantLayer(unittest.TestCase):
             for i, j in group:
                 self.assertEqual(mask[i, j], 1)
 
-        matrix_pattern = get_matrix_pattern(self.Bs, n, m)
+        matrix_pattern = get_matrix_pattern(self.groupMatrices, n, m)
         for group in tied_groups:
             (i0, j0) = group[0]
             first = matrix_pattern[i0, j0]
@@ -86,12 +85,12 @@ class TestEquivariantLayer(unittest.TestCase):
     def test_EquivariantLayer(self) -> None:
         n, m = 1, 1
         input_dim, output_dim = (2 * n + 1) ** 2, (2 * m + 1) ** 2
-        mask, tied_groups = get_mask_tied_groups(self.Bs, n, m)
+        mask, tied_groups = get_mask_tied_groups(self.groupMatrices, n, m)
 
         # Initialize the custom layer
         layer = EquivariantLayer(input_dim=input_dim, output_dim=output_dim, mask=mask, tied_groups=tied_groups)
         weight_matrix = list(layer.weight_matrix.detach().numpy().flatten().astype(np.int64))
-        matrix_pattern = list(get_matrix_pattern(self.Bs, n, m).flatten())
+        matrix_pattern = list(get_matrix_pattern(self.groupMatrices, n, m).flatten())
         self.assertListEqual(weight_matrix, matrix_pattern)
 
         # Test the layer with input data

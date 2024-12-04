@@ -50,18 +50,10 @@ class TestEquivariantLayer(unittest.TestCase):
         self.assertEqual(len(unique_elements), 15)
         self.assertNotIn(0, unique_elements)
 
-        # # Display the pattern matrix
-        # print("\nPattern Matrix:\n")
-        # sp.pprint(sp.Matrix(matrix_pattern))
-
     def test_get_mask_tied_groups(self) -> None:
         n, m = 1, 1
         input_dim, output_dim = (2 * n + 1) ** 2, (2 * m + 1) ** 2
         mask, tied_groups = get_mask_tied_groups(self.groupMatrices, n, m)
-
-        # # Display the mask matrix
-        # print("\nMask Matrix:\n")
-        # sp.pprint(sp.Matrix(mask))
 
         self.assertEqual(mask.shape, (input_dim, output_dim))
         self.assertEqual(mask.dtype, second=torch.int64)

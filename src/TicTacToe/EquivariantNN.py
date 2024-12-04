@@ -1,11 +1,9 @@
 from itertools import product
-from typing import Any, Callable, Dict, List, Tuple
+from typing import Any, Dict, List, Tuple
 
 import numpy as np
-import sympy as sp
 import torch
 import torch.nn as nn
-from sympy import Matrix
 
 
 def permutation_matrix(permutation: list[Any]) -> np.ndarray[Any, Any]:
@@ -14,9 +12,6 @@ def permutation_matrix(permutation: list[Any]) -> np.ndarray[Any, Any]:
 
 
 def get_weight_pattern(Bs: List[Any], nn: int, mm: int) -> torch.Tensor:
-    # Convert Bs to numpy arrays
-    Bs = [np.array(B).astype(np.float32) for B in Bs]
-
     # Define ranges
     value_range1 = np.arange(-nn, nn + 1)
     value_range2 = np.arange(-mm, mm + 1)
@@ -59,45 +54,41 @@ def get_weight_pattern(Bs: List[Any], nn: int, mm: int) -> torch.Tensor:
 
 
 def get_bias_pattern(Bs: list[Any], mm: int) -> torch.Tensor:
-    Bs = [Matrix(B) for B in Bs]
+    # Define ranges
+    value_range = np.arange(-mm, mm + 1)
 
-    def b_transformed_by_B(b: Callable[..., Any], B: list[Any], x1: float, x2: float):
-        x = Matrix([x1, x2])  # Input vector x
-        X = B @ x
-        return b(X[0], X[1])
+    # Precompute all combinations of (x, y) indices
+    x_combinations = np.array(list(product(value_range, repeat=2)))
 
-    def b_invariant_under_Bs(b: Callable[..., Any], x1: float, x2: float, Bs: list[Any]) -> Any:
-        bs = 0  # Initialize the sum
+    # Dictionary to group equivalent elements
+    equivalence_classes: Dict[Tuple[float, float, float, float], int] = {}
+    class_counter = 1  # Start labeling from 1
+
+    # Output matrix
+    bias_pattern = np.zeros(len(x_combinations), dtype=int)
+
+    # Process each pair of indices
+    for i, x in enumerate(x_combinations):
+        transformed_values: List[Any] | Tuple[Any] = []
         for B in Bs:
-            bs += b_transformed_by_B(b, B, x1, x2)
-        return bs
+            # Apply symmetry transformations
+            X = B @ x
+            # Use rounded transformed coordinates as a key
+            transformed_values.append((round(X[0], 6), round(X[1], 6)))
 
-    def b(x1: float, x2: float) -> Any:
-        return sp.Symbol(f"b({x1},{x2})")
+        # Deduplicate transformed values
+        transformed_values = tuple(sorted(transformed_values))
 
-    value_range1 = range(-mm, mm + 1)
+        # Assign equivalence class
+        if transformed_values not in equivalence_classes:
+            equivalence_classes[transformed_values] = class_counter
+            class_counter += 1
 
-    results: list[Any] = []
-    for x1_val, x2_val in product(value_range1, repeat=2):
-        val = b_invariant_under_Bs(b, x1_val, x2_val, Bs)
-        results.append(sp.simplify(val))  # type: ignore
+        # Store the class label in the output matrix
+        bias_pattern[i] = equivalence_classes[transformed_values]
 
-    # Deduplicate results and map unique values to indices
-    unique_results = list(sp.ordered(set(results)))  # type: ignore
-    result_mapping = {}
-    for idx, val in enumerate(unique_results):
-        if val != 0:
-            result_mapping[val] = idx + 1
-        elif val == 0:
-            result_mapping[val] = 0
-
-    # Organize results into a symbolic matrix
-    bias_pattern: list[list[Any]] = []
-    for x1_val, x2_val in product(value_range1, repeat=2):
-        val = b_invariant_under_Bs(b, x1_val, x2_val, Bs)
-        bias_pattern.append(result_mapping[sp.simplify(val)])  # type: ignore
-
-    return torch.tensor(np.array(bias_pattern, dtype=np.int64))
+    # Convert to torch tensor
+    return torch.tensor(bias_pattern, dtype=torch.int64)
 
 
 class EquivariantLayer(nn.Module):

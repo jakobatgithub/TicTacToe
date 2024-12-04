@@ -28,8 +28,9 @@ class TestEquivariantLayer(unittest.TestCase):
         B5 = [[0, -1], [1, 0]]
         B6 = [[0, 1], [-1, 0]]
         B7 = [[0, -1], [-1, 0]]
-        self.groupMatrices = [B0, B1, B2, B3, B4, B5, B6, B7]
-        # self.groupMatrices = [B0, B2]
+        Bs = [B0, B1, B2, B3, B4, B5, B6, B7]
+        # Bs = [B0, B2]
+        self.groupMatrices = [np.array(B) for B in Bs]
 
         self.transformations: list[Any] = [
             lambda x: x,
@@ -100,6 +101,7 @@ class TestEquivariantLayer(unittest.TestCase):
         self.assertEqual(weight_pattern.dtype, torch.int64)
 
         unique_elements = set(weight_pattern.detach().numpy().flatten())
+        # print(f"Number of unique elements: {len(unique_elements)}")
         self.assertEqual(len(unique_elements), 780)
         self.assertNotIn(0, unique_elements)
 

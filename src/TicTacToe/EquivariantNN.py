@@ -136,10 +136,10 @@ class EquivariantLayer(nn.Module):
 
 
 class EquivariantNN(nn.Module):
-    def __init__(self, groupMatrices: list[Any]) -> None:
+    def __init__(self, groupMatrices: list[Any], ms: Tuple[int, int, int, int] = (1, 5, 5, 1)) -> None:
         super(EquivariantNN, self).__init__()  # type: ignore
 
-        m0, m1, m2, m3 = 1, 7, 5, 1
+        m0, m1, m2, m3 = ms
         dim0 = (2 * m0 + 1) ** 2
         dim1 = (2 * m1 + 1) ** 2
         dim2 = (2 * m2 + 1) ** 2

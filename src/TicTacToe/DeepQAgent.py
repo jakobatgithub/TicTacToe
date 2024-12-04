@@ -8,6 +8,7 @@ import torch.optim as optim
 import wandb
 
 from TicTacToe.Agent import Agent
+from TicTacToe.EquivariantNN import EquivariantNN
 
 if TYPE_CHECKING:
     from TicTacToe.TicTacToe import TwoPlayerBoardGame  # Import only for type hinting
@@ -139,13 +140,28 @@ class DeepQLearningAgent(Agent):
         self.episode_history: History = []
         self.state_transitions: StateTransitions2 = []
         self.rows = params["rows"]
-        (state_size, action_size) = (self.rows**2, self.rows**2)
         self.device = torch.device(params["device"])
-        self.q_network = QNetwork(state_size, action_size).to(self.device)
-        if params["load_network"]:  # type: ignore load_network
-            self.q_network.load_state_dict(torch.load(params["load_network"]))  # type: ignore
 
-        self.target_network = QNetwork(state_size, action_size).to(self.device)
+        B0 = [[1, 0], [0, 1]]
+        B1 = [[-1, 0], [0, -1]]
+        B2 = [[-1, 0], [0, 1]]
+        B3 = [[1, 0], [0, -1]]
+        B4 = [[0, 1], [1, 0]]
+        B5 = [[0, -1], [1, 0]]
+        B6 = [[0, 1], [-1, 0]]
+        B7 = [[0, -1], [-1, 0]]
+        Bs = [B0, B1, B2, B3, B4, B5, B6, B7]
+        self.groupMatrices = [np.array(B) for B in Bs]
+        self.q_network = EquivariantNN(self.groupMatrices, ms=(3, 6, 6, 3)).to(self.device)
+        self.target_network = EquivariantNN(self.groupMatrices, ms=(3, 6, 6, 3)).to(self.device)
+
+        # (state_size, action_size) = (self.rows**2, self.rows**2)
+        # self.q_network = QNetwork(state_size, action_size).to(self.device)
+        # self.target_network = QNetwork(state_size, action_size).to(self.device)
+
+        # if params["load_network"]:  # type: ignore load_network
+        #     self.q_network.load_state_dict(torch.load(params["load_network"]))  # type: ignore
+
         self.target_network.load_state_dict(self.q_network.state_dict())
         self.target_network.eval()
 
@@ -324,7 +340,7 @@ class DeepQLearningAgent(Agent):
             action = self.get_best_action(board, self.q_network)
             return action
 
-    def get_best_action(self, board: Board, QNet: QNetwork) -> Action:
+    def get_best_action(self, board: Board, QNet: nn.Module) -> Action:
         state = self.board_to_state(board)
         state_tensor = torch.FloatTensor(state).unsqueeze(0).to(self.device)
         with torch.no_grad():

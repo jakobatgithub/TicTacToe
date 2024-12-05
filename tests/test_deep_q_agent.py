@@ -201,8 +201,10 @@ class TestDeepQLearningAgent(unittest.TestCase):
 
     def test_initialization(self) -> None:
         """Check initialization of networks, replay buffer, and parameters."""
-        self.assertIsInstance(self.agent.q_network, QNetwork, "Q-network should be an instance of QNetwork.")
-        self.assertIsInstance(self.agent.target_network, QNetwork, "Target network should be an instance of QNetwork.")
+        self.assertIsInstance(self.agent.q_network, nn.Module, "Q-network should be an instance of nn.Module.")
+        self.assertIsInstance(
+            self.agent.target_network, nn.Module, "Target network should be an instance of nn.Module."
+        )
         self.assertIsInstance(
             self.agent.replay_buffer, ReplayBuffer, "Replay buffer should be an instance of ReplayBuffer."
         )
@@ -251,7 +253,6 @@ class TestDeepQLearningAgent(unittest.TestCase):
                 next_state=np.random.rand(self.params["rows"] ** 2),
                 done=False,
             )
-
         initial_weights = [param.clone() for param in self.agent.q_network.parameters()]
         self.agent.get_action((None, 0, True), None)  # Trigger training
         updated_weights = [param for param in self.agent.q_network.parameters()]

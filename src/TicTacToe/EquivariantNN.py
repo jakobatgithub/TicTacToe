@@ -97,7 +97,7 @@ def get_bias_pattern(Bs: list[Any], mm: int) -> torch.Tensor:
 
 
 class EquivariantLayer(nn.Module):
-    def __init__(self, input_dim: int, output_dim: int, weight_pattern: torch.Tensor, bias_pattern: torch.Tensor):
+    def __init__(self, weight_pattern: torch.Tensor, bias_pattern: torch.Tensor):
         super(EquivariantLayer, self).__init__()  # type: ignore
 
         # Create a trainable parameter for each tied group
@@ -140,28 +140,20 @@ class EquivariantNN(nn.Module):
         super(EquivariantNN, self).__init__()  # type: ignore
 
         m0, m1, m2, m3 = ms
-        dim0 = (2 * m0 + 1) ** 2
-        dim1 = (2 * m1 + 1) ** 2
-        dim2 = (2 * m2 + 1) ** 2
-        dim3 = (2 * m3 + 1) ** 2
 
         self.groupMatrices = groupMatrices
 
         weight_pattern1 = get_weight_pattern(self.groupMatrices, m0, m1)
         bias_pattern1 = get_bias_pattern(self.groupMatrices, m1)
-        equivariant_layer1 = EquivariantLayer(
-            input_dim=dim0, output_dim=dim1, weight_pattern=weight_pattern1, bias_pattern=bias_pattern1
-        )
+        equivariant_layer1 = EquivariantLayer(weight_pattern=weight_pattern1, bias_pattern=bias_pattern1)
+
         weight_pattern2 = get_weight_pattern(self.groupMatrices, m1, m2)
         bias_pattern2 = get_bias_pattern(self.groupMatrices, m2)
-        equivariant_layer2 = EquivariantLayer(
-            input_dim=dim1, output_dim=dim2, weight_pattern=weight_pattern2, bias_pattern=bias_pattern2
-        )
+        equivariant_layer2 = EquivariantLayer(weight_pattern=weight_pattern2, bias_pattern=bias_pattern2)
+
         weight_pattern3 = get_weight_pattern(self.groupMatrices, m2, m3)
         bias_pattern3 = get_bias_pattern(self.groupMatrices, m3)
-        equivariant_layer3 = EquivariantLayer(
-            input_dim=dim2, output_dim=dim3, weight_pattern=weight_pattern3, bias_pattern=bias_pattern3
-        )
+        equivariant_layer3 = EquivariantLayer(weight_pattern=weight_pattern3, bias_pattern=bias_pattern3)
 
         self.fc_equivariant = nn.Sequential(
             equivariant_layer1, nn.ReLU(), equivariant_layer2, nn.ReLU(), equivariant_layer3

@@ -158,19 +158,20 @@ class EquivariantNN(nn.Module):
         self.fc_equivariant = nn.Sequential(
             equivariant_layer1, nn.ReLU(), equivariant_layer2, nn.ReLU(), equivariant_layer3
         )
-        number_of_weights = (
-            get_number_of_unique_elements(weight_pattern1)
-            + get_number_of_unique_elements(weight_pattern2)
-            + get_number_of_unique_elements(weight_pattern3)
-        )
-        print(f"Number of matrix weights: {number_of_weights}")
 
-        number_of_biases = (
-            get_number_of_unique_elements(bias_pattern1)
-            + get_number_of_unique_elements(bias_pattern2)
-            + get_number_of_unique_elements(bias_pattern3)
-        )
-        print(f"Number of biases: {number_of_biases}")
+        # number_of_weights = (
+        #     get_number_of_unique_elements(weight_pattern1)
+        #     + get_number_of_unique_elements(weight_pattern2)
+        #     + get_number_of_unique_elements(weight_pattern3)
+        # )
+        # print(f"Number of matrix weights: {number_of_weights}")
+
+        # number_of_biases = (
+        #     get_number_of_unique_elements(bias_pattern1)
+        #     + get_number_of_unique_elements(bias_pattern2)
+        #     + get_number_of_unique_elements(bias_pattern3)
+        # )
+        # print(f"Number of biases: {number_of_biases}")
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.fc_equivariant(x)

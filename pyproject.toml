@@ -59,6 +59,7 @@ ipykernel = "^6.29.5"
 matplotlib = "^3.9.2"
 pytest = "^8.3.3"
 coverage = "^7.6.8"
+tqdm = "^4.67.1"
 
 [tool.poetry.dev-dependencies]
 pytest = "^8.3.3"

@@ -366,7 +366,9 @@ class TestEquivariantNNTraining(unittest.TestCase):
     def test_training_loop(self):
         # Define loss function and optimizer
         criterion = nn.MSELoss()
-        optimizer = optim.SGD(self.nn.parameters(), lr=0.001)
+        optimizer = optim.SGD(self.nn.parameters(), lr=0.00025)
+
+        initial_weights = [param.clone() for param in self.nn.parameters()]
 
         # Track loss to ensure it decreases
         initial_loss = None
@@ -386,6 +388,14 @@ class TestEquivariantNNTraining(unittest.TestCase):
                 # Assert that the loss decreases (at least once)
                 self.assertLess(loss.item(), initial_loss)
                 initial_loss = loss.item()
+
+        updated_weights = [param for param in self.nn.parameters()]
+        initial_weights = torch.tensor(initial_weights) if isinstance(initial_weights, list) else initial_weights
+        updated_weights = torch.tensor(updated_weights) if isinstance(updated_weights, list) else updated_weights
+
+        self.assertFalse(
+            torch.allclose(initial_weights, other=updated_weights), "Weights should update after training."
+        )
 
     def test_gradients_exist_during_training(self):
         # Define loss function and optimizer

@@ -253,12 +253,16 @@ class TestDeepQLearningAgent(unittest.TestCase):
                 next_state=np.random.rand(self.params["rows"] ** 2),
                 done=False,
             )
+
         initial_weights = [param.clone() for param in self.agent.q_network.parameters()]
         self.agent.get_action((None, 0, True), None)  # Trigger training
         updated_weights = [param for param in self.agent.q_network.parameters()]
 
-        for init, updated in zip(initial_weights, updated_weights):
-            self.assertFalse(torch.equal(init, updated), "Weights should update after training.")
+        initial_weights = torch.tensor(initial_weights) if isinstance(initial_weights, list) else initial_weights
+        updated_weights = torch.tensor(updated_weights) if isinstance(updated_weights, list) else updated_weights
+        self.assertFalse(
+            torch.allclose(initial_weights, other=updated_weights), "Weights should update after training."
+        )
 
     def test_target_network_update(self) -> None:
         """Check that the target network updates at specified intervals."""

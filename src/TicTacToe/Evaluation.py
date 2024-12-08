@@ -189,6 +189,7 @@ def QAgent_plays_against_QAgent(
 def evaluate_performance(
     learning_agent1: DeepQLearningAgent,
     learning_agent2: DeepQLearningAgent,
+    nr_of_episodes: int = 1000,
     rows: int = 3,
     win_length: int = 3,
     wandb_logging: bool = True,
@@ -198,7 +199,7 @@ def evaluate_performance(
     random_agent2 = RandomAgent(player="O", switching=False)
 
     game = TicTacToe(playing_agent1, random_agent2, display=None, rows=rows, cols=rows, win_length=win_length)
-    nr_of_episodes = 1000
+    nr_of_episodes = nr_of_episodes
     outcomes = {"X": 0, "O": 0, "D": 0}
     for _ in range(nr_of_episodes):
         outcome = game.play()
@@ -220,7 +221,7 @@ def evaluate_performance(
     random_agent1 = RandomAgent(player="X", switching=False)
 
     game = TicTacToe(random_agent1, playing_agent2, display=None, rows=rows, cols=rows, win_length=win_length)
-    nr_of_episodes = 1000
+    nr_of_episodes = nr_of_episodes
     outcomes = {"X": 0, "O": 0, "D": 0}
     for _ in range(nr_of_episodes):
         outcome = game.play()
@@ -238,7 +239,7 @@ def evaluate_performance(
         )
 
     game = TicTacToe(playing_agent1, playing_agent2, display=None, rows=rows, cols=rows, win_length=win_length)
-    nr_of_episodes = 1000
+    nr_of_episodes = nr_of_episodes
     outcomes = {"X": 0, "O": 0, "D": 0}
     for _ in range(nr_of_episodes):
         outcome = game.play()

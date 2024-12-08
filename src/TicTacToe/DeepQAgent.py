@@ -5,8 +5,8 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import wandb
 
+import wandb
 from TicTacToe.Agent import Agent
 from TicTacToe.EquivariantNN import EquivariantNN
 
@@ -152,12 +152,13 @@ class DeepQLearningAgent(Agent):
         B7 = [[0, -1], [-1, 0]]
         Bs = [B0, B1, B2, B3, B4, B5, B6, B7]
         self.groupMatrices = [np.array(B) for B in Bs]
-        self.q_network = EquivariantNN(self.groupMatrices, ms=(3, 6, 6, 3)).to(self.device)
-        self.target_network = EquivariantNN(self.groupMatrices, ms=(3, 6, 6, 3)).to(self.device)
+
+        self.q_network = EquivariantNN(self.groupMatrices, ms=(1, 3, 3, 1)).to(self.device)
+        self.target_network = EquivariantNN(self.groupMatrices, ms=(1, 3, 3, 1)).to(self.device)
 
         # (state_size, action_size) = (self.rows**2, self.rows**2)
         # self.q_network = QNetwork(state_size, action_size).to(self.device)
-        # self.target_network = QNetwork(state_size, action_size).to(self.device)
+        # self.target_network = QNetwork(state_size, output_dim=action_size).to(self.device)
 
         # if params["load_network"]:  # type: ignore load_network
         #     self.q_network.load_state_dict(torch.load(params["load_network"]))  # type: ignore
@@ -193,7 +194,7 @@ class DeepQLearningAgent(Agent):
         self.compute_symmetrized_loss = self.create_symmetrized_loss(self.compute_loss, self.transformations, self.rows)
 
     def generate_permutations(self, transformations: list[Any], rows: int) -> tuple[torch.Tensor, torch.Tensor]:
-        indices = np.array(list(range(rows * rows)), dtype=int).reshape(rows, rows)
+        indices = np.array(object=list(range(rows * rows)), dtype=int).reshape(rows, rows)
         permutations = np.array([transform(indices).flatten().tolist() for transform in transformations], dtype=int)
         inverse_permutations_list: list[Any] = []
         for permutation in permutations:
@@ -231,7 +232,7 @@ class DeepQLearningAgent(Agent):
         q_values = self.q_network(states).gather(1, actions.unsqueeze(1)).squeeze(1)
         next_q_values = self.target_network(next_states).max(1, keepdim=True)[0].squeeze(1)
         targets = rewards + (~dones) * self.gamma * next_q_values
-        return nn.MSELoss()(q_values, targets)
+        return nn.MSELoss()(q_values, targets) / self.batch_size
 
     def get_action(self, state_transition: StateTransition, game: "TwoPlayerBoardGame") -> Action:
         next_board, reward, done = state_transition
@@ -359,12 +360,12 @@ class DeepQLearningAgent(Agent):
 
 
 class DeepQPlayingAgent(Agent):
-    def __init__(self, q_network: QNetwork | str, player: Player = "X", switching: bool = False) -> None:
+    def __init__(self, q_network: nn.Module | str, player: Player = "X", switching: bool = False) -> None:
         super().__init__(player=player, switching=switching)
         # self.device = torch.device('mps')
         self.device = torch.device("cpu")
         if isinstance(q_network, torch.nn.Module):
-            self.q_network: QNetwork = q_network.to(self.device)
+            self.q_network: nn.Module = q_network.to(self.device)
         else:
             self.q_network = torch.load(q_network).to(self.device)  # type: ignore
             self.q_network.eval()
@@ -391,7 +392,7 @@ class DeepQPlayingAgent(Agent):
         action = self.get_best_action(board, self.q_network)
         return action
 
-    def get_best_action(self, board: Board, QNet: QNetwork) -> Action:
+    def get_best_action(self, board: Board, QNet: nn.Module) -> Action:
         state = self.board_to_state(board)
         state_tensor = torch.FloatTensor(state).unsqueeze(0).to(self.device)
         with torch.no_grad():

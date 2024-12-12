@@ -196,6 +196,7 @@ class TestDeepQLearningAgent(unittest.TestCase):
             "wandb": False,
             "load_network": False,
             "shared_replay_buffer": False,
+            "equivariant_network": True,
         }
         self.agent = DeepQLearningAgent(self.params)
 

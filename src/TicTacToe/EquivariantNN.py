@@ -100,12 +100,23 @@ class EquivariantLayer(nn.Module):
     def __init__(self, weight_pattern: torch.Tensor, bias_pattern: torch.Tensor):
         super(EquivariantLayer, self).__init__()  # type: ignore
 
-        # Create a trainable parameter for each tied group
         nr_of_ties = self._get_nr_of_unique_nonzero_elements(weight_pattern)
-        self.matrix_params = nn.ParameterList(values=[nn.Parameter(torch.randn(1)) for _ in range(nr_of_ties)])
 
         nr_of_bias_params = self._get_nr_of_unique_nonzero_elements(bias_pattern)
-        self.bias_params = nn.ParameterList(values=[nn.Parameter(torch.randn(1)) for _ in range(nr_of_bias_params)])
+
+        input_shape, output_shape = weight_pattern.shape
+        bound = 1.0 / np.sqrt(0.5 * (input_shape + output_shape))
+
+        self.matrix_params = nn.ParameterList(
+            [nn.Parameter(torch.empty(1).uniform_(-bound, bound)) for _ in range(nr_of_ties)]
+        )
+
+        self.bias_params = nn.ParameterList(
+            [
+                nn.Parameter(torch.zeros(1))  # Bias initialized to zero
+                for _ in range(nr_of_bias_params)
+            ]
+        )
 
         # Precompute a mapping from tied groups
         self.register_buffer("weight_pattern", torch.zeros_like(weight_pattern, dtype=torch.float32))

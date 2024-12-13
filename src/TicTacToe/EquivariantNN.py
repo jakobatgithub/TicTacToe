@@ -169,12 +169,15 @@ class EquivariantLayer(nn.Module):
         )
         self.bias_params = nn.Parameter(torch.zeros(len(torch.unique(bias_pattern[bias_pattern > 0]))))  # type: ignore
 
+        self.weight_idx_mask = self.weight_mask[self.non_zero_weight_mask] - 1
+        self.bias_idx_mask = self.bias_mask[self.non_zero_bias_mask] - 1
+
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         weight = torch.zeros_like(self.weight_mask, dtype=torch.float32)
         bias = torch.zeros_like(self.bias_mask, dtype=torch.float32)
 
-        weight[self.non_zero_weight_mask] = self.weight_params[self.weight_mask[self.non_zero_weight_mask] - 1]
-        bias[self.non_zero_bias_mask] = self.bias_params[self.bias_mask[self.non_zero_bias_mask] - 1]
+        weight[self.non_zero_weight_mask] = self.weight_params[self.weight_idx_mask]
+        bias[self.non_zero_bias_mask] = self.bias_params[self.bias_idx_mask]
 
         return x @ weight + bias
 

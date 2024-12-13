@@ -108,7 +108,12 @@ class QNetwork(nn.Module):
     def __init__(self, input_dim: int, output_dim: int) -> None:
         super(QNetwork, self).__init__()  # type: ignore
         self.fc = nn.Sequential(
-            nn.Linear(input_dim, 128), nn.ReLU(), nn.Linear(128, 64), nn.ReLU(), nn.Linear(64, output_dim)
+            # nn.Linear(input_dim, 128), nn.ReLU(), nn.Linear(128, 64), nn.ReLU(), nn.Linear(64, output_dim)
+            nn.Linear(input_dim, out_features=49),
+            nn.ReLU(),
+            nn.Linear(49, 49),
+            nn.ReLU(),
+            nn.Linear(49, output_dim),
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -153,12 +158,13 @@ class DeepQLearningAgent(Agent):
         Bs = [B0, B1, B2, B3, B4, B5, B6, B7]
         self.groupMatrices = [np.array(B) for B in Bs]
 
-        self.q_network = EquivariantNN(self.groupMatrices, ms=(1, 3, 3, 1)).to(self.device)
-        self.target_network = EquivariantNN(self.groupMatrices, ms=(1, 3, 3, 1)).to(self.device)
-
-        # (state_size, action_size) = (self.rows**2, self.rows**2)
-        # self.q_network = QNetwork(state_size, action_size).to(self.device)
-        # self.target_network = QNetwork(state_size, output_dim=action_size).to(self.device)
+        if params["equivariant_network"]:
+            self.q_network = EquivariantNN(self.groupMatrices, ms=(1, 3, 3, 1)).to(self.device)
+            self.target_network = EquivariantNN(self.groupMatrices, ms=(1, 3, 3, 1)).to(self.device)
+        else:
+            (state_size, action_size) = (self.rows**2, self.rows**2)
+            self.q_network = QNetwork(state_size, action_size).to(self.device)
+            self.target_network = QNetwork(state_size, output_dim=action_size).to(self.device)
 
         # if params["load_network"]:  # type: ignore load_network
         #     self.q_network.load_state_dict(torch.load(params["load_network"]))  # type: ignore

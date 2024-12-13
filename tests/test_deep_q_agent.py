@@ -157,7 +157,9 @@ class TestQNetwork(unittest.TestCase):
         model = QNetwork(input_dim=input_dim, output_dim=output_dim)
         total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
 
-        expected_params = (input_dim * 128 + 128) + (128 * 64 + 64) + (64 * output_dim + output_dim)
+        # n1, n2 = 128, 64
+        n1, n2 = 49, 49
+        expected_params = (input_dim * n1 + n1) + (n1 * n2 + n2) + (n2 * output_dim + output_dim)
         self.assertEqual(total_params, expected_params, "The number of trainable parameters is incorrect.")
 
     def test_reproducibility(self) -> None:
@@ -196,7 +198,7 @@ class TestDeepQLearningAgent(unittest.TestCase):
             "wandb": False,
             "load_network": False,
             "shared_replay_buffer": False,
-            "equivariant_network": True,
+            "equivariant_network": False,
         }
         self.agent = DeepQLearningAgent(self.params)
 

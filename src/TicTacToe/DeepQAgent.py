@@ -159,8 +159,14 @@ class DeepQLearningAgent(Agent):
         self.groupMatrices = [np.array(B) for B in Bs]
 
         if params["equivariant_network"]:
-            self.q_network = EquivariantNN(self.groupMatrices, ms=(1, 3, 3, 1)).to(self.device)
-            self.target_network = EquivariantNN(self.groupMatrices, ms=(1, 3, 3, 1)).to(self.device)
+            # ms = (1, 3, 3, 1)
+            if self.rows % 2 != 1:
+                raise ValueError("Equivariant network only works for odd number of rows")
+
+            ms0 = (self.rows - 1) / 2
+            ms = (ms0, 3, 3, ms0)
+            self.q_network = EquivariantNN(self.groupMatrices, ms=ms).to(self.device)
+            self.target_network = EquivariantNN(self.groupMatrices, ms=ms).to(self.device)
         else:
             (state_size, action_size) = (self.rows**2, self.rows**2)
             self.q_network = QNetwork(state_size, action_size).to(self.device)

@@ -165,12 +165,19 @@ class EquivariantLayer(nn.Module):
         bound = 1.0 / np.sqrt(input_size)
 
         self.weight_params = nn.Parameter(
-            torch.empty(len(torch.unique(weight_pattern[weight_pattern > 0]))).uniform_(-bound, bound)  # type: ignore
+            torch.empty(self._get_nr_of_unique_nonzero_elements(weight_pattern)).uniform_(-bound, bound)  # type: ignore
         )
-        self.bias_params = nn.Parameter(torch.zeros(len(torch.unique(bias_pattern[bias_pattern > 0]))))  # type: ignore
+        self.bias_params = nn.Parameter(torch.zeros(self._get_nr_of_unique_nonzero_elements(bias_pattern)))  # type: ignore
 
         self.weight_idx_mask = self.weight_mask[self.non_zero_weight_mask] - 1
         self.bias_idx_mask = self.bias_mask[self.non_zero_bias_mask] - 1
+
+    def _get_nr_of_unique_nonzero_elements(self, pattern: torch.Tensor) -> int:
+        unique_elements = list(set(pattern.detach().numpy().flatten()))  # type: ignore
+        if 0 in unique_elements:
+            unique_elements.remove(0)
+
+        return len(unique_elements)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         weight = torch.zeros_like(self.weight_mask, dtype=torch.float32)

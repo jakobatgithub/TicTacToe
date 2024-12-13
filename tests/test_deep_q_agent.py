@@ -366,7 +366,9 @@ class TestDeepQLearningAgent(unittest.TestCase):
         loss = self.agent.compute_loss(samples)
 
         # Assert correct computations
-        self.assertAlmostEqual(loss.item(), nn.MSELoss()(expected_q_values, expected_targets).item(), places=5)
+        self.assertAlmostEqual(
+            loss.item(), nn.MSELoss()(expected_q_values, expected_targets).item() / self.agent.batch_size, places=5
+        )
 
     @patch("torch.randint", wraps=torch.randint)
     def test_single_max_q_value(self, mock_randint):

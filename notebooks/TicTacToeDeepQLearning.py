@@ -19,8 +19,8 @@ params: dict[str, Any] = {
     # "epsilon_start": 0.15,  # initial exploration rate
     "epsilon_start": 0.75,  # initial exploration rate
     "epsilon_min": 0.05,  # minimum exploration rate
-    "learning_rate": 0.0001,  # learning rate
-    # "learning_rate": 0.00001,  # learning rate
+    # "learning_rate": 0.0001,  # learning rate
+    "learning_rate": 0.0025,  # learning rate
     "gamma": 0.95,  # discount factor
     "switching": True,  # switch between X and O
     # Parameters for DeepQAgent
@@ -41,8 +41,8 @@ params: dict[str, Any] = {
 # rows = 6
 # win_length = 5
 # nr_of_episodes = 750000
-rows = 3
-win_length = 3
+rows = 5
+win_length = 5
 nr_of_episodes = 5000
 evaluation_frequency = 50
 # shared_replay_buffer = ReplayBuffer(params["replay_buffer_length"], rows**2, device=params["device"])
@@ -76,7 +76,7 @@ try:
             evaluate_performance(
                 learning_agent1,
                 learning_agent2,
-                nr_of_episodes=10,
+                nr_of_episodes=50,
                 rows=rows,
                 win_length=win_length,
                 wandb_logging=paramsX["wandb"] or paramsO["wandb"],

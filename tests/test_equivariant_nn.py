@@ -127,7 +127,7 @@ class TestEquivariantLayer(unittest.TestCase):
 
     def test_initialization(self):
         # Check that the number of parameters matches the unique non-zero entries
-        self.assertEqual(len(self.layer.matrix_params), 4)
+        self.assertEqual(len(self.layer.weight_params), 4)
         self.assertEqual(len(self.layer.bias_params), 2)
 
     def test_forward_shape(self):
@@ -138,10 +138,10 @@ class TestEquivariantLayer(unittest.TestCase):
     def test_forward_computation(self):
         # Manually construct expected output for simple weights and biases
         with torch.no_grad():
-            self.layer.matrix_params[0].fill_(1.0)
-            self.layer.matrix_params[1].fill_(0.0)
-            self.layer.matrix_params[2].fill_(0.0)
-            self.layer.matrix_params[3].fill_(0.0)
+            self.layer.weight_params[0].fill_(1.0)
+            self.layer.weight_params[1].fill_(0.0)
+            self.layer.weight_params[2].fill_(0.0)
+            self.layer.weight_params[3].fill_(0.0)
             self.layer.bias_params[0].fill_(1.0)
             self.layer.bias_params[1].fill_(2.0)
 

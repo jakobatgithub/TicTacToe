@@ -1,8 +1,8 @@
 [tool.poetry]
 name = "tictactoe"
 version = "0.1.0"
-description = "A Tic Tac Toe game with advanced agents."
-authors = ["Your Name <your.email@example.com>"]
+description = "Teach the computer to play Tic Tac Toe using reinforcement learning."
+authors = ["Jakob Löber <jakob@physik.tu-berlin.de>"]
 packages = [
     { include = "TicTacToe", from = "src" }
 ]
@@ -48,7 +48,7 @@ six = "1.16.0"
 smmap = "5.0.1"
 stack-data = "0.6.3"
 sympy = "1.13.1"
-torch = "2.5.1"
+torch = "^2.5.1"
 traitlets = "5.14.3"
 typing-extensions = "4.12.2"
 urllib3 = "2.2.3"

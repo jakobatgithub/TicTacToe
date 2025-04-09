@@ -44,22 +44,28 @@ This approach demonstrates the power of machine learning in solving simple yet c
 
 ## Installation
 
-1. **Clone the Repository**:
+1. **Clone the repository and navigate to the project directory**:
    ```bash
-   git clone https://github.com/your-username/tic-tac-toe.git
+   git clone git@github.com:jakobatgithub/TicTacToe.git
+   cd TicTacToe
    ```
-2. **Navigate to the Project Directory**:
+2. **Create a virtual environment, activate it, and install dependencies**:
    ```bash
-   cd tic-tac-toe
+   python3 -m venv .venv
+   source .venv/bin/activate
+   pip install .
    ```
-3. **Install Dependencies**:
-   *(Optional: Only if additional libraries are required.)*
+3. **Tkinter must be installed**:
    ```bash
-   pip install -r requirements.txt
+   brew install python-tk
    ```
-4. **Run the Game**:
+4. **Get an account at [wandb.ai](https://wandb.ai/) and log in**:
    ```bash
-   python tic_tac_toe.py
+   wandb login
+   ```
+5. **Run the Game**:
+   ```bash
+   python notebooks/TicTacToeDeepQLearning.py
    ```
 
 ---

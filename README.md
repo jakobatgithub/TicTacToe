@@ -1,10 +1,11 @@
 # Tic Tac Toe
 
-A classic implementation of the Tic Tac Toe game using Python. This project serves as both an engaging game and an introduction to programming concepts like game loops, input validation, and game state management. Furthermore, a reinforcement learning algorithms is implemented such that the computer learns to play Tic Tac Toe by playing against itself.
+A Python-based implementation of the classic Tic Tac Toe game, enhanced with reinforcement learning. The AI learns to play by competing against itself, making this project a fun way to explore game development and machine learning concepts.
 
 ## Table of Contents
 - [About the Game](#about-the-game)
 - [Features](#features)
+- [Reinforcement Learning](#reinforcement-learning)
 - [Installation](#installation)
 - [How to Play](#how-to-play)
 - [Technologies Used](#technologies-used)
@@ -15,18 +16,29 @@ A classic implementation of the Tic Tac Toe game using Python. This project serv
 
 ## About the Game
 
-Tic Tac Toe is a simple and entertaining game typically played between two players. The goal is to align three of your symbols (X or O) horizontally, vertically, or diagonally on a 3x3 grid.
+Tic Tac Toe is a simple yet strategic game where two players aim to align three of their symbols (X or O) horizontally, vertically, or diagonally on a 3x3 grid.
 
 ---
 
 ## Features
 
-- **Single-Player Mode**: Play against yourself, a random player, or an AI opponent.
-- **Command line display**: Play in the command line.
-- **Interactive Command-Line Interface**: Make your moves via terminal/command prompt.
-- **Graphical interface**: Play with mouse and display.
-- **Input Validation**: Prevents invalid or duplicate moves.
-- **Game State Visualization**: The game board updates in real time.
+- **Single-Player Mode**: Play against a random player or an AI opponent.
+- **Reinforcement Learning AI**: The computer improves its gameplay by learning from self-play.
+- **Command-Line Interface**: Play directly in the terminal.
+- **Input Validation**: Ensures valid and unique moves.
+- **Real-Time Board Updates**: Visualizes the game state after every move.
+
+---
+
+## Reinforcement Learning
+
+The AI uses a reinforcement learning algorithm to optimize its strategy. By playing thousands of games against itself, it learns to make better decisions over time. Key aspects include:
+
+- **State-Action Mapping**: Tracks game states and corresponding actions.
+- **Reward System**: Encourages winning moves and penalizes losing ones.
+- **Exploration vs. Exploitation**: Balances trying new moves and leveraging learned strategies.
+
+This approach demonstrates the power of machine learning in solving simple yet challenging problems.
 
 ---
 
@@ -41,7 +53,7 @@ Tic Tac Toe is a simple and entertaining game typically played between two playe
    cd tic-tac-toe
    ```
 3. **Install Dependencies**:
-   *(Optional step if any dependencies are required; otherwise, Python's standard library suffices.)*
+   *(Optional: Only if additional libraries are required.)*
    ```bash
    pip install -r requirements.txt
    ```
@@ -54,11 +66,10 @@ Tic Tac Toe is a simple and entertaining game typically played between two playe
 
 ## How to Play
 
-1. Run the game using the instructions in the [Installation](#installation) section.
-2. Choose the mode: Single-player or Two-player.
-3. Follow the on-screen prompts to make your move.
-4. Players take turns to place their symbols (X or O) on the board.
-5. The game ends when one player aligns three symbols in a row, column, or diagonal, or if the board is full (draw).
+1. Start the game using the [Installation](#installation) steps.
+2. Select a mode: Single-player, Two-player, or AI vs. AI.
+3. Follow the prompts to make your moves.
+4. The game ends when a player wins or the board is full (draw).
 
 ---
 
@@ -71,11 +82,11 @@ Tic Tac Toe is a simple and entertaining game typically played between two playe
 
 ## Contributing
 
-Contributions, bug reports, and feature requests are welcome! Feel free to open an issue or submit a pull request.
+Contributions are welcome! Open an issue or submit a pull request to suggest improvements or report bugs.
 
 ### Steps to Contribute:
 1. Fork the repository.
-2. Create a new branch:
+2. Create a feature branch:
    ```bash
    git checkout -b feature-branch-name
    ```
@@ -87,21 +98,14 @@ Contributions, bug reports, and feature requests are welcome! Feel free to open 
    ```bash
    git push origin feature-branch-name
    ```
-5. Open a pull request in the original repository.
+5. Open a pull request.
 
 ---
 
 ## License
 
-This project is licensed under the [MIT License](LICENSE). You are free to use, modify, and distribute this project as per the terms of the license.
+This project is licensed under the [MIT License](LICENSE). Feel free to use, modify, and distribute it under the terms of the license.
 
 ---
 
-## Acknowledgements
-
-- Thanks to [Your Name or Organization] for inspiration and guidance.
-- Special appreciation to the Python community for their continuous support.
-
----
-
-Enjoy the game! 🕹️
+Enjoy exploring reinforcement learning with Tic Tac Toe! 🕹️

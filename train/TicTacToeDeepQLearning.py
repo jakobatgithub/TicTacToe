@@ -36,13 +36,14 @@ import torch
 
 from typing import Any
 from tqdm import tqdm
+from pathlib import Path
 
 from TicTacToe.DeepQAgent import DeepQLearningAgent
 from TicTacToe.Evaluation import evaluate_performance
 from TicTacToe.TicTacToe import TicTacToe
 
 params: dict[str, Any] = {
-    "nr_of_episodes": 500000,  # number of episodes for training
+    "nr_of_episodes": 10000,  # number of episodes for training
     "rows": 3,  # rows of the board, rows = cols
     "epsilon_start": 0.75,  # initial exploration rate
     "epsilon_min": 0.05,  # minimum exploration rate
@@ -65,7 +66,7 @@ params: dict[str, Any] = {
 
 rows = 3
 win_length = 3
-nr_of_episodes = 10000
+nr_of_episodes = 10
 evaluation_frequency = 50
 params["nr_of_episodes"] = nr_of_episodes
 params["rows"] = rows
@@ -106,7 +107,13 @@ try:
     )
 
 finally:
-    torch.save(learning_agent1.q_network, f"../models/q_network_{rows}x{rows}x{win_length}_X.pth") # type: ignore
-    torch.save(learning_agent2.q_network, f"../models/q_network_{rows}x{rows}x{win_length}_O.pth") # type: ignore
+    script_dir = Path(__file__).resolve().parent
+    relative_folder = (script_dir / '../models').resolve()
+    if not relative_folder.exists():
+        relative_folder.mkdir(parents=True)
+    
+    # Save the models
+    torch.save(learning_agent1.q_network, f"{relative_folder}/q_network_{rows}x{rows}x{win_length}_X.pth") # type: ignore
+    torch.save(learning_agent2.q_network, f"{relative_folder}/q_network_{rows}x{rows}x{win_length}_O.pth") # type: ignore
 
     wandb.finish()

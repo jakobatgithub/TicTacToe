@@ -20,7 +20,7 @@ params: dict[str, Any] = {
     "epsilon_start": 0.75,  # initial exploration rate
     "epsilon_min": 0.05,  # minimum exploration rate
     # "learning_rate": 0.0001,  # learning rate
-    "learning_rate": 0.0025,  # learning rate
+    "learning_rate": 0.0001,  # learning rate
     "gamma": 0.95,  # discount factor
     "switching": True,  # switch between X and O
     # Parameters for DeepQAgent
@@ -35,15 +35,15 @@ params: dict[str, Any] = {
     "wandb_logging_frequency": 25,  # wandb logging frequency
     "load_network": False,  # file name for loading a PyTorch network
     "shared_replay_buffer": False,  # shared replay buffer
-    "equivariant_network": True,  # flag for using equivariant network
+    "equivariant_network": False,  # flag for using equivariant network
 }
 
 # rows = 6
 # win_length = 5
 # nr_of_episodes = 750000
-rows = 5
-win_length = 5
-nr_of_episodes = 5000
+rows = 3
+win_length = 3
+nr_of_episodes = 10000
 evaluation_frequency = 50
 # shared_replay_buffer = ReplayBuffer(params["replay_buffer_length"], rows**2, device=params["device"])
 # params["shared_replay_buffer"] = shared_replay_buffer

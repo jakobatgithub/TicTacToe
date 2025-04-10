@@ -5,7 +5,6 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 import wandb
 from TicTacToe.Agent import Agent
@@ -181,11 +180,6 @@ class DeepQLearningAgent(Agent):
 
         self.optimizer = optim.Adam(self.q_network.parameters(), lr=self.learning_rate)
 
-        # Define learning rate scheduler
-        self.scheduler = ReduceLROnPlateau(
-            self.optimizer, mode="min", factor=params["factor"], patience=params["patience"]
-        )
-
         if params["shared_replay_buffer"]:
             self.replay_buffer = params["shared_replay_buffer"]
         else:
@@ -287,9 +281,7 @@ class DeepQLearningAgent(Agent):
         self.optimizer.zero_grad()
         loss.backward()  # type: ignore
         self.optimizer.step()  # type: ignore
-        self.scheduler.step(loss.item())  # type: ignore
         self.evaluation_data["loss"].append(loss.item())
-        self.evaluation_data["learning_rate"].append(self.scheduler.get_last_lr()[0])
         self._log_training_metrics()
         self.train_step_count += 1
 

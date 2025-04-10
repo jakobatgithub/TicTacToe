@@ -1,18 +1,6 @@
 # Tic Tac Toe
 
-A Python-based implementation of the classic Tic Tac Toe game, enhanced with reinforcement learning. The AI learns to play by competing against itself, making this project a fun way to explore game development and machine learning concepts.
-
-## Table of Contents
-- [About the Game](#about-the-game)
-- [Features](#features)
-- [Reinforcement Learning](#reinforcement-learning)
-- [Installation](#installation)
-- [How to Play](#how-to-play)
-- [Technologies Used](#technologies-used)
-- [Contributing](#contributing)
-- [License](#license)
-
----
+Teach the computer to play Tic Tac Toe using reinforcement learning.
 
 ## About the Game
 
@@ -23,11 +11,11 @@ Tic Tac Toe is a simple yet strategic game where two players aim to align three 
 ## Features
 
 - **Single-Player Mode**: Play against a random player or an AI opponent.
-- **Reinforcement Learning AI**: The computer improves its gameplay by learning from self-play.
 - **Command-Line Interface**: Play directly in the terminal.
 - **Input Validation**: Ensures valid and unique moves.
 - **Real-Time Board Updates**: Visualizes the game state after every move.
-
+- **Reinforcement Learning AI**: The computer improves its gameplay by learning from self-play.
+- **Use [wandb.ai](https://wandb.ai/)**: Online logging of training progress of reinforcement learning.
 ---
 
 ## Reinforcement Learning
@@ -59,13 +47,13 @@ This approach demonstrates the power of machine learning in solving simple yet c
    ```bash
    brew install python-tk
    ```
-4. **Get an account at [wandb.ai](https://wandb.ai/) and log in**:
+4. **Optional: get an account at [wandb.ai](https://wandb.ai/) and log in**:
    ```bash
    wandb login
    ```
-5. **Run the Game**:
+5. **Train one model for player 'X' and one for player 'O' by playing against each other**:
    ```bash
-   python notebooks/TicTacToeDeepQLearning.py
+   python train/TicTacToeDeepQLearning.py
    ```
 
 ---

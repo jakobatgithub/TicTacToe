@@ -7,16 +7,45 @@ import torch.nn as nn
 
 
 def permutation_matrix(permutation: list[Any]) -> np.ndarray[Any, Any]:
+    """
+    Generate a permutation matrix for a given permutation.
+
+    Args:
+        permutation (list[Any]): A list representing the permutation.
+
+    Returns:
+        np.ndarray[Any, Any]: A permutation matrix.
+    """
     n = len(permutation)
     return np.eye(n, dtype=int)[permutation]
 
 
 def get_number_of_unique_elements(pattern: torch.Tensor) -> int:
+    """
+    Count the number of unique elements in a tensor.
+
+    Args:
+        pattern (torch.Tensor): The input tensor.
+
+    Returns:
+        int: The number of unique elements.
+    """
     unique_elements = set(pattern.detach().numpy().flatten())  # type: ignore
     return len(unique_elements)
 
 
 def get_weight_pattern(Bs: List[Any], nn: int, mm: int) -> torch.Tensor:
+    """
+    Generate a weight pattern based on symmetry transformations.
+
+    Args:
+        Bs (List[Any]): List of transformation matrices.
+        nn (int): Range for the first dimension.
+        mm (int): Range for the second dimension.
+
+    Returns:
+        torch.Tensor: A tensor representing the weight pattern.
+    """
     # Define ranges
     value_range1 = np.arange(-nn, nn + 1)
     value_range2 = np.arange(-mm, mm + 1)
@@ -48,17 +77,27 @@ def get_weight_pattern(Bs: List[Any], nn: int, mm: int) -> torch.Tensor:
 
             # Assign equivalence class
             if transformed_values not in equivalence_classes:
-                equivalence_classes[transformed_values] = class_counter
+                equivalence_classes[transformed_values] = class_counter # type: ignore
                 class_counter += 1
 
             # Store the class label in the output matrix
-            weight_pattern[i, j] = equivalence_classes[transformed_values]
+            weight_pattern[i, j] = equivalence_classes[transformed_values] # type: ignore
 
     # Convert to torch tensor
     return torch.tensor(weight_pattern, dtype=torch.int64)
 
 
 def get_bias_pattern(Bs: list[Any], mm: int) -> torch.Tensor:
+    """
+    Generate a bias pattern based on symmetry transformations.
+
+    Args:
+        Bs (list[Any]): List of transformation matrices.
+        mm (int): Range for the dimension.
+
+    Returns:
+        torch.Tensor: A tensor representing the bias pattern.
+    """
     # Define ranges
     value_range = np.arange(-mm, mm + 1)
 
@@ -86,68 +125,29 @@ def get_bias_pattern(Bs: list[Any], mm: int) -> torch.Tensor:
 
         # Assign equivalence class
         if transformed_values not in equivalence_classes:
-            equivalence_classes[transformed_values] = class_counter
+            equivalence_classes[transformed_values] = class_counter # type: ignore
             class_counter += 1
 
         # Store the class label in the output matrix
-        bias_pattern[i] = equivalence_classes[transformed_values]
+        bias_pattern[i] = equivalence_classes[transformed_values] # type: ignore
 
     # Convert to torch tensor
     return torch.tensor(bias_pattern, dtype=torch.int64)
 
 
-# class EquivariantLayer(nn.Module):
-#     def __init__(self, weight_pattern: torch.Tensor, bias_pattern: torch.Tensor):
-#         super(EquivariantLayer, self).__init__()  # type: ignore
-
-#         nr_of_ties = self._get_nr_of_unique_nonzero_elements(weight_pattern)
-
-#         nr_of_bias_params = self._get_nr_of_unique_nonzero_elements(bias_pattern)
-
-#         input_shape, _ = weight_pattern.shape
-#         bound = 1.0 / np.sqrt(input_shape)
-
-#         self.matrix_params = nn.ParameterList(
-#             [nn.Parameter(torch.empty(1).uniform_(-bound, bound)) for _ in range(nr_of_ties)]
-#         )
-
-#         self.bias_params = nn.ParameterList(
-#             [
-#                 nn.Parameter(torch.zeros(1))  # Bias initialized to zero
-#                 for _ in range(nr_of_bias_params)
-#             ]
-#         )
-
-#         # Precompute a mapping from tied groups
-#         self.register_buffer("weight_pattern", torch.zeros_like(weight_pattern, dtype=torch.float32))
-#         self.weight_pattern = weight_pattern
-
-#         self.register_buffer("bias_pattern", torch.zeros_like(bias_pattern, dtype=torch.float32))
-#         self.bias_pattern = bias_pattern
-
-#     def _get_nr_of_unique_nonzero_elements(self, pattern: torch.Tensor) -> int:
-#         unique_elements = list(set(pattern.detach().numpy().flatten()))  # type: ignore
-#         return len(unique_elements)
-
-#     def forward(self, x: torch.Tensor) -> torch.Tensor:
-#         # Construct the weight matrix dynamically
-#         weight = torch.zeros_like(self.weight_pattern, dtype=torch.float32)
-#         for group_idx, tied_param in enumerate(self.matrix_params):
-#             weight[self.weight_pattern == group_idx + 1] = tied_param
-
-#         weight[self.weight_pattern == 0] = 0.0
-
-#         bias = torch.zeros_like(self.bias_pattern, dtype=torch.float32)
-#         for group_idx, tied_param in enumerate(self.bias_params):
-#             bias[self.bias_pattern == group_idx + 1] = tied_param
-
-#         bias[self.bias_pattern == 0] = 0.0
-
-#         return x @ weight + bias
-
-
 class EquivariantLayer(nn.Module):
+    """
+    A neural network layer with tied weights and biases based on symmetry patterns.
+    """
+
     def __init__(self, weight_pattern: torch.Tensor, bias_pattern: torch.Tensor):
+        """
+        Initialize the EquivariantLayer.
+
+        Args:
+            weight_pattern (torch.Tensor): Tensor defining the weight tying pattern.
+            bias_pattern (torch.Tensor): Tensor defining the bias tying pattern.
+        """
         super(EquivariantLayer, self).__init__()  # type: ignore
 
         # Precompute unique parameter indices
@@ -173,6 +173,15 @@ class EquivariantLayer(nn.Module):
         self.bias_idx_mask = self.bias_mask[self.non_zero_bias_mask] - 1
 
     def _get_nr_of_unique_nonzero_elements(self, pattern: torch.Tensor) -> int:
+        """
+        Get the number of unique non-zero elements in a pattern.
+
+        Args:
+            pattern (torch.Tensor): The input pattern.
+
+        Returns:
+            int: The number of unique non-zero elements.
+        """
         unique_elements = list(set(pattern.detach().numpy().flatten()))  # type: ignore
         if 0 in unique_elements:
             unique_elements.remove(0)
@@ -180,6 +189,15 @@ class EquivariantLayer(nn.Module):
         return len(unique_elements)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Perform a forward pass through the layer.
+
+        Args:
+            x (torch.Tensor): Input tensor.
+
+        Returns:
+            torch.Tensor: Output tensor after applying the layer.
+        """
         weight = torch.zeros_like(self.weight_mask, dtype=torch.float32)
         bias = torch.zeros_like(self.bias_mask, dtype=torch.float32)
 
@@ -190,7 +208,18 @@ class EquivariantLayer(nn.Module):
 
 
 class EquivariantNN(nn.Module):
+    """
+    A neural network with multiple equivariant layers.
+    """
+
     def __init__(self, groupMatrices: list[Any], ms: Tuple[int, int, int, int] = (1, 5, 5, 1)) -> None:
+        """
+        Initialize the EquivariantNN.
+
+        Args:
+            groupMatrices (list[Any]): List of transformation matrices.
+            ms (Tuple[int, int, int, int]): Dimensions for each layer.
+        """
         super(EquivariantNN, self).__init__()  # type: ignore
 
         m0, m1, m2, m3 = ms
@@ -213,19 +242,14 @@ class EquivariantNN(nn.Module):
             equivariant_layer1, nn.ReLU(), equivariant_layer2, nn.ReLU(), equivariant_layer3
         )
 
-        # number_of_weights = (
-        #     get_number_of_unique_elements(weight_pattern1)
-        #     + get_number_of_unique_elements(weight_pattern2)
-        #     + get_number_of_unique_elements(weight_pattern3)
-        # )
-        # print(f"Number of matrix weights: {number_of_weights}")
-
-        # number_of_biases = (
-        #     get_number_of_unique_elements(bias_pattern1)
-        #     + get_number_of_unique_elements(bias_pattern2)
-        #     + get_number_of_unique_elements(bias_pattern3)
-        # )
-        # print(f"Number of biases: {number_of_biases}")
-
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Perform a forward pass through the network.
+
+        Args:
+            x (torch.Tensor): Input tensor.
+
+        Returns:
+            torch.Tensor: Output tensor after applying the network.
+        """
         return self.fc_equivariant(x)

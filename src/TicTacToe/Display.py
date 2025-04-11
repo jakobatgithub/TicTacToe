@@ -9,19 +9,46 @@ from TicTacToe.game_types import Action, Board, Outcome
 
 
 class Display(ABC):
+    """
+    Abstract base class for displaying the Tic-Tac-Toe game.
+    """
+
     @abstractmethod
     def update_display(self, board: Board, outcome: Outcome = None) -> None:
-        """Update the display with the given board state."""
+        """
+        Update the display with the given board state.
+
+        Args:
+            board: The current board state.
+            outcome: The outcome of the game, if any.
+        """
         pass
 
     @abstractmethod
     def set_message(self, message: str) -> None:
-        """Display a message."""
+        """
+        Display a message.
+
+        Args:
+            message: The message to display.
+        """
         pass
 
 
 class ScreenDisplay(tk.Tk, Display):
+    """
+    A GUI-based display for the Tic-Tac-Toe game using tkinter.
+    """
+
     def __init__(self, rows: int = 3, cols: int = 3, waiting_time: float = 0.25) -> None:
+        """
+        Initialize the ScreenDisplay.
+
+        Args:
+            rows: Number of rows in the board.
+            cols: Number of columns in the board.
+            waiting_time: Time to wait between updates.
+        """
         super().__init__()
         self.rows = rows
         self.cols = cols
@@ -36,7 +63,9 @@ class ScreenDisplay(tk.Tk, Display):
         self.action_complete = tk.BooleanVar(value=False)  # Persistent variable to control wait state
 
     def _init_display(self) -> None:
-        """Initialize the board display as a grid of labels."""
+        """
+        Initialize the board display as a grid of labels.
+        """
         for idx in range(self.rows * self.cols):  # 9 fields for a 3x3 board
             label = tk.Label(self, text=" ", font=("Arial", 24), width=5, height=2, borderwidth=1, relief="solid")
             label.grid(
@@ -46,22 +75,41 @@ class ScreenDisplay(tk.Tk, Display):
             self.labels.append(label)
 
     def handle_click(self, event: Any, action: Action) -> None:
-        """Handle a mouse click on the board."""
+        """
+        Handle a mouse click on the board.
+
+        Args:
+            event: The event object.
+            action: The action corresponding to the clicked cell.
+        """
         if self.click_handler:
             self.click_handler(action)
             self.action_complete.set(True)  # Signal that the action is complete
 
     def bind_click_handler(self, handler: Callable[[Action], None]) -> None:
-        """Bind the click handler for mouse input."""
+        """
+        Bind the click handler for mouse input.
+
+        Args:
+            handler: A callable that handles the click action.
+        """
         self.click_handler = handler
 
     def wait_for_player_action(self) -> None:
-        """Wait for the player to perform an action (no-op for GUI)."""
+        """
+        Wait for the player to perform an action (no-op for GUI).
+        """
         self.action_complete.set(False)  # Reset the variable before waiting
         self.wait_variable(self.action_complete)  # Suspend until an action occurs
 
     def update_display(self, board: Board, outcome: Outcome = None) -> None:
-        """Update the display with the given board state."""
+        """
+        Update the display with the given board state.
+
+        Args:
+            board: The current board state.
+            outcome: The outcome of the game, if any.
+        """
         for i, value in enumerate(board):
             self.labels[i].config(text=value if value in ["X", "O"] else " ")
 
@@ -77,18 +125,41 @@ class ScreenDisplay(tk.Tk, Display):
             self.quit()
 
     def set_message(self, message: str) -> None:
-        """Update the message displayed at the top of the window."""
+        """
+        Update the message displayed at the top of the window.
+
+        Args:
+            message: The message to display.
+        """
         self.message_label.config(text=message)
 
 
 class ConsoleDisplay(Display):
+    """
+    A console-based display for the Tic-Tac-Toe game.
+    """
+
     def __init__(self, rows: int = 3, cols: int = 3, waiting_time: float = 0.25) -> None:
+        """
+        Initialize the ConsoleDisplay.
+
+        Args:
+            rows: Number of rows in the board.
+            cols: Number of columns in the board.
+            waiting_time: Time to wait between updates.
+        """
         self.rows = rows
         self.cols = cols
         self.waiting_time = waiting_time
 
     def update_display(self, board: Board, outcome: Outcome = None) -> None:
-        """Display the board dynamically in the console."""
+        """
+        Display the board dynamically in the console.
+
+        Args:
+            board: The current board state.
+            outcome: The outcome of the game, if any.
+        """
         clear_output(wait=True)
         row_divider = "-" * (6 * self.rows - 1)
 
@@ -108,5 +179,10 @@ class ConsoleDisplay(Display):
         time.sleep(self.waiting_time)
 
     def set_message(self, message: str) -> None:
-        """Set a message for the console display."""
+        """
+        Set a message for the console display.
+
+        Args:
+            message: The message to display.
+        """
         print(message)

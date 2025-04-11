@@ -77,11 +77,11 @@ def get_weight_pattern(Bs: List[Any], nn: int, mm: int) -> torch.Tensor:
 
             # Assign equivalence class
             if transformed_values not in equivalence_classes:
-                equivalence_classes[transformed_values] = class_counter
+                equivalence_classes[transformed_values] = class_counter # type: ignore
                 class_counter += 1
 
             # Store the class label in the output matrix
-            weight_pattern[i, j] = equivalence_classes[transformed_values]
+            weight_pattern[i, j] = equivalence_classes[transformed_values] # type: ignore
 
     # Convert to torch tensor
     return torch.tensor(weight_pattern, dtype=torch.int64)
@@ -125,11 +125,11 @@ def get_bias_pattern(Bs: list[Any], mm: int) -> torch.Tensor:
 
         # Assign equivalence class
         if transformed_values not in equivalence_classes:
-            equivalence_classes[transformed_values] = class_counter
+            equivalence_classes[transformed_values] = class_counter # type: ignore
             class_counter += 1
 
         # Store the class label in the output matrix
-        bias_pattern[i] = equivalence_classes[transformed_values]
+        bias_pattern[i] = equivalence_classes[transformed_values] # type: ignore
 
     # Convert to torch tensor
     return torch.tensor(bias_pattern, dtype=torch.int64)

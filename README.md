@@ -74,48 +74,7 @@ This approach demonstrates the power of machine learning in solving simple yet c
 
 ---
 
-## How to Play
-
-1. Start the game using the [Installation](#installation) steps.
-2. Select a mode: Single-player, Two-player, or AI vs. AI.
-3. Follow the prompts to make your moves.
-4. The game ends when a player wins or the board is full (draw).
-
----
-
-## Technologies Used
-
-- **Language**: Python 3.x
-- **Libraries**: Standard Python libraries (no external dependencies required).
-
----
-
-## Contributing
-
-Contributions are welcome! Open an issue or submit a pull request to suggest improvements or report bugs.
-
-### Steps to Contribute:
-1. Fork the repository.
-2. Create a feature branch:
-   ```bash
-   git checkout -b feature-branch-name
-   ```
-3. Commit your changes:
-   ```bash
-   git commit -m "Description of changes"
-   ```
-4. Push to your fork:
-   ```bash
-   git push origin feature-branch-name
-   ```
-5. Open a pull request.
-
----
 
 ## License
 
 This project is licensed under the [MIT License](LICENSE). Feel free to use, modify, and distribute it under the terms of the license.
-
----
-
-Enjoy exploring reinforcement learning with Tic Tac Toe! 🕹️

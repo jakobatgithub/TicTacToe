@@ -7,7 +7,4 @@
     "workbench.editor.languageDetection": false,
     "python.languageServer": "Pylance",
     "python.analysis.diagnosticMode": "openFilesOnly",
-    "[**/*.ipynb]": {
-        "python.analysis.typeCheckingMode": "off"
-    },
 }

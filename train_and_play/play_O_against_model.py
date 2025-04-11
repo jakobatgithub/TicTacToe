@@ -1,3 +1,16 @@
+"""
+This script allows a human player to play Tic-Tac-Toe as 'O' against a Deep Q-Learning agent playing as 'X'.
+
+Modules:
+- TicTacToe.TicTacToe: Defines the game logic.
+- TicTacToe.DeepQAgent: Defines the DeepQPlayingAgent class.
+- TicTacToe.Agent: Defines the HumanAgent class.
+- TicTacToe.Display: Handles the game display.
+
+Usage:
+Run the script to start the game. The human player will make moves as 'O', and the agent will respond as 'X'.
+"""
+
 # import torch
 from TicTacToe.TicTacToe import TicTacToe
 from TicTacToe.DeepQAgent import DeepQPlayingAgent

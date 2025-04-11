@@ -2,32 +2,20 @@
 # Let the games begin
 
 """
-Train two Deep Q-Learning agents to play Tic-Tac-Toe against each other.
-
-This script sets up and trains two DeepQLearningAgent instances (X and O)
-to play Tic-Tac-Toe on a 3x3 board. It configures the learning parameters,
-handles the training loop over a given number of episodes, and periodically
-evaluates the agents' performance.
+This script trains two Deep Q-Learning agents to play Tic-Tac-Toe against each other.
 
 Features:
-- Deep Q-Learning using PyTorch.
-- Optional logging with Weights & Biases (wandb).
-- Configurable replay buffer, epsilon decay, and network update frequency.
-- Evaluation during training to track progress.
-- Supports switching roles (X and O) for agents and saving final networks.
-
-After training, the learned Q-networks are saved to disk.
+- Configurable training parameters such as learning rate, epsilon decay, and replay buffer size.
+- Periodic evaluation of agent performance.
+- Saves the trained Q-networks to disk.
 
 Modules:
 - TicTacToe.DeepQAgent: Defines the DeepQLearningAgent class.
+- TicTacToe.Evaluation: Provides evaluation methods.
 - TicTacToe.TicTacToe: Defines the game logic.
-- TicTacToe.Evaluation: Provides the evaluation method.
 
-Dependencies:
-- torch
-- wandb (optional)
-- tqdm
-
+Usage:
+Run the script to train the agents. Adjust parameters in the `params` dictionary as needed.
 """
 
 import copy

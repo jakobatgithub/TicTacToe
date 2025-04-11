@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "tictactoe"
-version = "0.1.0"
+version = "0.1.5"
 description = "Teach the computer to play Tic Tac Toe using reinforcement learning."
 authors = ["Jakob Löber <jakob@physik.tu-berlin.de>"]
 packages = [
@@ -26,6 +26,7 @@ ipython = "8.29.0"
 jedi = "0.19.2"
 jinja2 = "3.1.4"
 markupsafe = "3.0.2"
+matplotlib = "^3.8.0"
 mpmath = "1.3.0"
 networkx = "3.4.2"
 numpy = "2.1.3"

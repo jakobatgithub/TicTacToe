@@ -45,57 +45,56 @@ class TestReplayBuffer(unittest.TestCase):
         )
         self.assertFalse(buffer.dones[0], "Stored 'done' value should match the input.")
 
-
-def test_sample_experiences(self) -> None:
-    """Check that the sampling returns correct shapes and values, including the last added experience."""
-    buffer = ReplayBuffer(size=5, state_dim=4, device="cpu")
-    for i in range(5):
-        buffer.add(
-            state=np.array([i, i + 1, i + 2, i + 3]),
-            action=i,
-            reward=float(i),
-            next_state=np.array([i + 1, i + 2, i + 3, i + 4]),
-            done=i % 2 == 0,
-        )
-
-    batch_size = 3
-    states, actions, rewards, next_states, dones = buffer.sample(batch_size)
-
-    # Check shapes
-    self.assertEqual(states.shape, (batch_size, 4), "Sampled states should have correct shape.")
-    self.assertEqual(actions.shape, (batch_size,), "Sampled actions should have correct shape.")
-    self.assertEqual(rewards.shape, (batch_size,), "Sampled rewards should have correct shape.")
-    self.assertEqual(next_states.shape, (batch_size, 4), "Sampled next states should have correct shape.")
-    self.assertEqual(dones.shape, (batch_size,), "Sampled dones should have correct shape.")
-
-    # Ensure the last added experience is included
-    last_state = np.array([4, 5, 6, 7])
-    last_action = 4
-    last_reward = 4.0
-    last_next_state = np.array([5, 6, 7, 8])
-    last_done = True
-
-    # Convert sampled tensors back to numpy for easier comparison
-    states_np = states.numpy()
-    actions_np = actions.numpy()
-    rewards_np = rewards.numpy()
-    next_states_np = next_states.numpy()
-    dones_np = dones.numpy()
-
-    # Assert that the last experience is present in the sampled batch
-    self.assertTrue(
-        any(
-            np.array_equal(state, last_state)
-            and action == last_action
-            and reward == last_reward
-            and np.array_equal(next_state, last_next_state)
-            and done == last_done
-            for state, action, reward, next_state, done in zip(
-                states_np, actions_np, rewards_np, next_states_np, dones_np
+    def test_sample_experiences(self) -> None:
+        """Check that the sampling returns correct shapes and values, including the last added experience."""
+        buffer = ReplayBuffer(size=5, state_dim=4, device="cpu")
+        for i in range(5):
+            buffer.add(
+                state=np.array([i, i + 1, i + 2, i + 3]),
+                action=i,
+                reward=float(i),
+                next_state=np.array([i + 1, i + 2, i + 3, i + 4]),
+                done=i % 2 == 0,
             )
-        ),
-        "The most recently added experience must be in the sampled batch.",
-    )
+
+        batch_size = 3
+        states, actions, rewards, next_states, dones = buffer.sample(batch_size)
+
+        # Check shapes
+        self.assertEqual(states.shape, (batch_size, 4), "Sampled states should have correct shape.")
+        self.assertEqual(actions.shape, (batch_size,), "Sampled actions should have correct shape.")
+        self.assertEqual(rewards.shape, (batch_size,), "Sampled rewards should have correct shape.")
+        self.assertEqual(next_states.shape, (batch_size, 4), "Sampled next states should have correct shape.")
+        self.assertEqual(dones.shape, (batch_size,), "Sampled dones should have correct shape.")
+
+        # Ensure the last added experience is included
+        last_state = np.array([4, 5, 6, 7])
+        last_action = 4
+        last_reward = 4.0
+        last_next_state = np.array([5, 6, 7, 8])
+        last_done = True
+
+        # Convert sampled tensors back to numpy for easier comparison
+        states_np = states.numpy()
+        actions_np = actions.numpy()
+        rewards_np = rewards.numpy()
+        next_states_np = next_states.numpy()
+        dones_np = dones.numpy()
+
+        # Assert that the last experience is present in the sampled batch
+        self.assertTrue(
+            any(
+                np.array_equal(state, last_state)
+                and action == last_action
+                and reward == last_reward
+                and np.array_equal(next_state, last_next_state)
+                and done == last_done
+                for state, action, reward, next_state, done in zip(
+                    states_np, actions_np, rewards_np, next_states_np, dones_np
+                )
+            ),
+            "The most recently added experience must be in the sampled batch.",
+        )
 
     def test_buffer_length(self) -> None:
         """Verify __len__ returns the correct number of stored experiences."""
@@ -503,7 +502,7 @@ class TestDeepQPlayingAgent(unittest.TestCase):
     def test_q_network_loading(self, mock_load):
         agent = DeepQPlayingAgent(q_network="mock_path.pth", player="X", switching=False)
         self.assertIsInstance(agent.q_network, MockQNetwork)
-        mock_load.assert_called_once_with("mock_path.pth")
+        mock_load.assert_called_once_with("mock_path.pth", weights_only=False)
 
     def test_get_action_not_done(self):
         mock_game = MockTicTacToe()

@@ -3,8 +3,16 @@
 Teach the computer to play Tic Tac Toe using reinforcement learning.
 
 ## About the Game
-
 Tic Tac Toe is a simple yet strategic game where two players aim to align three of their symbols (X or O) horizontally, vertically, or diagonally on a 3x3 grid.
+
+### Rules of the Game
+
+1. The game is played on a 3x3 grid.
+2. Players take turns placing their symbol (X or O) in an empty cell.
+3. X always starts.
+4. The first player to align three of their symbols in a row (horizontally, vertically, or diagonally) wins the game.
+5. If all nine cells are filled and no player has aligned three symbols, the game ends in a draw.
+6. Players cannot place their symbol in a cell that is already occupied.
 
 ---
 
@@ -51,9 +59,17 @@ This approach demonstrates the power of machine learning in solving simple yet c
    ```bash
    wandb login
    ```
-5. **Train one model for player 'X' and one for player 'O' by playing against each other**:
+5. **Train models for players 'X' and 'O' by having two computer agents play against each other**:
    ```bash
-   python train/TicTacToeDeepQLearning.py
+   python train_and_play/train_model.py
+   ```
+6. **Play 'X' against the trained model**:
+   ```bash
+   python train_and_play/play_X_against_model.py
+   ```
+6. **Play 'O' against the trained model**:
+   ```bash
+   python train_and_play/play_O_against_model.py
    ```
 
 ---

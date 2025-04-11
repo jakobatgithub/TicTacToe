@@ -8,7 +8,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from TicTacToe.DeepQAgent import DeepQLearningAgent, DeepQPlayingAgent, QNetwork, ReplayBuffer
+from TicTacToe.DeepQAgent import DeepQLearningAgent, DeepQPlayingAgent, QNetwork, CNNQNetwork, ReplayBuffer
 
 
 class TestReplayBuffer(unittest.TestCase):
@@ -175,6 +175,71 @@ class TestQNetwork(unittest.TestCase):
         self.assertTrue(torch.equal(output1, output2), "Outputs should be consistent in evaluation mode.")
 
 
+class TestCNNQNetwork(unittest.TestCase):
+    """Tests for the CNNQNetwork class."""
+
+    def test_initialization(self):
+        """Test CNNQNetwork initialization with correct input and output dimensions."""
+        input_dim, grid_size, output_dim = 1, 3, 9
+        model = CNNQNetwork(input_dim=input_dim, grid_size=grid_size, output_dim=output_dim)
+
+        self.assertEqual(
+            model.conv_layers[0].in_channels, input_dim, "Input channels of the first convolutional layer are incorrect."
+        )
+        # Find the last Conv2d layer in the conv_layers sequence
+        last_conv_layer = [layer for layer in model.conv_layers if isinstance(layer, nn.Conv2d)][-1]
+        self.assertEqual(
+            last_conv_layer.out_channels, 64, "Output channels of the last convolutional layer are incorrect."
+        )
+        self.assertEqual(
+            model.fc_layers[-1].out_features, output_dim, "Output dimension of the final fully connected layer is incorrect."
+        )
+
+    def test_forward_pass(self):
+        """Ensure the forward pass produces output of the correct shape."""
+        input_dim, grid_size, output_dim = 1, 3, 9
+        model = CNNQNetwork(input_dim=input_dim, grid_size=grid_size, output_dim=output_dim)
+        test_input = torch.randn((5, input_dim, grid_size, grid_size))  # Batch of 5 inputs
+        output = model(test_input)
+
+        self.assertEqual(output.shape, (5, output_dim), "Output shape is incorrect.")
+
+    def test_gradient_flow(self):
+        """Confirm that gradients flow correctly during backpropagation."""
+        input_dim, grid_size, output_dim = 1, 3, 9
+        model = CNNQNetwork(input_dim=input_dim, grid_size=grid_size, output_dim=output_dim)
+        test_input = torch.randn((5, input_dim, grid_size, grid_size))
+        target = torch.randn((5, output_dim))
+
+        criterion = torch.nn.MSELoss()
+        optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+
+        optimizer.zero_grad()
+        output = model(test_input)
+        loss = criterion(output, target)
+        loss.backward()
+
+        for param in model.parameters():
+            self.assertIsNotNone(param.grad, "Parameter does not have gradients.")
+            self.assertTrue((param.grad != 0).any(), "Parameter gradients should not be zero.")
+
+    def test_parameter_count(self):
+        """Verify that the number of trainable parameters is as expected."""
+        input_dim, grid_size, output_dim = 1, 3, 9
+        model = CNNQNetwork(input_dim=input_dim, grid_size=grid_size, output_dim=output_dim)
+        total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+
+        # Calculate expected parameters
+        conv1_params = (input_dim * 32 * 3 * 3) + 32
+        conv2_params = (32 * 64 * 3 * 3) + 64
+        conv3_params = (64 * 64 * 3 * 3) + 64
+        fc1_params = (64 * grid_size * grid_size * 128) + 128
+        fc2_params = (128 * output_dim) + output_dim
+        expected_params = conv1_params + conv2_params + conv3_params + fc1_params + fc2_params
+
+        self.assertEqual(total_params, expected_params, "The number of trainable parameters is incorrect.")
+
+
 class TestDeepQLearningAgent(unittest.TestCase):
     """Tests for the DeepQLearningAgent class."""
 
@@ -197,7 +262,7 @@ class TestDeepQLearningAgent(unittest.TestCase):
             "wandb": False,
             "load_network": False,
             "shared_replay_buffer": False,
-            "equivariant_network": False,
+            "network_type": "FCN",
         }
         self.agent = DeepQLearningAgent(self.params)
 

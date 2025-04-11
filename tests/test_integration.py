@@ -42,7 +42,7 @@ class TestIntegration(unittest.TestCase):
             "wandb": False,
             "load_network": False,
             "shared_replay_buffer": False,
-            "equivariant_network": False,
+            "network_type": "FCN",
         }
         agent1 = DeepQLearningAgent(params)
         agent2 = RandomAgent(player="O")

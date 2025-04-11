@@ -1,6 +1,6 @@
 from typing import Any, Dict, List, Literal, MutableSequence, Tuple
 
-import numpy as np
+from numpy.typing import NDArray
 
 Action = int
 Actions = List[int]
@@ -17,7 +17,7 @@ Outcome = Literal["X", "O", "D"] | None
 
 Reward = float
 
-State = np.ndarray[Any, Any]
+State = NDArray[Any]  # Accept any dtype
 
 StateTransition = Tuple[Board | None, Reward, bool]
 StateTransitions = List[StateTransition]

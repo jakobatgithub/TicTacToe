@@ -217,7 +217,7 @@ class FullyConvQNetwork(nn.Module):
         Returns:
             q_map: Tensor of shape (batch_size, rows*rows) – one Q-value per cell
         """
-        return self.conv_layers(x) # .view(x.size(0), -1)  # Flatten the output to (batch_size, rows*rows)
+        return self.conv_layers(x).view(x.size(0), -1)  # Flatten the output to (batch_size, rows*rows)
 
 class DeepQLearningAgent(Agent):
     """

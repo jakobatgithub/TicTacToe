@@ -84,7 +84,7 @@ These options provide flexibility for experimenting with different configuration
    ```bash
    python3 -m venv .venv
    source .venv/bin/activate
-   pip install .
+   pip install -e .
    ```
 3. **Tkinter must be installed**:
    ```bash
@@ -106,6 +106,14 @@ These options provide flexibility for experimenting with different configuration
    ```bash
    python train_and_play/play_O_against_model.py
    ```
+
+## 🧪 Testing
+
+To run tests with coverage support, run
+```bash
+pytest --cov=TicTacToe
+```
+in the virtual environment.
 
 ## 📜 License
 

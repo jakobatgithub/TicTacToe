@@ -66,7 +66,7 @@ params: dict[str, Any] = {
 
 rows = 3
 win_length = 3
-nr_of_episodes = 10
+nr_of_episodes = 10000
 evaluation_frequency = 50
 params["nr_of_episodes"] = nr_of_episodes
 params["rows"] = rows

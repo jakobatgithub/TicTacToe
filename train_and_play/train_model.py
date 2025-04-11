@@ -49,10 +49,10 @@ params: dict[str, Any] = {
     "wandb_logging_frequency": 25,  # wandb logging frequency
     "load_network": False,  # file name for loading a PyTorch network
     "shared_replay_buffer": False,  # shared replay buffer
-    "equivariant_network": False,  # flag for using equivariant network
+    "network_type": "CNN",  # flag for network type, 'FCN' or 'CNN' or 'Equivariant'
 }
 
-rows = 3
+rows = 7
 win_length = 3
 nr_of_episodes = 10000
 evaluation_frequency = 50

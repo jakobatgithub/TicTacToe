@@ -148,6 +148,52 @@ class QNetwork(nn.Module):
         return self.fc(x)
 
 
+class CNNQNetwork(nn.Module):
+    """
+    A convolutional neural network for approximating the Q-function.
+    """
+
+    def __init__(self, input_dim: int, grid_size: int, output_dim: int) -> None:
+        """
+        Initialize the CNNQNetwork.
+
+        Args:
+            input_dim: Dimension of the input state (e.g., number of channels).
+            grid_size: Size of the grid (e.g., 3 for 3x3 grid).
+            output_dim: Dimension of the output actions.
+        """
+        super(CNNQNetwork, self).__init__() # type: ignore
+        self.conv_layers = nn.Sequential(
+            nn.Conv2d(in_channels=input_dim, out_channels=32, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(),
+            nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(),
+            nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(),
+        )
+
+        self.fc_layers = nn.Sequential(
+            nn.Flatten(),
+            nn.Linear(64 * grid_size * grid_size, 128),
+            nn.ReLU(),
+            nn.Linear(128, output_dim),
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Forward pass of the CNNQNetwork.
+
+        Args:
+            x: Input tensor of shape (batch_size, input_dim, grid_size, grid_size).
+
+        Returns:
+            Output tensor of shape (batch_size, output_dim).
+        """
+        x = self.conv_layers(x)
+        x = self.fc_layers(x)
+        return x
+
+
 class DeepQLearningAgent(Agent):
     """
     A Deep Q-Learning agent for playing Tic Tac Toe.
@@ -196,7 +242,7 @@ class DeepQLearningAgent(Agent):
         Bs = [B0, B1, B2, B3, B4, B5, B6, B7]
         self.groupMatrices = [np.array(B) for B in Bs]
 
-        if params["equivariant_network"]:
+        if params["network_type"] == "Equivariant":
             if self.rows % 2 != 1:
                 raise ValueError("Equivariant network only works for odd number of rows")
 
@@ -204,7 +250,11 @@ class DeepQLearningAgent(Agent):
             ms = (ms0, 3, 3, ms0)
             self.q_network = EquivariantNN(self.groupMatrices, ms=ms).to(self.device)
             self.target_network = EquivariantNN(self.groupMatrices, ms=ms).to(self.device)
-        else:
+        elif params["network_type"] == "CNN":
+            (state_size, action_size) = (1, self.rows**2)  # Single channel for board state
+            self.q_network = CNNQNetwork(input_dim=state_size, grid_size=self.rows, output_dim=action_size).to(self.device)
+            self.target_network = CNNQNetwork(input_dim=state_size, grid_size=self.rows, output_dim=action_size).to(self.device)
+        elif params["network_type"] == "FCN":
             (state_size, action_size) = (self.rows**2, self.rows**2)
             self.q_network = QNetwork(state_size, action_size).to(self.device)
             self.target_network = QNetwork(state_size, output_dim=action_size).to(self.device)

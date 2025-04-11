@@ -11,14 +11,17 @@ Usage:
 Run the script to start the game. The human player will make moves as 'X', and the agent will respond as 'O'.
 """
 
-# import torch
+from pathlib import Path
+
 from TicTacToe.TicTacToe import TicTacToe
 from TicTacToe.DeepQAgent import DeepQPlayingAgent
 from TicTacToe.Agent import HumanAgent
 from TicTacToe.Display import ScreenDisplay
 
 # Load the model
-model_path = "./models/q_network_3x3x3_O.pth"  # Change this path to the desired model
+script_dir = Path(__file__).resolve().parent
+relative_folder = (script_dir / '../models').resolve()
+model_path = f"{relative_folder}/q_network_3x3x3_X.pth"  # Change this path to the desired model
 
 # Set up the game
 rows = 3

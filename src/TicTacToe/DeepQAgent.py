@@ -194,6 +194,31 @@ class CNNQNetwork(nn.Module):
         return x
 
 
+class FullyConvQNetwork(nn.Module):
+    def __init__(self, input_dim: int):
+        """
+        Args:
+            input_dim: number of input channels
+        """
+        super().__init__()
+        self.conv_layers = nn.Sequential(
+            nn.Conv2d(input_dim, 32, kernel_size=3, stride=1, padding=1, padding_mode='circular'),
+            nn.ReLU(),
+            nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1, padding_mode='circular'),
+            nn.ReLU(),
+            nn.Conv2d(64, 1, kernel_size=3, stride=1, padding=1, padding_mode='circular')
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Args:
+            x: Tensor of shape (batch_size, input_dim, rows, rows)
+
+        Returns:
+            q_map: Tensor of shape (batch_size, rows*rows) – one Q-value per cell
+        """
+        return self.conv_layers(x).view(x.size(0), -1)  # Flatten the output to (batch_size, rows*rows)
+
 class DeepQLearningAgent(Agent):
     """
     A Deep Q-Learning agent for playing Tic Tac Toe.
@@ -258,6 +283,9 @@ class DeepQLearningAgent(Agent):
             (state_size, action_size) = (self.rows**2, self.rows**2)
             self.q_network = QNetwork(state_size, action_size).to(self.device)
             self.target_network = QNetwork(state_size, output_dim=action_size).to(self.device)
+        elif params["network_type"] == "FullyCNN":
+            self.q_network = FullyConvQNetwork(input_dim=1).to(self.device)
+            self.target_network = FullyConvQNetwork(input_dim=1).to(self.device)
 
         self.target_network.load_state_dict(self.q_network.state_dict())
         self.target_network.eval()
@@ -559,7 +587,7 @@ class DeepQLearningAgent(Agent):
             The best action.
         """
         state = self.board_to_state(board)
-        state_tensor = torch.FloatTensor(state).unsqueeze(0).to(self.device)
+        state_tensor = torch.FloatTensor(state).to(self.device)
         with torch.no_grad():
             q_values = QNet(state_tensor).squeeze()
             max_q = torch.max(q_values)
@@ -567,7 +595,7 @@ class DeepQLearningAgent(Agent):
             self.evaluation_data["action_value"].append(max_q)
 
             max_q_indices = torch.nonzero(q_values == max_q, as_tuple=False)
-            if len(max_q_indices) > 1:
+            if max_q_indices.size(0) > 1:
                 action = int(max_q_indices[torch.randint(len(max_q_indices), (1,))].item())
             else:
                 action = int(max_q_indices)
@@ -665,12 +693,12 @@ class DeepQPlayingAgent(Agent):
             The best action.
         """
         state = self.board_to_state(board)
-        state_tensor = torch.FloatTensor(state).unsqueeze(0).to(self.device)
+        state_tensor = torch.FloatTensor(state).to(self.device)
         with torch.no_grad():
             q_values = QNet(state_tensor).squeeze()
             max_q = torch.max(q_values)
             max_q_indices = torch.nonzero(q_values == max_q, as_tuple=False)
-            if len(max_q_indices) > 1:
+            if max_q_indices.size(0) > 1:
                 action = int(max_q_indices[torch.randint(len(max_q_indices), (1,))].item())
             else:
                 action = int(max_q_indices)

@@ -8,7 +8,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from TicTacToe.DeepQAgent import DeepQLearningAgent, DeepQPlayingAgent, QNetwork, CNNQNetwork, ReplayBuffer
+from TicTacToe.DeepQAgent import DeepQLearningAgent, DeepQPlayingAgent, QNetwork, CNNQNetwork, ReplayBuffer, FullyConvQNetwork
 
 
 class TestReplayBuffer(unittest.TestCase):
@@ -238,6 +238,90 @@ class TestCNNQNetwork(unittest.TestCase):
         expected_params = conv1_params + conv2_params + conv3_params + fc1_params + fc2_params
 
         self.assertEqual(total_params, expected_params, "The number of trainable parameters is incorrect.")
+
+
+class TestFullyCNNQNetwork(unittest.TestCase):
+    """Tests for the FullyConvQNetwork class."""
+
+    def test_output_dimensions(self):
+        """Test that the output dimension is correct."""
+        batch_size, input_dim, rows = 1, 1, 5  # Example grid size
+        model = FullyConvQNetwork(input_dim=input_dim)
+
+        # Create a test input tensor
+        test_input = torch.zeros((batch_size, input_dim, rows, rows))
+        test_input[0, 0, 2, 2] = 1.0  # Set a single active cell in the center
+        output = model(test_input)
+        self.assertEqual(output.shape, (batch_size, rows * rows), "Output shape is incorrect.")
+
+    def test_shift_invariance(self):
+        """Test that shifting the input and then applying conv_layers yields the same result as applying conv_layers and then shifting the output."""
+        batch_size, input_dim, rows = 1, 1, 5  # Example grid size
+        model = FullyConvQNetwork(input_dim=input_dim)
+
+        # Create a test input tensor
+        test_input = torch.zeros((batch_size, input_dim, rows, rows))
+        test_input[0, 0, 2, 2] = 1.0  # Set a single active cell in the center
+
+        # Define a shift (x, y)
+        shift_x, shift_y = 1, 2
+
+        # Shift the input tensor
+        shifted_input = torch.roll(test_input, shifts=(shift_x, shift_y), dims=(2, 3))
+
+        # Apply conv_layers to both the original and shifted inputs
+        original_output = model.conv_layers(test_input)
+        shifted_output = model.conv_layers(shifted_input)
+
+        # Shift the original output by the same (x, y) vector
+        shifted_original_output = torch.roll(original_output, shifts=(shift_x, shift_y), dims=(2, 3))
+
+        # Compare the results
+        self.assertTrue(
+            torch.allclose(shifted_output, shifted_original_output, atol=1e-3),
+            "Shifting the input and then applying conv_layers should yield the same result as applying conv_layers and then shifting the output.",
+        )
+
+    def test_random_input(self):
+        """Test that the network produces consistent outputs for the same random input."""
+        batch_size, input_dim, rows = 1, 1, 5  # Example grid size
+        model = FullyConvQNetwork(input_dim=input_dim)
+
+        # Create a random input tensor
+        test_input = torch.randn((batch_size, input_dim, rows, rows))
+
+        # Apply the network twice
+        output1 = model(test_input)
+        output2 = model(test_input)
+
+        # Assert that the outputs are identical
+        self.assertTrue(torch.allclose(output1, output2, atol=1e-5), "Outputs should be consistent for the same input.")
+
+    def test_gradient_flow(self):
+        """Test that gradients flow correctly during backpropagation."""
+        batch_size, input_dim, rows = 1, 1, 5  # Example grid size
+        model = FullyConvQNetwork(input_dim=input_dim)
+
+        # Create a random input tensor
+        test_input = torch.randn((batch_size, input_dim, rows, rows), requires_grad=True)
+        target = torch.randn((batch_size, rows * rows))
+
+        # Define a loss function and optimizer
+        criterion = nn.MSELoss()
+        optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+
+        # Perform a forward pass
+        optimizer.zero_grad()
+        output = model(test_input)
+        loss = criterion(output, target)
+
+        # Perform a backward pass
+        loss.backward()
+
+        # Check that gradients exist for all parameters
+        for param in model.parameters():
+            self.assertIsNotNone(param.grad, "Parameter does not have gradients.")
+            self.assertTrue((param.grad != 0).any(), "Parameter gradients should not be zero.")
 
 
 class TestDeepQLearningAgent(unittest.TestCase):

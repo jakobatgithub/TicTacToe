@@ -163,6 +163,8 @@ class CNNQNetwork(nn.Module):
             output_dim: Dimension of the output actions.
         """
         super(CNNQNetwork, self).__init__() # type: ignore
+        self.grid_size = grid_size
+
         self.conv_layers = nn.Sequential(
             nn.Conv2d(in_channels=input_dim, out_channels=32, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
@@ -189,8 +191,10 @@ class CNNQNetwork(nn.Module):
         Returns:
             Output tensor of shape (batch_size, output_dim).
         """
+        x = x.view(-1, 1, self.grid_size, self.grid_size)
         x = self.conv_layers(x)
         x = self.fc_layers(x)
+        x = x.view(-1, self.grid_size * self.grid_size)  # Flatten the output to (batch_size, rows*rows)
         return x
 
 

@@ -74,6 +74,7 @@ build-backend = "poetry.core.masonry.api"
 [tool.ruff]
 # Set the maximum line length to 79.
 line-length = 120
+exclude = ["**/*.ipynb"]
 
 [tool.coverage.run]
 omit = [

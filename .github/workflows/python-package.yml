@@ -58,3 +58,21 @@ jobs:
           DEFAULT_BUMP: patch  # or minor, major
           WITH_V: true         # creates tags like v1.2.3
       
+      - name: Extract version from tag
+        id: extract_version
+        run: |
+          TAG=${GITHUB_REF##*/}
+          VERSION="${TAG#v}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+    
+      - name: Update pyproject.toml version
+        run: |
+          sed -i "s/^version = \".*\"/version = \"${{ steps.extract_version.outputs.version }}\"/" pyproject.toml
+      
+      - name: Commit updated pyproject.toml
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add pyproject.toml
+          git commit -m "chore: update pyproject.toml to version ${{ steps.extract_version.outputs.version }}"
+          git push origin main          

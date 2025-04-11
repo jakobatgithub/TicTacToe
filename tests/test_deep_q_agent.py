@@ -8,7 +8,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from TicTacToe.DeepQAgent import DeepQLearningAgent, DeepQPlayingAgent, QNetwork, CNNQNetwork, ReplayBuffer
+from TicTacToe.DeepQAgent import DeepQLearningAgent, DeepQPlayingAgent, QNetwork, CNNQNetwork, ReplayBuffer, FullyConvQNetwork
 
 
 class TestReplayBuffer(unittest.TestCase):
@@ -238,6 +238,51 @@ class TestCNNQNetwork(unittest.TestCase):
         expected_params = conv1_params + conv2_params + conv3_params + fc1_params + fc2_params
 
         self.assertEqual(total_params, expected_params, "The number of trainable parameters is incorrect.")
+
+
+class TestFullyCNNQNetwork(unittest.TestCase):
+    """Tests for the FullyCNNQNetwork class."""
+
+    # def test_output_dimensions(self):
+    #     """Test that shifting the input and then applying conv_layers yields the same result as applying conv_layers and then shifting the output."""
+    #     batch_size, input_dim, rows = 1, 1, 5 # Example grid size
+    #     model = FullyConvQNetwork(input_dim=1)
+
+    #     # Create a test input tensor
+    #     test_input = torch.zeros((batch_size, input_dim, rows, rows))
+    #     test_input[0, 0, 2, 2] = 1.0  # Set a single active cell in the center
+
+    def test_shift_invariance(self):
+        """Test that shifting the input and then applying conv_layers yields the same result as applying conv_layers and then shifting the output."""
+        batch_size, input_dim, rows = 1, 1, 5 # Example grid size
+        model = FullyConvQNetwork(input_dim=1)
+
+        # Create a test input tensor
+        test_input = torch.zeros((batch_size, input_dim, rows, rows))
+        test_input[0, 0, 2, 2] = 1.0  # Set a single active cell in the center
+
+        # Define a shift (x, y)
+        shift_x, shift_y = 1, 2
+
+        # Shift the input tensor
+        shifted_input = torch.roll(test_input, shifts=(shift_x, shift_y), dims=(2, 3))
+
+        # Apply conv_layers to both the original and shifted inputs
+        original_output = model.conv_layers(test_input)
+        shifted_output = model.conv_layers(shifted_input)
+
+        # Shift the original output by the same (x, y) vector
+        # shifted_original_output = torch.roll(original_output.view(batch_size, rows, rows), shifts=(shift_x, shift_y), dims=(1, 2)).view(batch_size, rows * rows)
+        shifted_original_output = torch.roll(original_output, shifts=(shift_x, shift_y), dims=(2, 3))
+
+        print(f"dims = {shifted_original_output.shape}")
+        print(f"sum = {torch.sum(torch.abs(shifted_original_output - shifted_output))}")
+
+        # Compare the results
+        self.assertTrue(
+            torch.allclose(shifted_output, shifted_original_output, atol=1e-3),
+            "Shifting the input and then applying conv_layers should yield the same result as applying conv_layers and then shifting the output.",
+        )
 
 
 class TestDeepQLearningAgent(unittest.TestCase):

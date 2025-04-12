@@ -56,11 +56,12 @@ params: dict[str, Any] = {
     "shared_replay_buffer": False,  # shared replay buffer
     "network_type": "FullyCNN",  # flag for network type, 'FCN' or 'CNN' or 'Equivariant' or 'FullyCNN'
     "periodic": True,  # periodic boundary conditions
+    "save_models": False # save models
 }
 
 # Define parameter sweep ranges
 param_sweep = {
-    "rows": [3],
+    "rows": [5],
     "win_length": [3],
     # "rows": [3, 5],
     # "win_length": [3, 4],
@@ -123,6 +124,14 @@ for sweep_idx, combination in enumerate(sweep_combinations):
     paramsX["wandb"] = True
     paramsO["wandb"] = False
 
+    script_dir = Path(__file__).resolve().parent
+    relative_folder = (script_dir / '../models/all_models').resolve()
+    model_path_X = f"{relative_folder}/q_network_3x3x3_X.pth"
+    model_path_O = f"{relative_folder}/q_network_3x3x3_O.pth"
+
+    paramsX["load_network"] = model_path_X
+    paramsO["load_network"] = model_path_O
+
     outcomes = {"X": 0, "O": 0, "D": 0}
 
     learning_agent1 = DeepQLearningAgent(paramsX)
@@ -154,23 +163,24 @@ for sweep_idx, combination in enumerate(sweep_combinations):
         )
 
     finally:
-        # Save the models with recognizable filenames
-        model_X_filename = f"q_network_{rows}x{rows}x{win_length}_X.pth"
-        model_O_filename = f"q_network_{rows}x{rows}x{win_length}_O.pth"
+        if params["save_models"]:
+            # Save the models with recognizable filenames
+            model_X_filename = f"q_network_{rows}x{rows}x{win_length}_X.pth"
+            model_O_filename = f"q_network_{rows}x{rows}x{win_length}_O.pth"
 
-        torch.save(learning_agent1.q_network, all_models_folder / model_X_filename) # type: ignore
-        torch.save(learning_agent2.q_network, all_models_folder / model_O_filename) # type: ignore
+            torch.save(learning_agent1.q_network, all_models_folder / model_X_filename) # type: ignore
+            torch.save(learning_agent2.q_network, all_models_folder / model_O_filename) # type: ignore
 
-        # Append metadata to the list
-        model_metadata.append({
-            "model_X": model_X_filename,
-            "model_O": model_O_filename,
-            "parameters": params.copy(),
-            # "wandb_runs": wandb_runs
-        })
+            # Append metadata to the list
+            model_metadata.append({
+                "model_X": model_X_filename,
+                "model_O": model_O_filename,
+                "parameters": params.copy(),
+                # "wandb_runs": wandb_runs
+            })
 
-        # Save metadata to file after every iteration
-        with open(metadata_file, "w") as f:
-            json.dump(model_metadata, f, indent=4)
+            # Save metadata to file after every iteration
+            with open(metadata_file, "w") as f:
+                json.dump(model_metadata, f, indent=4)
 
     wandb.finish()

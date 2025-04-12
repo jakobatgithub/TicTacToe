@@ -20,7 +20,7 @@ from TicTacToe.Display import ScreenDisplay
 
 # Load the model
 script_dir = Path(__file__).resolve().parent
-relative_folder = (script_dir / '../models').resolve()
+relative_folder = (script_dir / '../models/all_models').resolve()
 model_path = f"{relative_folder}/q_network_3x3x3_X.pth"  # Change this path to the desired model
 
 # Set up the game
@@ -30,7 +30,7 @@ agent1 = DeepQPlayingAgent(q_network=model_path, player="O")
 agent2 = HumanAgent(player="X")
 display = ScreenDisplay(rows=rows, cols=rows, waiting_time=0.5)
 
-game = TicTacToe(agent1, agent2, display=display, rows=rows, cols=rows, win_length=win_length)
+game = TicTacToe(agent1, agent2, display=display, rows=rows, cols=rows, win_length=win_length, periodic=True)
 
 # Play the game
 game.play()

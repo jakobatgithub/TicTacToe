@@ -275,25 +275,29 @@ class DeepQLearningAgent(Agent):
         Bs = [B0, B1, B2, B3, B4, B5, B6, B7]
         self.groupMatrices = [np.array(B) for B in Bs]
 
-        if params["network_type"] == "Equivariant":
-            if self.rows % 2 != 1:
-                raise ValueError("Equivariant network only works for odd number of rows")
+        if params["load_network"]:
+            self.q_network = torch.load(params["load_network"], weights_only=False).to(self.device)
+            self.target_network = torch.load(params["load_network"], weights_only=False).to(self.device)
+        else:
+            if params["network_type"] == "Equivariant":
+                if self.rows % 2 != 1:
+                    raise ValueError("Equivariant network only works for odd number of rows")
 
-            ms0 = (self.rows - 1) / 2
-            ms = (ms0, 3, 3, ms0)
-            self.q_network = EquivariantNN(self.groupMatrices, ms=ms).to(self.device)
-            self.target_network = EquivariantNN(self.groupMatrices, ms=ms).to(self.device)
-        elif params["network_type"] == "CNN":
-            (state_size, action_size) = (1, self.rows**2)  # Single channel for board state
-            self.q_network = CNNQNetwork(input_dim=state_size, grid_size=self.rows, output_dim=action_size).to(self.device)
-            self.target_network = CNNQNetwork(input_dim=state_size, grid_size=self.rows, output_dim=action_size).to(self.device)
-        elif params["network_type"] == "FCN":
-            (state_size, action_size) = (self.rows**2, self.rows**2)
-            self.q_network = QNetwork(state_size, action_size).to(self.device)
-            self.target_network = QNetwork(state_size, output_dim=action_size).to(self.device)
-        elif params["network_type"] == "FullyCNN":
-            self.q_network = FullyConvQNetwork(input_dim=1, grid_size=self.rows).to(self.device)
-            self.target_network = FullyConvQNetwork(input_dim=1, grid_size=self.rows).to(self.device)
+                ms0 = (self.rows - 1) / 2
+                ms = (ms0, 3, 3, ms0)
+                self.q_network = EquivariantNN(self.groupMatrices, ms=ms).to(self.device)
+                self.target_network = EquivariantNN(self.groupMatrices, ms=ms).to(self.device)
+            elif params["network_type"] == "CNN":
+                (state_size, action_size) = (1, self.rows**2)  # Single channel for board state
+                self.q_network = CNNQNetwork(input_dim=state_size, grid_size=self.rows, output_dim=action_size).to(self.device)
+                self.target_network = CNNQNetwork(input_dim=state_size, grid_size=self.rows, output_dim=action_size).to(self.device)
+            elif params["network_type"] == "FCN":
+                (state_size, action_size) = (self.rows**2, self.rows**2)
+                self.q_network = QNetwork(state_size, action_size).to(self.device)
+                self.target_network = QNetwork(state_size, output_dim=action_size).to(self.device)
+            elif params["network_type"] == "FullyCNN":
+                self.q_network = FullyConvQNetwork(input_dim=1, grid_size=self.rows).to(self.device)
+                self.target_network = FullyConvQNetwork(input_dim=1, grid_size=self.rows).to(self.device)
 
         self.target_network.load_state_dict(self.q_network.state_dict())
         self.target_network.eval()

@@ -42,6 +42,7 @@ params: dict[str, Any] = {
     "learning_rate": 0.0001,  # learning rate
     "gamma": 0.95,  # discount factor
     "switching": True,  # switch between X and O
+    "win_length": 3,  # number of symbols in a row to win
 
     # Parameters for DeepQAgent
     "batch_size": 256,  # batch size for deep learning
@@ -54,6 +55,7 @@ params: dict[str, Any] = {
     "load_network": False,  # file name for loading a PyTorch network
     "shared_replay_buffer": False,  # shared replay buffer
     "network_type": "CNN",  # flag for network type, 'FCN' or 'CNN' or 'Equivariant' or 'FullyCNN'
+    "periodic": True,  # periodic boundary conditions
 }
 
 # Define parameter sweep ranges
@@ -126,7 +128,7 @@ for sweep_idx, combination in enumerate(sweep_combinations):
     learning_agent1 = DeepQLearningAgent(paramsX)
     learning_agent2 = DeepQLearningAgent(paramsO)
 
-    game = TicTacToe(learning_agent1, learning_agent2, display=None, rows=rows, cols=rows, win_length=win_length)
+    game = TicTacToe(learning_agent1, learning_agent2, display=None, rows=rows, cols=rows, win_length=win_length, periodic=params["periodic"])
 
     try:
         for episode in tqdm(range(nr_of_episodes)):
@@ -142,7 +144,8 @@ for sweep_idx, combination in enumerate(sweep_combinations):
                     rows=rows,
                     win_length=win_length,
                     wandb_logging=paramsX["wandb"] or paramsO["wandb"],
-                    device = params["device"]
+                    device = params["device"],
+                    periodic=params["periodic"]
                 )
 
         print(f"Outcomes during learning for sweep {sweep_idx + 1}:")

@@ -194,12 +194,13 @@ def evaluate_performance(
     win_length: int = 3,
     wandb_logging: bool = True,
     device: str = "cpu",
+    periodic: bool = False,
 ) -> None:
     q_network1 = learning_agent1.q_network
     playing_agent1 = DeepQPlayingAgent(q_network1, player="X", switching=False, device=device)
     random_agent2 = RandomAgent(player="O", switching=False)
 
-    game = TicTacToe(playing_agent1, random_agent2, display=None, rows=rows, cols=rows, win_length=win_length)
+    game = TicTacToe(playing_agent1, random_agent2, display=None, rows=rows, cols=rows, win_length=win_length, periodic=periodic)
     nr_of_episodes = nr_of_episodes
     outcomes = {"X": 0, "O": 0, "D": 0}
     for _ in range(nr_of_episodes):
@@ -221,7 +222,7 @@ def evaluate_performance(
     playing_agent2 = DeepQPlayingAgent(q_network2, player="O", switching=False, device=device)
     random_agent1 = RandomAgent(player="X", switching=False)
 
-    game = TicTacToe(random_agent1, playing_agent2, display=None, rows=rows, cols=rows, win_length=win_length)
+    game = TicTacToe(random_agent1, playing_agent2, display=None, rows=rows, cols=rows, win_length=win_length, periodic=periodic)
     nr_of_episodes = nr_of_episodes
     outcomes = {"X": 0, "O": 0, "D": 0}
     for _ in range(nr_of_episodes):

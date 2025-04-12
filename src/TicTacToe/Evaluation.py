@@ -218,7 +218,7 @@ def evaluate_performance(
         )
 
     q_network2 = learning_agent2.q_network
-    playing_agent2 = DeepQPlayingAgent(q_network2, player="O", switching=False)
+    playing_agent2 = DeepQPlayingAgent(q_network2, player="O", switching=False, device=device)
     random_agent1 = RandomAgent(player="X", switching=False)
 
     game = TicTacToe(random_agent1, playing_agent2, display=None, rows=rows, cols=rows, win_length=win_length)

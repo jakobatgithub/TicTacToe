@@ -81,23 +81,6 @@ all_models_folder = (script_dir / '../models/all_models').resolve()
 if not all_models_folder.exists():
     all_models_folder.mkdir(parents=True)
 
-# Function to collect wandb run data
-def collect_wandb_data(wandb_dir):
-    wandb_data = []
-    for root, dirs, files in os.walk(wandb_dir):
-        for dir_name in dirs:
-            run_path = os.path.join(root, dir_name)
-            if os.path.isfile(os.path.join(run_path, "config.yaml")):
-                wandb_data.append({
-                    "run_id": dir_name,
-                    "path": run_path
-                })
-    return wandb_data
-
-# Collect wandb data
-wandb_dir = script_dir / '../wandb'
-wandb_runs = collect_wandb_data(wandb_dir)
-
 # Create a list to store filenames and corresponding parameter values
 model_metadata = []
 

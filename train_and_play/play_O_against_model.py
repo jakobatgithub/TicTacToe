@@ -20,8 +20,8 @@ from TicTacToe.Display import ScreenDisplay
 
 # Load the model
 script_dir = Path(__file__).resolve().parent
-relative_folder = (script_dir / '../models').resolve()
-model_path = f"{relative_folder}/q_network_3x3x3_X.pth"  # Change this path to the desired model
+relative_folder = (script_dir / '../models//all_models').resolve()
+model_path = f"{relative_folder}/q_network_3x3x3_O.pth"
 
 # Set up the game
 rows = 3

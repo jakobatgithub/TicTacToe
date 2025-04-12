@@ -2,8 +2,126 @@ from itertools import product
 from typing import Any, Dict, List, Tuple
 
 import numpy as np
+
 import torch
 import torch.nn as nn
+
+
+class QNetwork(nn.Module):
+    """
+    A neural network for approximating the Q-function.
+    """
+
+    def __init__(self, input_dim: int, output_dim: int) -> None:
+        """
+        Initialize the QNetwork.
+
+        Args:
+            input_dim: Dimension of the input state.
+            output_dim: Dimension of the output actions.
+        """
+        super(QNetwork, self).__init__()  # type: ignore
+        self.fc = nn.Sequential(
+            nn.Linear(input_dim, out_features=49),
+            nn.ReLU(),
+            nn.Linear(49, 49),
+            nn.ReLU(),
+            nn.Linear(49, output_dim),
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Forward pass of the QNetwork.
+
+        Args:
+            x: Input tensor.
+
+        Returns:
+            Output tensor.
+        """
+        return self.fc(x)
+
+
+class CNNQNetwork(nn.Module):
+    """
+    A convolutional neural network for approximating the Q-function.
+    """
+
+    def __init__(self, input_dim: int, rows: int, output_dim: int) -> None:
+        """
+        Initialize the CNNQNetwork.
+
+        Args:
+            input_dim: Dimension of the input state (e.g., number of channels).
+            rows: Size of the grid (e.g., 3 for 3x3 grid).
+            output_dim: Dimension of the output actions.
+        """
+        super(CNNQNetwork, self).__init__() # type: ignore
+        self.rows = rows
+
+        self.conv_layers = nn.Sequential(
+            nn.Conv2d(in_channels=input_dim, out_channels=32, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(),
+            nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(),
+            nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(),
+        )
+
+        self.fc_layers = nn.Sequential(
+            nn.Flatten(),
+            nn.Linear(64 * rows * rows, 128),
+            nn.ReLU(),
+            nn.Linear(128, output_dim),
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Forward pass of the CNNQNetwork.
+
+        Args:
+            x: Input tensor of shape (batch_size, input_dim, grid_size, grid_size).
+
+        Returns:
+            Output tensor of shape (batch_size, output_dim).
+        """
+        x = x.view(-1, 1, self.rows, self.rows)
+        x = self.conv_layers(x)
+        x = self.fc_layers(x)
+        x = x.view(-1, self.rows * self.rows)  # Flatten the output to (batch_size, rows*rows)
+        return x
+
+
+class FullyConvQNetwork(nn.Module):
+    def __init__(self, input_dim: int, rows: int):
+        """
+        Args:
+            input_dim: Dimension of the input state (e.g., number of channels).
+            rows: Size of the grid (e.g., 3 for 3x3 grid).
+        """
+        super().__init__()
+        self.rows = rows
+        self.conv_layers = nn.Sequential(
+            nn.Conv2d(input_dim, 32, kernel_size=3, stride=1, padding=1, padding_mode='circular'),
+            nn.ReLU(),
+            nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1, padding_mode='circular'),
+            nn.ReLU(),
+            nn.Conv2d(64, 1, kernel_size=3, stride=1, padding=1, padding_mode='circular')
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Args:
+            x: Tensor of shape (batch_size, input_dim, rows, rows)
+
+        Returns:
+            q_map: Tensor of shape (batch_size, rows*rows) – one Q-value per cell
+        """
+        x = x.view(-1, 1, self.rows, self.rows)
+        x = self.conv_layers(x)
+        x = self.conv_layers(x)
+        x = x.view(-1, self.rows * self.rows)  # Flatten the output to (batch_size, rows*rows)
+        return x
 
 
 def permutation_matrix(permutation: list[Any]) -> np.ndarray[Any, Any]:

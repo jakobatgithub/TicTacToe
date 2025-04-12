@@ -8,7 +8,8 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from TicTacToe.DeepQAgent import DeepQLearningAgent, DeepQPlayingAgent, QNetwork, CNNQNetwork, ReplayBuffer, FullyConvQNetwork
+from TicTacToe.DeepQAgent import DeepQLearningAgent, DeepQPlayingAgent, ReplayBuffer
+from TicTacToe.QNetworks import QNetwork, CNNQNetwork, FullyConvQNetwork
 
 
 class TestReplayBuffer(unittest.TestCase):
@@ -181,7 +182,7 @@ class TestCNNQNetwork(unittest.TestCase):
     def test_initialization(self):
         """Test CNNQNetwork initialization with correct input and output dimensions."""
         input_dim, grid_size, output_dim = 1, 3, 9
-        model = CNNQNetwork(input_dim=input_dim, grid_size=grid_size, output_dim=output_dim)
+        model = CNNQNetwork(input_dim=input_dim, rows=grid_size, output_dim=output_dim)
 
         self.assertEqual(
             model.conv_layers[0].in_channels, input_dim, "Input channels of the first convolutional layer are incorrect."
@@ -198,7 +199,7 @@ class TestCNNQNetwork(unittest.TestCase):
     def test_forward_pass(self):
         """Ensure the forward pass produces output of the correct shape."""
         input_dim, grid_size, output_dim = 1, 3, 9
-        model = CNNQNetwork(input_dim=input_dim, grid_size=grid_size, output_dim=output_dim)
+        model = CNNQNetwork(input_dim=input_dim, rows=grid_size, output_dim=output_dim)
         test_input = torch.randn((5, input_dim, grid_size, grid_size))  # Batch of 5 inputs
         output = model(test_input)
 
@@ -207,7 +208,7 @@ class TestCNNQNetwork(unittest.TestCase):
     def test_gradient_flow(self):
         """Confirm that gradients flow correctly during backpropagation."""
         input_dim, grid_size, output_dim = 1, 3, 9
-        model = CNNQNetwork(input_dim=input_dim, grid_size=grid_size, output_dim=output_dim)
+        model = CNNQNetwork(input_dim=input_dim, rows=grid_size, output_dim=output_dim)
         test_input = torch.randn((5, input_dim, grid_size, grid_size))
         target = torch.randn((5, output_dim))
 
@@ -226,7 +227,7 @@ class TestCNNQNetwork(unittest.TestCase):
     def test_parameter_count(self):
         """Verify that the number of trainable parameters is as expected."""
         input_dim, grid_size, output_dim = 1, 3, 9
-        model = CNNQNetwork(input_dim=input_dim, grid_size=grid_size, output_dim=output_dim)
+        model = CNNQNetwork(input_dim=input_dim, rows=grid_size, output_dim=output_dim)
         total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
 
         # Calculate expected parameters
@@ -246,7 +247,7 @@ class TestFullyCNNQNetwork(unittest.TestCase):
     def test_output_dimensions(self):
         """Test that the output dimension is correct."""
         batch_size, input_dim, rows = 1, 1, 5  # Example grid size
-        model = FullyConvQNetwork(input_dim=input_dim, grid_size=rows)
+        model = FullyConvQNetwork(input_dim=input_dim, rows=rows)
 
         # Create a test input tensor
         test_input = torch.zeros((batch_size, input_dim, rows, rows))
@@ -257,7 +258,7 @@ class TestFullyCNNQNetwork(unittest.TestCase):
     def test_shift_invariance(self):
         """Test that shifting the input and then applying conv_layers yields the same result as applying conv_layers and then shifting the output."""
         batch_size, input_dim, rows = 1, 1, 5  # Example grid size
-        model = FullyConvQNetwork(input_dim=input_dim, grid_size=rows)
+        model = FullyConvQNetwork(input_dim=input_dim, rows=rows)
 
         # Create a test input tensor
         test_input = torch.zeros((batch_size, input_dim, rows, rows))
@@ -285,7 +286,7 @@ class TestFullyCNNQNetwork(unittest.TestCase):
     def test_random_input(self):
         """Test that the network produces consistent outputs for the same random input."""
         batch_size, input_dim, rows = 1, 1, 5  # Example grid size
-        model = FullyConvQNetwork(input_dim=input_dim, grid_size=rows)
+        model = FullyConvQNetwork(input_dim=input_dim, rows=rows)
 
         # Create a random input tensor
         test_input = torch.randn((batch_size, input_dim, rows, rows))
@@ -300,7 +301,7 @@ class TestFullyCNNQNetwork(unittest.TestCase):
     def test_gradient_flow(self):
         """Test that gradients flow correctly during backpropagation."""
         batch_size, input_dim, rows = 1, 1, 5  # Example grid size
-        model = FullyConvQNetwork(input_dim=input_dim, grid_size=rows)
+        model = FullyConvQNetwork(input_dim=input_dim, rows=rows)
 
         # Create a random input tensor
         test_input = torch.randn((batch_size, input_dim, rows, rows), requires_grad=True)

@@ -8,7 +8,7 @@ import torch.optim as optim
 
 import wandb
 from TicTacToe.Agent import Agent
-from TicTacToe.EquivariantNN import EquivariantNN
+from TicTacToe.QNetworks import QNetwork, CNNQNetwork, FullyConvQNetwork, EquivariantNN
 
 if TYPE_CHECKING:
     from TicTacToe.TicTacToe import TwoPlayerBoardGame  # Import only for type hinting
@@ -112,120 +112,6 @@ class ReplayBuffer:
         """
         return self.current_size
 
-
-class QNetwork(nn.Module):
-    """
-    A neural network for approximating the Q-function.
-    """
-
-    def __init__(self, input_dim: int, output_dim: int) -> None:
-        """
-        Initialize the QNetwork.
-
-        Args:
-            input_dim: Dimension of the input state.
-            output_dim: Dimension of the output actions.
-        """
-        super(QNetwork, self).__init__()  # type: ignore
-        self.fc = nn.Sequential(
-            nn.Linear(input_dim, out_features=49),
-            nn.ReLU(),
-            nn.Linear(49, 49),
-            nn.ReLU(),
-            nn.Linear(49, output_dim),
-        )
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """
-        Forward pass of the QNetwork.
-
-        Args:
-            x: Input tensor.
-
-        Returns:
-            Output tensor.
-        """
-        return self.fc(x)
-
-
-class CNNQNetwork(nn.Module):
-    """
-    A convolutional neural network for approximating the Q-function.
-    """
-
-    def __init__(self, input_dim: int, grid_size: int, output_dim: int) -> None:
-        """
-        Initialize the CNNQNetwork.
-
-        Args:
-            input_dim: Dimension of the input state (e.g., number of channels).
-            grid_size: Size of the grid (e.g., 3 for 3x3 grid).
-            output_dim: Dimension of the output actions.
-        """
-        super(CNNQNetwork, self).__init__() # type: ignore
-        self.grid_size = grid_size
-
-        self.conv_layers = nn.Sequential(
-            nn.Conv2d(in_channels=input_dim, out_channels=32, kernel_size=3, stride=1, padding=1),
-            nn.ReLU(),
-            nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, stride=1, padding=1),
-            nn.ReLU(),
-            nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, stride=1, padding=1),
-            nn.ReLU(),
-        )
-
-        self.fc_layers = nn.Sequential(
-            nn.Flatten(),
-            nn.Linear(64 * grid_size * grid_size, 128),
-            nn.ReLU(),
-            nn.Linear(128, output_dim),
-        )
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """
-        Forward pass of the CNNQNetwork.
-
-        Args:
-            x: Input tensor of shape (batch_size, input_dim, grid_size, grid_size).
-
-        Returns:
-            Output tensor of shape (batch_size, output_dim).
-        """
-        x = x.view(-1, 1, self.grid_size, self.grid_size)
-        x = self.conv_layers(x)
-        x = self.fc_layers(x)
-        x = x.view(-1, self.grid_size * self.grid_size)  # Flatten the output to (batch_size, rows*rows)
-        return x
-
-
-class FullyConvQNetwork(nn.Module):
-    def __init__(self, input_dim: int, grid_size: int):
-        """
-        Args:
-            input_dim: number of input channels
-        """
-        super().__init__()
-        self.grid_size = grid_size
-        self.conv_layers = nn.Sequential(
-            nn.Conv2d(input_dim, 32, kernel_size=3, stride=1, padding=1, padding_mode='circular'),
-            nn.ReLU(),
-            nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1, padding_mode='circular'),
-            nn.ReLU(),
-            nn.Conv2d(64, 1, kernel_size=3, stride=1, padding=1, padding_mode='circular')
-        )
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """
-        Args:
-            x: Tensor of shape (batch_size, input_dim, rows, rows)
-
-        Returns:
-            q_map: Tensor of shape (batch_size, rows*rows) – one Q-value per cell
-        """
-        x = x.view(-1, 1, self.grid_size, self.grid_size)
-        x = self.conv_layers(x)
-        x = x.view(-1, self.grid_size * self.grid_size)  # Flatten the output to (batch_size, rows*rows)
-        return x
 class DeepQLearningAgent(Agent):
     """
     A Deep Q-Learning agent for playing Tic Tac Toe.
@@ -274,25 +160,29 @@ class DeepQLearningAgent(Agent):
         Bs = [B0, B1, B2, B3, B4, B5, B6, B7]
         self.groupMatrices = [np.array(B) for B in Bs]
 
-        if params["network_type"] == "Equivariant":
-            if self.rows % 2 != 1:
-                raise ValueError("Equivariant network only works for odd number of rows")
+        if params["load_network"]:
+            self.q_network = torch.load(params["load_network"], weights_only=False).to(self.device)
+            self.target_network = torch.load(params["load_network"], weights_only=False).to(self.device)
+        else:
+            if params["network_type"] == "Equivariant":
+                if self.rows % 2 != 1:
+                    raise ValueError("Equivariant network only works for odd number of rows")
 
-            ms0 = (self.rows - 1) / 2
-            ms = (ms0, 3, 3, ms0)
-            self.q_network = EquivariantNN(self.groupMatrices, ms=ms).to(self.device)
-            self.target_network = EquivariantNN(self.groupMatrices, ms=ms).to(self.device)
-        elif params["network_type"] == "CNN":
-            (state_size, action_size) = (1, self.rows**2)  # Single channel for board state
-            self.q_network = CNNQNetwork(input_dim=state_size, grid_size=self.rows, output_dim=action_size).to(self.device)
-            self.target_network = CNNQNetwork(input_dim=state_size, grid_size=self.rows, output_dim=action_size).to(self.device)
-        elif params["network_type"] == "FCN":
-            (state_size, action_size) = (self.rows**2, self.rows**2)
-            self.q_network = QNetwork(state_size, action_size).to(self.device)
-            self.target_network = QNetwork(state_size, output_dim=action_size).to(self.device)
-        elif params["network_type"] == "FullyCNN":
-            self.q_network = FullyConvQNetwork(input_dim=1, grid_size=self.rows).to(self.device)
-            self.target_network = FullyConvQNetwork(input_dim=1, grid_size=self.rows).to(self.device)
+                ms0 = (self.rows - 1) / 2
+                ms = (ms0, 3, 3, ms0)
+                self.q_network = EquivariantNN(self.groupMatrices, ms=ms).to(self.device)
+                self.target_network = EquivariantNN(self.groupMatrices, ms=ms).to(self.device)
+            elif params["network_type"] == "CNN":
+                (state_size, action_size) = (1, self.rows**2)  # Single channel for board state
+                self.q_network = CNNQNetwork(input_dim=state_size, rows=self.rows, output_dim=action_size).to(self.device)
+                self.target_network = CNNQNetwork(input_dim=state_size, rows=self.rows, output_dim=action_size).to(self.device)
+            elif params["network_type"] == "FCN":
+                (state_size, action_size) = (self.rows**2, self.rows**2)
+                self.q_network = QNetwork(state_size, action_size).to(self.device)
+                self.target_network = QNetwork(state_size, output_dim=action_size).to(self.device)
+            elif params["network_type"] == "FullyCNN":
+                self.q_network = FullyConvQNetwork(input_dim=1, rows=self.rows).to(self.device)
+                self.target_network = FullyConvQNetwork(input_dim=1, rows=self.rows).to(self.device)
 
         self.target_network.load_state_dict(self.q_network.state_dict())
         self.target_network.eval()
@@ -582,13 +472,13 @@ class DeepQLearningAgent(Agent):
             action = self.get_best_action(board, self.q_network)
             return action
 
-    def get_best_action(self, board: Board, QNet: nn.Module) -> Action:
+    def get_best_action(self, board: Board, q_network: nn.Module) -> Action:
         """
         Get the best action based on Q-values.
 
         Args:
             board: The board state.
-            QNet: The Q-network.
+            q_network: The Q-network.
 
         Returns:
             The best action.
@@ -596,7 +486,7 @@ class DeepQLearningAgent(Agent):
         state = self.board_to_state(board)
         state_tensor = torch.FloatTensor(state).to(self.device)
         with torch.no_grad():
-            q_values = QNet(state_tensor).squeeze()
+            q_values = q_network(state_tensor).squeeze()
             max_q = torch.max(q_values)
 
             self.evaluation_data["action_value"].append(max_q.item())
@@ -689,13 +579,13 @@ class DeepQPlayingAgent(Agent):
         action = self.get_best_action(board, self.q_network)
         return action
 
-    def get_best_action(self, board: Board, QNet: nn.Module) -> Action:
+    def get_best_action(self, board: Board, q_network: nn.Module) -> Action:
         """
         Get the best action based on Q-values.
 
         Args:
             board: The board state.
-            QNet: The Q-network.
+            q_network: The Q-network.
 
         Returns:
             The best action.
@@ -703,7 +593,7 @@ class DeepQPlayingAgent(Agent):
         state = self.board_to_state(board)
         state_tensor = torch.FloatTensor(state).to(self.device)
         with torch.no_grad():
-            q_values = QNet(state_tensor).squeeze()
+            q_values = q_network(state_tensor).squeeze()
             max_q = torch.max(q_values)
             max_q_indices = torch.nonzero(q_values == max_q, as_tuple=False)
             if max_q_indices.size(0) > 1:

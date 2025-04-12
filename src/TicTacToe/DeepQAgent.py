@@ -395,7 +395,7 @@ class DeepQLearningAgent(Agent):
             self.target_update_count += 1
 
         self.episode_count += 1
-        self.update_rates(self.episode_count)
+        self.update_exploration_rate(self.episode_count)
         self.episode_history = []
 
     def board_to_state(self, board: Board):
@@ -424,7 +424,7 @@ class DeepQLearningAgent(Agent):
         board = [self.state_to_board_translation[cell] for cell in flat_state]
         return board
 
-    def update_rates(self, episode: int) -> None:
+    def update_exploration_rate(self, episode: int) -> None:
         """
         Update the exploration rate (epsilon) based on the current episode.
 
@@ -432,13 +432,15 @@ class DeepQLearningAgent(Agent):
             episode: The current episode number.
         """
         epsilon_0 = self.params["epsilon_start"]
-        epsilon_1 = self.params["epsilon_min"]
-        t_1 = self.params["nr_of_episodes"]
+        epsilon_min = self.params["epsilon_min"]
+        T = self.params["nr_of_episodes"]
         t = episode
-        self.epsilon = max(
-            epsilon_1,
-            t_1 * epsilon_0 * epsilon_1 / (t * (epsilon_0 - epsilon_1) + t_1 * epsilon_1),
-        )
+        # self.epsilon = max(
+        #     epsilon_min,
+        #     T * epsilon_0 * epsilon_min / (t * (epsilon_0 - epsilon_min) + T * epsilon_min),
+        # )
+        delta = (epsilon_0 - epsilon_min) / T
+        self.epsilon = max(epsilon_min, epsilon_0 - delta * t)
 
     def get_valid_actions(self, board: Board):
         """

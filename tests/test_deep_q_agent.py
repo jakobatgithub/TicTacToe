@@ -464,13 +464,13 @@ class TestDeepQLearningAgent(unittest.TestCase):
         # Mock attributes
         self.agent.episode_count = 5
         self.agent.target_update_frequency = 5
-        self.agent.update_rates = MagicMock()
+        self.agent.update_exploration_rate = MagicMock()
 
         # Call the method
         self.agent._handle_game_completion()
 
         # Assertions
-        self.agent.update_rates.assert_called_with(6)  # Incremented episode count
+        self.agent.update_exploration_rate.assert_called_with(6)  # Incremented episode count
         self.assertEqual(len(self.agent.episode_history), 0)
 
     def test_state_to_board(self):

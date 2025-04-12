@@ -34,10 +34,11 @@ from TicTacToe.Evaluation import evaluate_performance
 from TicTacToe.TicTacToe import TicTacToe
 
 params: dict[str, Any] = {
-    "nr_of_episodes": 5000,  # number of episodes for training
+    "nr_of_episodes": 2000,  # number of episodes for training
     "rows": 3,  # rows of the board, rows = cols
     "epsilon_start": 0.75,  # initial exploration rate
-    "epsilon_min": 0.05,  # minimum exploration rate
+    # "epsilon_min": 0.05,  # minimum exploration rate
+    "epsilon_min": 0.25,  # minimum exploration rate
     "learning_rate": 0.0001,  # learning rate
     "gamma": 0.95,  # discount factor
     "switching": True,  # switch between X and O
@@ -57,8 +58,8 @@ params: dict[str, Any] = {
 
 # Define parameter sweep ranges
 param_sweep = {
-    "rows": [5, 3],
-    "win_length": [4],
+    "rows": [3],
+    "win_length": [3],
     # "rows": [3, 5],
     # "win_length": [3, 4],
     # "learning_rate": [0.0001, 0.001],
@@ -141,6 +142,7 @@ for sweep_idx, combination in enumerate(sweep_combinations):
                     rows=rows,
                     win_length=win_length,
                     wandb_logging=paramsX["wandb"] or paramsO["wandb"],
+                    device = params["device"]
                 )
 
         print(f"Outcomes during learning for sweep {sweep_idx + 1}:")

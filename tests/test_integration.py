@@ -23,7 +23,7 @@ class TestIntegration(unittest.TestCase):
         outcome = game.play()
         self.assertIn(outcome, ["X", "O", "D"], "Game outcome should be a win, loss, or draw.")
 
-    def test_deep_q_agent_training(self) -> None:
+    def test_deep_q_agent_training_FCN(self) -> None:
         """Simulate training of a DeepQLearningAgent during gameplay."""
         params: dict[str, Any] = {
             "player": "X",
@@ -43,6 +43,106 @@ class TestIntegration(unittest.TestCase):
             "load_network": False,
             "shared_replay_buffer": False,
             "network_type": "FCN",
+            "periodic": False,
+        }
+        agent1 = DeepQLearningAgent(params)
+        agent2 = RandomAgent(player="O")
+        game = TicTacToe(agent1, agent2)
+
+        # Simulate multiple episodes to test training
+        for episode in range(10):
+            outcome = game.play()
+            self.assertIn(outcome, ["X", "O", "D"], f"Game outcome in episode {episode} should be valid.")
+
+        self.assertGreater(len(agent1.replay_buffer), 0, "Replay buffer should contain experiences after training.")
+
+    def test_deep_q_agent_training_FCN_more_rows(self) -> None:
+        """Simulate training of a DeepQLearningAgent during gameplay."""
+        params: dict[str, Any] = {
+            "player": "X",
+            "switching": False,
+            "gamma": 0.99,
+            "epsilon_start": 1.0,
+            "epsilon_min": 0.1,
+            "nr_of_episodes": 10,
+            "batch_size": 32,
+            "target_update_frequency": 2,
+            "learning_rate": 0.001,
+            "replay_buffer_length": 100,
+            "wandb_logging_frequency": 5,
+            "rows": 5,
+            "device": "cpu",
+            "wandb": False,
+            "load_network": False,
+            "shared_replay_buffer": False,
+            "network_type": "FCN",
+            "periodic": False,
+        }
+        agent1 = DeepQLearningAgent(params)
+        agent2 = RandomAgent(player="O")
+        game = TicTacToe(agent1, agent2, rows=params["rows"], cols=params["rows"])
+
+        # Simulate multiple episodes to test training
+        for episode in range(10):
+            outcome = game.play()
+            self.assertIn(outcome, ["X", "O", "D"], f"Game outcome in episode {episode} should be valid.")
+
+        self.assertGreater(len(agent1.replay_buffer), 0, "Replay buffer should contain experiences after training.")
+
+    def test_deep_q_agent_training_CNN(self) -> None:
+        """Simulate training of a DeepQLearningAgent during gameplay."""
+        params: dict[str, Any] = {
+            "player": "X",
+            "switching": False,
+            "gamma": 0.99,
+            "epsilon_start": 1.0,
+            "epsilon_min": 0.1,
+            "nr_of_episodes": 10,
+            "batch_size": 32,
+            "target_update_frequency": 2,
+            "learning_rate": 0.001,
+            "replay_buffer_length": 100,
+            "wandb_logging_frequency": 5,
+            "rows": 3,
+            "device": "cpu",
+            "wandb": False,
+            "load_network": False,
+            "shared_replay_buffer": False,
+            "network_type": "CNN",
+            "periodic": False,
+        }
+        agent1 = DeepQLearningAgent(params)
+        agent2 = RandomAgent(player="O")
+        game = TicTacToe(agent1, agent2)
+
+        # Simulate multiple episodes to test training
+        for episode in range(10):
+            outcome = game.play()
+            self.assertIn(outcome, ["X", "O", "D"], f"Game outcome in episode {episode} should be valid.")
+
+        self.assertGreater(len(agent1.replay_buffer), 0, "Replay buffer should contain experiences after training.")
+
+    def test_deep_q_agent_training_CNN_periodic(self) -> None:
+        """Simulate training of a DeepQLearningAgent during gameplay."""
+        params: dict[str, Any] = {
+            "player": "X",
+            "switching": False,
+            "gamma": 0.99,
+            "epsilon_start": 1.0,
+            "epsilon_min": 0.1,
+            "nr_of_episodes": 10,
+            "batch_size": 32,
+            "target_update_frequency": 2,
+            "learning_rate": 0.001,
+            "replay_buffer_length": 100,
+            "wandb_logging_frequency": 5,
+            "rows": 3,
+            "device": "cpu",
+            "wandb": False,
+            "load_network": False,
+            "shared_replay_buffer": False,
+            "network_type": "CNN",
+            "periodic": True,
         }
         agent1 = DeepQLearningAgent(params)
         agent2 = RandomAgent(player="O")

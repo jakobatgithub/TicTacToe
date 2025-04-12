@@ -473,13 +473,13 @@ class DeepQLearningAgent(Agent):
             action = self.get_best_action(board, self.q_network)
             return action
 
-    def get_best_action(self, board: Board, QNet: nn.Module) -> Action:
+    def get_best_action(self, board: Board, q_network: nn.Module) -> Action:
         """
         Get the best action based on Q-values.
 
         Args:
             board: The board state.
-            QNet: The Q-network.
+            q_network: The Q-network.
 
         Returns:
             The best action.
@@ -487,7 +487,7 @@ class DeepQLearningAgent(Agent):
         state = self.board_to_state(board)
         state_tensor = torch.FloatTensor(state).to(self.device)
         with torch.no_grad():
-            q_values = QNet(state_tensor).squeeze()
+            q_values = q_network(state_tensor).squeeze()
             max_q = torch.max(q_values)
 
             self.evaluation_data["action_value"].append(max_q.item())
@@ -580,13 +580,13 @@ class DeepQPlayingAgent(Agent):
         action = self.get_best_action(board, self.q_network)
         return action
 
-    def get_best_action(self, board: Board, QNet: nn.Module) -> Action:
+    def get_best_action(self, board: Board, q_network: nn.Module) -> Action:
         """
         Get the best action based on Q-values.
 
         Args:
             board: The board state.
-            QNet: The Q-network.
+            q_network: The Q-network.
 
         Returns:
             The best action.
@@ -594,7 +594,7 @@ class DeepQPlayingAgent(Agent):
         state = self.board_to_state(board)
         state_tensor = torch.FloatTensor(state).to(self.device)
         with torch.no_grad():
-            q_values = QNet(state_tensor).squeeze()
+            q_values = q_network(state_tensor).squeeze()
             max_q = torch.max(q_values)
             max_q_indices = torch.nonzero(q_values == max_q, as_tuple=False)
             if max_q_indices.size(0) > 1:

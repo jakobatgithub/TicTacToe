@@ -612,7 +612,7 @@ class DeepQPlayingAgent(Agent):
     A Deep Q-Playing agent for playing Tic Tac Toe.
     """
 
-    def __init__(self, q_network: nn.Module | str, player: Player = "X", switching: bool = False, device = torch.device("mps")) -> None:
+    def __init__(self, q_network: nn.Module | str, player: Player = "X", switching: bool = False, device : str = "cpu") -> None:
         """
         Initialize the DeepQPlayingAgent.
 
@@ -622,7 +622,7 @@ class DeepQPlayingAgent(Agent):
             switching: Whether to switch players after each game.
         """
         super().__init__(player=player, switching=switching)
-        self.device = device
+        self.device = torch.device(device)
 
         if isinstance(q_network, torch.nn.Module):
             self.q_network: nn.Module = q_network.to(self.device)

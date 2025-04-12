@@ -116,3 +116,28 @@ class TestTicTacToe(unittest.TestCase):
         """Test non-quadratic board raises an error."""
         with self.assertRaises(ValueError):
             TicTacToe(self.agent1, self.agent2, rows=3, cols=4)
+
+    def test_generate_periodic_win_conditions(self) -> None:
+        """Test periodic win condition generation."""
+        game = TicTacToe(self.agent1, self.agent2, rows=3, cols=3, win_length=3)
+        periodic_conditions = game._generate_periodic_win_conditions()
+
+        # Horizontal periodic win condition
+        self.assertIn([0, 1, 2], periodic_conditions)
+        self.assertIn([1, 2, 0], periodic_conditions)
+        self.assertIn([2, 0, 1], periodic_conditions)
+
+        # Vertical periodic win condition
+        self.assertIn([0, 3, 6], periodic_conditions)
+        self.assertIn([3, 6, 0], periodic_conditions)
+        self.assertIn([6, 0, 3], periodic_conditions)
+
+        # Diagonal (top-left to bottom-right) periodic win condition
+        self.assertIn([0, 4, 8], periodic_conditions)
+        self.assertIn([4, 8, 0], periodic_conditions)
+        self.assertIn([8, 0, 4], periodic_conditions)
+
+        # Diagonal (top-right to bottom-left) periodic win condition
+        self.assertIn([2, 4, 6], periodic_conditions)
+        self.assertIn([4, 6, 2], periodic_conditions)
+        self.assertIn([6, 2, 4], periodic_conditions)

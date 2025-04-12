@@ -15,7 +15,7 @@ from pathlib import Path
 
 from TicTacToe.TicTacToe import TicTacToe
 from TicTacToe.DeepQAgent import DeepQPlayingAgent
-from TicTacToe.Agent import HumanAgent
+from TicTacToe.Agent import MouseAgent
 from TicTacToe.Display import ScreenDisplay
 
 # Load the model
@@ -27,7 +27,7 @@ model_path = f"{relative_folder}/q_network_3x3x3_X.pth"  # Change this path to t
 rows = 3
 win_length = 3
 agent1 = DeepQPlayingAgent(q_network=model_path, player="O")
-agent2 = HumanAgent(player="X")
+agent2 = MouseAgent(player="X")
 display = ScreenDisplay(rows=rows, cols=rows, waiting_time=0.5)
 
 game = TicTacToe(agent1, agent2, display=display, rows=rows, cols=rows, win_length=win_length, periodic=True)

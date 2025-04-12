@@ -8,7 +8,8 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from TicTacToe.DeepQAgent import DeepQLearningAgent, DeepQPlayingAgent, QNetwork, CNNQNetwork, ReplayBuffer, FullyConvQNetwork
+from TicTacToe.DeepQAgent import DeepQLearningAgent, DeepQPlayingAgent, ReplayBuffer
+from TicTacToe.QNetworks import QNetwork, CNNQNetwork, FullyConvQNetwork
 
 
 class TestReplayBuffer(unittest.TestCase):

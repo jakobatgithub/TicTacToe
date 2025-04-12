@@ -8,7 +8,7 @@ import torch.optim as optim
 
 import wandb
 from TicTacToe.Agent import Agent
-from TicTacToe.EquivariantNN import EquivariantNN
+from TicTacToe.QNetworks import QNetwork, CNNQNetwork, FullyConvQNetwork, EquivariantNN
 
 if TYPE_CHECKING:
     from TicTacToe.TicTacToe import TwoPlayerBoardGame  # Import only for type hinting
@@ -113,120 +113,6 @@ class ReplayBuffer:
         return self.current_size
 
 
-class QNetwork(nn.Module):
-    """
-    A neural network for approximating the Q-function.
-    """
-
-    def __init__(self, input_dim: int, output_dim: int) -> None:
-        """
-        Initialize the QNetwork.
-
-        Args:
-            input_dim: Dimension of the input state.
-            output_dim: Dimension of the output actions.
-        """
-        super(QNetwork, self).__init__()  # type: ignore
-        self.fc = nn.Sequential(
-            nn.Linear(input_dim, out_features=49),
-            nn.ReLU(),
-            nn.Linear(49, 49),
-            nn.ReLU(),
-            nn.Linear(49, output_dim),
-        )
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """
-        Forward pass of the QNetwork.
-
-        Args:
-            x: Input tensor.
-
-        Returns:
-            Output tensor.
-        """
-        return self.fc(x)
-
-
-class CNNQNetwork(nn.Module):
-    """
-    A convolutional neural network for approximating the Q-function.
-    """
-
-    def __init__(self, input_dim: int, grid_size: int, output_dim: int) -> None:
-        """
-        Initialize the CNNQNetwork.
-
-        Args:
-            input_dim: Dimension of the input state (e.g., number of channels).
-            grid_size: Size of the grid (e.g., 3 for 3x3 grid).
-            output_dim: Dimension of the output actions.
-        """
-        super(CNNQNetwork, self).__init__() # type: ignore
-        self.grid_size = grid_size
-
-        self.conv_layers = nn.Sequential(
-            nn.Conv2d(in_channels=input_dim, out_channels=32, kernel_size=3, stride=1, padding=1),
-            nn.ReLU(),
-            nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, stride=1, padding=1),
-            nn.ReLU(),
-            nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, stride=1, padding=1),
-            nn.ReLU(),
-        )
-
-        self.fc_layers = nn.Sequential(
-            nn.Flatten(),
-            nn.Linear(64 * grid_size * grid_size, 128),
-            nn.ReLU(),
-            nn.Linear(128, output_dim),
-        )
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """
-        Forward pass of the CNNQNetwork.
-
-        Args:
-            x: Input tensor of shape (batch_size, input_dim, grid_size, grid_size).
-
-        Returns:
-            Output tensor of shape (batch_size, output_dim).
-        """
-        x = x.view(-1, 1, self.grid_size, self.grid_size)
-        x = self.conv_layers(x)
-        x = self.fc_layers(x)
-        x = x.view(-1, self.grid_size * self.grid_size)  # Flatten the output to (batch_size, rows*rows)
-        return x
-
-
-class FullyConvQNetwork(nn.Module):
-    def __init__(self, input_dim: int, grid_size: int):
-        """
-        Args:
-            input_dim: number of input channels
-        """
-        super().__init__()
-        self.grid_size = grid_size
-        self.conv_layers = nn.Sequential(
-            nn.Conv2d(input_dim, 32, kernel_size=3, stride=1, padding=1, padding_mode='circular'),
-            nn.ReLU(),
-            nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1, padding_mode='circular'),
-            nn.ReLU(),
-            nn.Conv2d(64, 1, kernel_size=3, stride=1, padding=1, padding_mode='circular')
-        )
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """
-        Args:
-            x: Tensor of shape (batch_size, input_dim, rows, rows)
-
-        Returns:
-            q_map: Tensor of shape (batch_size, rows*rows) – one Q-value per cell
-        """
-        x = x.view(-1, 1, self.grid_size, self.grid_size)
-        x = self.conv_layers(x)
-        x = self.conv_layers(x)
-        x = x.view(-1, self.grid_size * self.grid_size)  # Flatten the output to (batch_size, rows*rows)
-        return x
 class DeepQLearningAgent(Agent):
     """
     A Deep Q-Learning agent for playing Tic Tac Toe.

@@ -8,7 +8,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 
-from TicTacToe.EquivariantNN import (
+from TicTacToe.QNetworks import (
     EquivariantLayer,
     EquivariantNN,
     get_bias_pattern,

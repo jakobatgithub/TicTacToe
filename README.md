@@ -1,6 +1,6 @@
 # Tic Tac Toe
 
-🎮 **Teach the computer to play Tic Tac Toe using reinforcement learning.**
+🎮 **Teach the computer to play Tic Tac Toe (and generalisations) using reinforcement learning.**
 
 ## 🎲 About the Game
 Tic Tac Toe is a simple yet strategic game where two players aim to align three of their symbols (X or O) horizontally, vertically, or diagonally on a 3x3 grid.

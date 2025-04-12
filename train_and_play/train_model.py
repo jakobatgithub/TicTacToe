@@ -63,8 +63,8 @@ params: dict[str, Any] = {
 
 # Define parameter sweep ranges
 param_sweep = {
-    "rows": [5],
-    "win_length": [5],
+    "rows": [3],
+    "win_length": [3],
     # "rows": [3, 5],
     # "win_length": [3, 4],
     # "learning_rate": [0.0001, 0.001],
@@ -126,7 +126,7 @@ for sweep_idx, combination in enumerate(sweep_combinations):
                 outcomes[outcome] += 1
 
             if episode > 0 and episode % params["evaluation_frequency"] == 0:
-                evaluate_performance(
+                evaluation_data = evaluate_performance(
                     learning_agent1,
                     learning_agent2,
                     nr_of_episodes=params["evaluation_batch_size"],
@@ -136,6 +136,7 @@ for sweep_idx, combination in enumerate(sweep_combinations):
                     device = params["device"],
                     periodic=params["periodic"]
                 )
+                print(f"evaluation_data ={evaluation_data}")
 
         print(f"Outcomes during learning for sweep {sweep_idx + 1}:")
         print(

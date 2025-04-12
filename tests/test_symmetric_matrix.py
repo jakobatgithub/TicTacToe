@@ -195,7 +195,7 @@ class TestSymmetricMatrix(unittest.TestCase):
         self.assertEqual(value_1, value_2, "Different actions leading to equal next boards yield the same Q-value.")
 
 
-class TestMatrix(BaseMatrix):
+class MatrixTestHelper(BaseMatrix):
     def get(self, board: Board, action: Action) -> float:
         return self.qMatrix[board][action]
 
@@ -207,7 +207,7 @@ class TestMatrix(BaseMatrix):
 class TestBaseMatrix(unittest.TestCase):
     def setUp(self):
         self.default_value = 0.5
-        self.matrix = TestMatrix(default_value=self.default_value)
+        self.matrix = MatrixTestHelper(default_value=self.default_value)
 
     def test_initialization_without_file(self):
         """Test initialization without a file."""
@@ -219,7 +219,7 @@ class TestBaseMatrix(unittest.TestCase):
     def test_initialization_with_file(self, mock_dill_load, mock_open):
         """Test initialization with a file."""
         mock_dill_load.return_value = {"mock_key": "mock_value"}
-        matrix = TestMatrix(file="dummy_path")
+        matrix = MatrixTestHelper(file="dummy_path")
         mock_open.assert_called_once_with("dummy_path", "rb")
         self.assertEqual(matrix.qMatrix, {"mock_key": "mock_value"})
 

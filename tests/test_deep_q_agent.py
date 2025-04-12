@@ -562,52 +562,40 @@ class TestDeepQLearningAgent(unittest.TestCase):
         q_network_return_value = torch.zeros((1, 9))
         q_network_return_value[0, 1] = 1
         self.agent.q_network.return_value = q_network_return_value
+
         target_network_return_value = torch.zeros((1, 9))
         target_network_return_value[0, 5] = 2
         self.agent.target_network.return_value = target_network_return_value
 
         board = ["X", " ", " ", " ", " ", " ", " ", " ", " "]
-        action = 1
+        action = torch.tensor([1], dtype=torch.int64)
+        reward = torch.tensor([0.0], dtype=torch.float32)
         next_board = ["X", "O", " ", " ", " ", " ", " ", " ", " "]
+        done = torch.tensor([False], dtype=torch.bool)
 
-        state = torch.tensor(self.agent.board_to_state(board)[0], dtype=torch.float32)
-        action = torch.tensor(action, dtype=torch.int64)
-        reward = torch.tensor(0.0, dtype=torch.float32)
-        next_state = torch.tensor(self.agent.board_to_state(next_board)[0], dtype=torch.float32)
-        done = torch.tensor(False, dtype=torch.bool)
+        state = torch.tensor(self.agent.board_to_state(board)[0], dtype=torch.float32).unsqueeze(0)
+        next_state = torch.tensor(self.agent.board_to_state(next_board)[0], dtype=torch.float32).unsqueeze(0)
 
-        states = torch.vstack([state])
-        actions = torch.vstack([action])
-        rewards = torch.vstack([reward])
-        next_states = torch.vstack([next_state])
-        dones = torch.vstack([done])
-
-        samples = (states, actions, rewards, next_states, dones)
+        samples = (state, action, reward, next_state, done)
         symmetrized_loss = self.agent.compute_symmetrized_loss(samples)
 
         transformed_board = [" ", " ", "X", " ", " ", " ", " ", " ", " "]
-        transformed_action = 5
+        transformed_action = torch.tensor([5], dtype=torch.int64)
         transformed_next_board = [" ", " ", "X", " ", " ", "O", " ", " ", " "]
+        transformed_reward = torch.tensor([0.0], dtype=torch.float32)
+        transformed_done = torch.tensor([False], dtype=torch.bool)
 
-        transformed_state = torch.tensor(self.agent.board_to_state(transformed_board)[0], dtype=torch.float32)
-        transformed_action = torch.tensor(transformed_action, dtype=torch.int64)
-        transformed_reward = torch.tensor(0.0, dtype=torch.float32)
-        transformed_next_state = torch.tensor(self.agent.board_to_state(transformed_next_board)[0], dtype=torch.float32)
-        transformed_done = torch.tensor(False, dtype=torch.bool)
-
-        transformed_states = torch.vstack([transformed_state])
-        transformed_actions = torch.vstack([transformed_action])
-        transformed_rewards = torch.vstack([transformed_reward])
-        transformed_next_states = torch.vstack([transformed_next_state])
-        transformed_dones = torch.vstack([transformed_done])
+        transformed_state = torch.tensor(self.agent.board_to_state(transformed_board)[0], dtype=torch.float32).unsqueeze(0)
+        transformed_next_state = torch.tensor(self.agent.board_to_state(transformed_next_board)[0], dtype=torch.float32).unsqueeze(0)
 
         transformed_samples = (
-            transformed_states,
-            transformed_actions,
-            transformed_rewards,
-            transformed_next_states,
-            transformed_dones,
+            transformed_state,
+            transformed_action,
+            transformed_reward,
+            transformed_next_state,
+            transformed_done,
         )
+
         transformed_symmetrized_loss = self.agent.compute_symmetrized_loss(transformed_samples)
         self.assertAlmostEqual(symmetrized_loss.item(), transformed_symmetrized_loss.item(), places=5)
 

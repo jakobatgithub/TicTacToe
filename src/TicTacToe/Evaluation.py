@@ -193,9 +193,10 @@ def evaluate_performance(
     rows: int = 3,
     win_length: int = 3,
     wandb_logging: bool = True,
+    device: str = "cpu",
 ) -> None:
     q_network1 = learning_agent1.q_network
-    playing_agent1 = DeepQPlayingAgent(q_network1, player="X", switching=False)
+    playing_agent1 = DeepQPlayingAgent(q_network1, player="X", switching=False, device=device)
     random_agent2 = RandomAgent(player="O", switching=False)
 
     game = TicTacToe(playing_agent1, random_agent2, display=None, rows=rows, cols=rows, win_length=win_length)

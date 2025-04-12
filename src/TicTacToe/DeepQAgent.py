@@ -368,7 +368,7 @@ class DeepQLearningAgent(Agent):
             symmetric_loss = 0.0
             for permutation, inverse_permutation in zip(permutations, inverse_permutations):
                 transformed_states = states[:, permutation]
-                transformed_actions = torch.tensor([inverse_permutation[action] for action in actions])
+                transformed_actions = torch.tensor([inverse_permutation[action] for action in actions]).to(self.device)
                 transformed_next_states = next_states[:, permutation]
                 transformed_samples = (transformed_states, transformed_actions, rewards, transformed_next_states, dones)
                 symmetric_loss += loss(transformed_samples)
@@ -596,7 +596,7 @@ class DeepQLearningAgent(Agent):
             q_values = QNet(state_tensor).squeeze()
             max_q = torch.max(q_values)
 
-            self.evaluation_data["action_value"].append(max_q)
+            self.evaluation_data["action_value"].append(max_q.item())
 
             max_q_indices = torch.nonzero(q_values == max_q, as_tuple=False)
             if max_q_indices.size(0) > 1:
@@ -612,7 +612,7 @@ class DeepQPlayingAgent(Agent):
     A Deep Q-Playing agent for playing Tic Tac Toe.
     """
 
-    def __init__(self, q_network: nn.Module | str, player: Player = "X", switching: bool = False) -> None:
+    def __init__(self, q_network: nn.Module | str, player: Player = "X", switching: bool = False, device : str = "cpu") -> None:
         """
         Initialize the DeepQPlayingAgent.
 
@@ -622,7 +622,8 @@ class DeepQPlayingAgent(Agent):
             switching: Whether to switch players after each game.
         """
         super().__init__(player=player, switching=switching)
-        self.device = torch.device("cpu")
+        self.device = torch.device(device)
+
         if isinstance(q_network, torch.nn.Module):
             self.q_network: nn.Module = q_network.to(self.device)
         else:

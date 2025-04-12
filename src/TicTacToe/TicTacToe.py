@@ -113,10 +113,12 @@ class TicTacToe(TwoPlayerBoardGame):
         rows: int = 3,
         cols: int = 3,
         win_length: int = 3,
+        periodic: bool = False,
     ) -> None:
         if rows != cols:
             raise ValueError("Tic Tac Toe board must be square")
         self._win_length = win_length
+        self.periodic = periodic
         super().__init__(agent1, agent2, display, waiting_time, rows, cols)
 
     def _initialize(self) -> None:
@@ -125,7 +127,10 @@ class TicTacToe(TwoPlayerBoardGame):
         self._history = []
         self._done = False
         self._invalid_move = False
-        self.win_conditions = self._generate_win_conditions()
+        if not self.periodic:
+            self.win_conditions = self._generate_win_conditions()
+        else:
+            self.win_conditions = self._generate_periodic_win_conditions()
 
     @staticmethod
     def initialize_board(rows: int, cols: int) -> Board:
@@ -150,6 +155,32 @@ class TicTacToe(TwoPlayerBoardGame):
         for row in range(rows - win_length + 1):
             for col in range(win_length - 1, cols):
                 conditions.append([(row + i) * cols + col - i for i in range(win_length)])
+
+        return conditions
+
+    def _generate_periodic_win_conditions(self) -> List[List[int]]:
+        rows, cols, win_length = self._rows, self._cols, self._win_length
+        conditions: List[List[int]] = []
+
+        # Horizontal win conditions with periodic boundary
+        for row in range(rows):
+            for col in range(cols):
+                conditions.append([(row * cols + (col + i) % cols) for i in range(win_length)])
+
+        # Vertical win conditions with periodic boundary
+        for col in range(cols):
+            for row in range(rows):
+                conditions.append([((row + i) % rows * cols + col) for i in range(win_length)])
+
+        # Diagonal (top-left to bottom-right) win conditions with periodic boundary
+        for row in range(rows):
+            for col in range(cols):
+                conditions.append([((row + i) % rows * cols + (col + i) % cols) for i in range(win_length)])
+
+        # Diagonal (top-right to bottom-left) win conditions with periodic boundary
+        for row in range(rows):
+            for col in range(cols):
+                conditions.append([((row + i) % rows * cols + (col - i) % cols) for i in range(win_length)])
 
         return conditions
 

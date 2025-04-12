@@ -224,7 +224,6 @@ class FullyConvQNetwork(nn.Module):
         """
         x = x.view(-1, 1, self.grid_size, self.grid_size)
         x = self.conv_layers(x)
-        x = self.conv_layers(x)
         x = x.view(-1, self.grid_size * self.grid_size)  # Flatten the output to (batch_size, rows*rows)
         return x
 class DeepQLearningAgent(Agent):

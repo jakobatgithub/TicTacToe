@@ -34,7 +34,7 @@ from TicTacToe.Evaluation import evaluate_performance
 from TicTacToe.TicTacToe import TicTacToe
 
 params: dict[str, Any] = {
-    "nr_of_episodes": 2000,  # number of episodes for training
+    "nr_of_episodes": 500,  # number of episodes for training
     "rows": 3,  # rows of the board, rows = cols
     "epsilon_start": 0.75,  # initial exploration rate
     # "epsilon_min": 0.05,  # minimum exploration rate
@@ -52,16 +52,16 @@ params: dict[str, Any] = {
     "replay_buffer_length": 10000,  # replay buffer length
     "wandb": False,  # switch for logging with wandb.ai
     "wandb_logging_frequency": 25,  # wandb logging frequency
-    "load_network": False,  # file name for loading a PyTorch network
+    "load_network": True,  # file name for loading a PyTorch network
     "shared_replay_buffer": False,  # shared replay buffer
     "network_type": "FullyCNN",  # flag for network type, 'FCN' or 'CNN' or 'Equivariant' or 'FullyCNN'
     "periodic": True,  # periodic boundary conditions
-    "save_models": False # save models
+    "save_models": False # flag for saving models
 }
 
 # Define parameter sweep ranges
 param_sweep = {
-    "rows": [5],
+    "rows": [7],
     "win_length": [3],
     # "rows": [3, 5],
     # "win_length": [3, 4],
@@ -115,7 +115,7 @@ for sweep_idx, combination in enumerate(sweep_combinations):
     rows = params["rows"]
     win_length = params["win_length"]
     nr_of_episodes = params["nr_of_episodes"]
-    evaluation_frequency = 50
+    evaluation_frequency = 20
 
     paramsX = copy.deepcopy(params)
     paramsO = copy.deepcopy(params)
@@ -124,13 +124,14 @@ for sweep_idx, combination in enumerate(sweep_combinations):
     paramsX["wandb"] = True
     paramsO["wandb"] = False
 
-    script_dir = Path(__file__).resolve().parent
-    relative_folder = (script_dir / '../models/all_models').resolve()
-    model_path_X = f"{relative_folder}/q_network_3x3x3_X.pth"
-    model_path_O = f"{relative_folder}/q_network_3x3x3_O.pth"
+    if params["load_network"]:
+        script_dir = Path(__file__).resolve().parent
+        relative_folder = (script_dir / '../models/all_models').resolve()
+        model_path_X = f"{relative_folder}/q_network_3x3x3_X_weights.pth"
+        model_path_O = f"{relative_folder}/q_network_3x3x3_O_weights.pth"
 
-    paramsX["load_network"] = model_path_X
-    paramsO["load_network"] = model_path_O
+        paramsX["load_network"] = model_path_X
+        paramsO["load_network"] = model_path_O
 
     outcomes = {"X": 0, "O": 0, "D": 0}
 
@@ -171,12 +172,18 @@ for sweep_idx, combination in enumerate(sweep_combinations):
             torch.save(learning_agent1.q_network, all_models_folder / model_X_filename) # type: ignore
             torch.save(learning_agent2.q_network, all_models_folder / model_O_filename) # type: ignore
 
+            # Save the models weights with recognizable filenames
+            model_X_filename = f"q_network_{rows}x{rows}x{win_length}_X_weights.pth"
+            model_O_filename = f"q_network_{rows}x{rows}x{win_length}_O_weights.pth"
+
+            torch.save(learning_agent1.q_network.state_dict(), all_models_folder / model_X_filename) # type: ignore
+            torch.save(learning_agent2.q_network.state_dict(), all_models_folder / model_O_filename) # type: ignore
+
             # Append metadata to the list
             model_metadata.append({
                 "model_X": model_X_filename,
                 "model_O": model_O_filename,
                 "parameters": params.copy(),
-                # "wandb_runs": wandb_runs
             })
 
             # Save metadata to file after every iteration

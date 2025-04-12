@@ -112,7 +112,6 @@ class ReplayBuffer:
         """
         return self.current_size
 
-
 class DeepQLearningAgent(Agent):
     """
     A Deep Q-Learning agent for playing Tic Tac Toe.

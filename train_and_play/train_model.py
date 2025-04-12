@@ -54,7 +54,7 @@ params: dict[str, Any] = {
     "wandb_logging_frequency": 25,  # wandb logging frequency
     "load_network": False,  # file name for loading a PyTorch network
     "shared_replay_buffer": False,  # shared replay buffer
-    "network_type": "CNN",  # flag for network type, 'FCN' or 'CNN' or 'Equivariant' or 'FullyCNN'
+    "network_type": "FullyCNN",  # flag for network type, 'FCN' or 'CNN' or 'Equivariant' or 'FullyCNN'
     "periodic": True,  # periodic boundary conditions
 }
 

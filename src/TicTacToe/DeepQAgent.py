@@ -199,12 +199,13 @@ class CNNQNetwork(nn.Module):
 
 
 class FullyConvQNetwork(nn.Module):
-    def __init__(self, input_dim: int):
+    def __init__(self, input_dim: int, grid_size: int):
         """
         Args:
             input_dim: number of input channels
         """
         super().__init__()
+        self.grid_size = grid_size
         self.conv_layers = nn.Sequential(
             nn.Conv2d(input_dim, 32, kernel_size=3, stride=1, padding=1, padding_mode='circular'),
             nn.ReLU(),
@@ -221,8 +222,11 @@ class FullyConvQNetwork(nn.Module):
         Returns:
             q_map: Tensor of shape (batch_size, rows*rows) – one Q-value per cell
         """
-        return self.conv_layers(x).view(x.size(0), -1)  # Flatten the output to (batch_size, rows*rows)
-
+        x = x.view(-1, 1, self.grid_size, self.grid_size)
+        x = self.conv_layers(x)
+        x = self.conv_layers(x)
+        x = x.view(-1, self.grid_size * self.grid_size)  # Flatten the output to (batch_size, rows*rows)
+        return x
 class DeepQLearningAgent(Agent):
     """
     A Deep Q-Learning agent for playing Tic Tac Toe.
@@ -288,8 +292,8 @@ class DeepQLearningAgent(Agent):
             self.q_network = QNetwork(state_size, action_size).to(self.device)
             self.target_network = QNetwork(state_size, output_dim=action_size).to(self.device)
         elif params["network_type"] == "FullyCNN":
-            self.q_network = FullyConvQNetwork(input_dim=1).to(self.device)
-            self.target_network = FullyConvQNetwork(input_dim=1).to(self.device)
+            self.q_network = FullyConvQNetwork(input_dim=1, grid_size=self.rows).to(self.device)
+            self.target_network = FullyConvQNetwork(input_dim=1, grid_size=self.rows).to(self.device)
 
         self.target_network.load_state_dict(self.q_network.state_dict())
         self.target_network.eval()

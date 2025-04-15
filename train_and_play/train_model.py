@@ -139,7 +139,6 @@ params: dict[str, Any] = {
     "epsilon_update_factor": 0.99,  # Decay rate for epsilon
     "batch_size": 256,  # Batch size for training updates
     "target_update_frequency": 25,  # Frequency to sync target network
-    # "evaluation": True,  # Whether to run evaluations
     "evaluation_frequency": 25,  # Episodes between evaluations
     "evaluation_batch_size": 200,  # Games to evaluate per round
     "device": "mps",  # Device: "cuda", "mps", or "cpu"

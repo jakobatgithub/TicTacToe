@@ -141,3 +141,23 @@ class TestTicTacToe(unittest.TestCase):
         self.assertIn([2, 4, 6], periodic_conditions)
         self.assertIn([4, 6, 2], periodic_conditions)
         self.assertIn([6, 2, 4], periodic_conditions)
+
+    def test_4_in_row_on_5x5_board(self) -> None:
+        """Test if 4 in a row on a 5x5 board with win length 3 is a win."""
+        # Standard boundary conditions
+        game = TicTacToe(self.agent1, self.agent2, rows=5, cols=5, win_length=3)
+        game.board = ["X", "X", "X", "X", " ",  # Row 0
+                      " ", " ", " ", " ", " ",  # Row 1
+                      " ", " ", " ", " ", " ",  # Row 2
+                      " ", " ", " ", " ", " ",  # Row 3
+                      " ", " ", " ", " ", " "]  # Row 4
+        self.assertTrue(game.is_won("X"))
+
+        # Periodic boundary conditions
+        game = TicTacToe(self.agent1, self.agent2, rows=5, cols=5, win_length=3, periodic=True)
+        game.board = ["X", "X", " ", "X", "X",  # Row 0
+                      " ", " ", " ", " ", " ",  # Row 1
+                      " ", " ", " ", " ", " ",  # Row 2
+                      " ", " ", " ", " ", " ",  # Row 3
+                      " ", " ", " ", " ", " "]  # Row 4
+        self.assertTrue(game.is_won("X"))

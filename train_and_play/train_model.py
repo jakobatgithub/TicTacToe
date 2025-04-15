@@ -36,9 +36,9 @@ from TicTacToe.TicTacToe import TicTacToe
 params: dict[str, Any] = {
     "nr_of_episodes": 1000,  # number of episodes for training
     "rows": 3,  # rows of the board, rows = cols
-    "epsilon_start": 0.75,  # initial exploration rate
+    "epsilon_start": 0.95,  # initial exploration rate
     # "epsilon_min": 0.05,  # minimum exploration rate
-    "epsilon_min": 0.25,  # minimum exploration rate
+    "epsilon_min": 0.1,  # minimum exploration rate
     "learning_rate": 0.0001,  # learning rate
     "gamma": 0.95,  # discount factor
     "switching": True,  # switch between X and O
@@ -48,11 +48,13 @@ params: dict[str, Any] = {
     "batch_size": 256,  # batch size for deep learning
     "target_update_frequency": 25,  # target network update frequency
     "evaluation": True,  # save data for evaluation
+    "evaluation_frequency": 20,  # frequency of evaluation
+    "evaluation_batch_size": 200,  # batch size for evaluation
     "device": "mps",  # device to use, 'cpu' or 'mps' or 'cuda'
     "replay_buffer_length": 10000,  # replay buffer length
     "wandb": False,  # switch for logging with wandb.ai
     "wandb_logging_frequency": 25,  # wandb logging frequency
-    "load_network": False,  # file name for loading a PyTorch network
+    "load_network": True,  # file name for loading a PyTorch network
     "shared_replay_buffer": False,  # shared replay buffer
     "network_type": "FullyCNN",  # flag for network type, 'FCN' or 'CNN' or 'Equivariant' or 'FullyCNN'
     "periodic": True,  # periodic boundary conditions
@@ -75,34 +77,8 @@ sweep_combinations = list(product(*param_sweep.values()))
 # Map parameter names to their respective indices in the combinations
 param_keys = list(param_sweep.keys())
 
-# Define a folder to save all models
-script_dir = Path(__file__).resolve().parent
-all_models_folder = (script_dir / '../models/all_models').resolve()
-if not all_models_folder.exists():
-    all_models_folder.mkdir(parents=True)
-
-# Function to collect wandb run data
-def collect_wandb_data(wandb_dir):
-    wandb_data = []
-    for root, dirs, files in os.walk(wandb_dir):
-        for dir_name in dirs:
-            run_path = os.path.join(root, dir_name)
-            if os.path.isfile(os.path.join(run_path, "config.yaml")):
-                wandb_data.append({
-                    "run_id": dir_name,
-                    "path": run_path
-                })
-    return wandb_data
-
-# Collect wandb data
-wandb_dir = script_dir / '../wandb'
-wandb_runs = collect_wandb_data(wandb_dir)
-
 # Create a list to store filenames and corresponding parameter values
 model_metadata = []
-
-# Save the metadata to a JSON file after every iteration
-metadata_file = all_models_folder / "model_metadata.json"
 
 # Iterate over each parameter combination
 for sweep_idx, combination in enumerate(sweep_combinations):
@@ -115,8 +91,7 @@ for sweep_idx, combination in enumerate(sweep_combinations):
     rows = params["rows"]
     win_length = params["win_length"]
     nr_of_episodes = params["nr_of_episodes"]
-    evaluation_frequency = 20
-
+    
     paramsX = copy.deepcopy(params)
     paramsO = copy.deepcopy(params)
     paramsX["player"] = "X"
@@ -126,12 +101,16 @@ for sweep_idx, combination in enumerate(sweep_combinations):
 
     if params["load_network"]:
         script_dir = Path(__file__).resolve().parent
-        relative_folder = (script_dir / '../models/all_models').resolve()
-        model_path_X = f"{relative_folder}/q_network_3x3x3_X_weights.pth"
-        model_path_O = f"{relative_folder}/q_network_3x3x3_O_weights.pth"
+        relative_folder = (script_dir / '../models/foundational').resolve()
+        model_path_X = f"{relative_folder}/q_network_5x5x5_X_weights.pth"
+        model_path_O = f"{relative_folder}/q_network_5x5x5_O_weights.pth"
 
         paramsX["load_network"] = model_path_X
         paramsO["load_network"] = model_path_O
+
+        print(f"Loading model from {model_path_X} and {model_path_O}")
+        if not os.path.exists(model_path_X) or not os.path.exists(model_path_O):
+            raise FileNotFoundError(f"Model files {model_path_X} or {model_path_O} do not exist.")
 
     outcomes = {"X": 0, "O": 0, "D": 0}
 
@@ -146,11 +125,11 @@ for sweep_idx, combination in enumerate(sweep_combinations):
             if outcome is not None:
                 outcomes[outcome] += 1
 
-            if episode > 0 and episode % evaluation_frequency == 0:
+            if episode > 0 and episode % params["evaluation_frequency"] == 0:
                 evaluate_performance(
                     learning_agent1,
                     learning_agent2,
-                    nr_of_episodes=50,
+                    nr_of_episodes=params["evaluation_batch_size"],
                     rows=rows,
                     win_length=win_length,
                     wandb_logging=paramsX["wandb"] or paramsO["wandb"],
@@ -165,12 +144,24 @@ for sweep_idx, combination in enumerate(sweep_combinations):
 
     finally:
         if params["save_models"]:
+            
+            # Define a folder to save all models
+            script_dir = Path(__file__).resolve().parent
+            all_models_folder = (script_dir / '../models/all_models').resolve()
+            if not all_models_folder.exists():
+                all_models_folder.mkdir(parents=True)
+
+            # Save the metadata to a JSON file after every iteration
+            metadata_file = all_models_folder / "model_metadata.json"
+
             # Save the models with recognizable filenames
             model_X_filename = f"q_network_{rows}x{rows}x{win_length}_X.pth"
             model_O_filename = f"q_network_{rows}x{rows}x{win_length}_O.pth"
 
             torch.save(learning_agent1.q_network, all_models_folder / model_X_filename) # type: ignore
             torch.save(learning_agent2.q_network, all_models_folder / model_O_filename) # type: ignore
+            
+            print(f"Models saved as {model_X_filename} and {model_O_filename}")
 
             # Save the models weights with recognizable filenames
             model_X_filename = f"q_network_{rows}x{rows}x{win_length}_X_weights.pth"

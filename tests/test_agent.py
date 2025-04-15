@@ -104,3 +104,20 @@ class TestAgentBase(unittest.TestCase):
         action = agent.get_action((None, 0, False), game)
 
         self.assertEqual(action, -1, "MouseAgent should return -1 if no action is selected.")
+
+
+class MockAgent(Agent):
+    def get_action(self, state_transition, game):
+        return None
+
+class TestAgent(unittest.TestCase):
+    def test_get_opponent(self):
+        agent = MockAgent(player="X")
+        self.assertEqual(agent.get_opponent("X"), "O")
+        self.assertEqual(agent.get_opponent("O"), "X")
+
+    def test_switching_logic(self):
+        agent = RandomAgent(player="X", switching=True)
+        agent.on_game_end(None)  # Simulate game end
+        self.assertEqual(agent.player, "O")
+        self.assertEqual(agent.opponent, "X")

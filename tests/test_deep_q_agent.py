@@ -620,6 +620,17 @@ class TestDeepQLearningAgent(unittest.TestCase):
         transformed_symmetrized_loss = self.agent.compute_symmetrized_loss(transformed_samples)
         self.assertAlmostEqual(symmetrized_loss.item(), transformed_symmetrized_loss.item(), places=5)
 
+    def test_set_exploration_rate(self):
+        """Test setting exploration rate."""
+        self.agent.set_exploration_rate(0.5)
+        self.assertEqual(self.agent.epsilon, 0.5, "Exploration rate should be updated correctly.")
+
+    def test_update_exploration_rate(self):
+        """Test updating exploration rate based on episode."""
+        self.agent.update_exploration_rate(50)
+        self.assertGreaterEqual(self.agent.epsilon, self.agent.params["epsilon_min"], "Epsilon should not go below minimum.")
+        self.assertLessEqual(self.agent.epsilon, self.agent.params["epsilon_start"], "Epsilon should not exceed start value.")
+
 
 # Mock classes for dependencies
 class MockQNetwork(torch.nn.Module):

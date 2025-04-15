@@ -198,19 +198,19 @@ class TestCNNQNetwork(unittest.TestCase):
 
     def test_forward_pass(self):
         """Ensure the forward pass produces output of the correct shape."""
-        input_dim, grid_size, output_dim = 1, 3, 9
-        model = CNNQNetwork(input_dim=input_dim, rows=grid_size, output_dim=output_dim)
-        test_input = torch.randn((5, input_dim, grid_size, grid_size))  # Batch of 5 inputs
+        batch_size, input_dim, rows = 5, 1, 3
+        model = CNNQNetwork(input_dim=input_dim, rows=rows, output_dim=rows * rows)
+        test_input = torch.randn((batch_size, rows * rows))  # Batch of 5 inputs
         output = model(test_input)
 
-        self.assertEqual(output.shape, (5, output_dim), "Output shape is incorrect.")
+        self.assertEqual(output.shape, (batch_size, rows * rows), "Output shape is incorrect.")
 
     def test_gradient_flow(self):
         """Confirm that gradients flow correctly during backpropagation."""
-        input_dim, grid_size, output_dim = 1, 3, 9
-        model = CNNQNetwork(input_dim=input_dim, rows=grid_size, output_dim=output_dim)
-        test_input = torch.randn((5, input_dim, grid_size, grid_size))
-        target = torch.randn((5, output_dim))
+        batch_size, input_dim, rows, output_dim = 5, 1, 3, 9
+        model = CNNQNetwork(input_dim=input_dim, rows=rows, output_dim=output_dim)
+        test_input = torch.randn((batch_size, rows * rows))
+        target = torch.randn((batch_size, output_dim))
 
         criterion = torch.nn.MSELoss()
         optimizer = torch.optim.Adam(model.parameters(), lr=0.001)

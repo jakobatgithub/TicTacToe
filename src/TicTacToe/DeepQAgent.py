@@ -129,6 +129,7 @@ class DeepQLearningAgent(Agent, EvaluationMixin):
         self.params = params
         self.gamma = params["gamma"]
         self.epsilon = params["epsilon_start"]
+        self.set_exploration_rate_externally = params["set_exploration_rate_externally"]
         self.nr_of_episodes = params["nr_of_episodes"]
         self.batch_size = params["batch_size"]
         self.target_update_frequency = params["target_update_frequency"]
@@ -209,6 +210,15 @@ class DeepQLearningAgent(Agent, EvaluationMixin):
         ]
         self.compute_symmetrized_loss = self.create_symmetrized_loss(self.compute_loss, self.transformations, self.rows)
         EvaluationMixin.__init__(self, wandb_enabled=params["wandb"], wandb_logging_frequency=params["wandb_logging_frequency"])
+
+    def set_exploration_rate(self, epsilon: float) -> None:
+        """
+        Set the exploration rate (epsilon).
+
+        Args:
+            epsilon: The exploration rate.
+        """
+        self.epsilon = epsilon
 
     def generate_permutations(self, transformations: list[Any], rows: int) -> tuple[torch.Tensor, torch.Tensor]:
         """
@@ -364,7 +374,9 @@ class DeepQLearningAgent(Agent, EvaluationMixin):
             self.target_update_count += 1
 
         self.episode_count += 1
-        self.update_exploration_rate(self.episode_count)
+        if not self.set_exploration_rate_externally:
+            self.update_exploration_rate(self.episode_count)
+        
         self.episode_history = []
 
     def board_to_state(self, board: Board):

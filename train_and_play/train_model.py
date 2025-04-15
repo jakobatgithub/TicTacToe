@@ -42,7 +42,7 @@ params: dict[str, Any] = {
     "gamma": 0.95,
     "switching": True,
     "win_length": 3,
-    "epsilon_start": 0.9,
+    "epsilon_start": 0.95,
     "epsilon_min": 0.1,
     "set_exploration_rate_externally": True,
     "epsilon_update_threshold": 0.025,

@@ -28,6 +28,7 @@ from typing import Any
 from tqdm import tqdm
 from pathlib import Path
 from itertools import product
+from collections import deque
 
 from TicTacToe.DeepQAgent import DeepQLearningAgent, FullyConvQNetwork
 from TicTacToe.Evaluation import evaluate_performance
@@ -36,19 +37,23 @@ from TicTacToe.TicTacToe import TicTacToe
 params: dict[str, Any] = {
     "nr_of_episodes": 1000,  # number of episodes for training
     "rows": 3,  # rows of the board, rows = cols
-    "epsilon_start": 0.95,  # initial exploration rate
-    # "epsilon_min": 0.05,  # minimum exploration rate
-    "epsilon_min": 0.1,  # minimum exploration rate
     "learning_rate": 0.0001,  # learning rate
     "gamma": 0.95,  # discount factor
     "switching": True,  # switch between X and O
     "win_length": 3,  # number of symbols in a row to win
 
+    # Parameters for exploration rate epsilon
+    "epsilon_start": 0.9,  # initial exploration rate
+    "epsilon_min": 0.1,  # minimum exploration rate
+    "set_exploration_rate_externally": True,  # flag for setting exploration rate externally
+    "epsilon_update_threshold": 0.025,  # threshold for updating exploration rate
+    "epsilon_update_factor": 0.99,  # factor for updating exploration rate
+
     # Parameters for DeepQAgent
     "batch_size": 256,  # batch size for deep learning
     "target_update_frequency": 25,  # target network update frequency
     "evaluation": True,  # save data for evaluation
-    "evaluation_frequency": 20,  # frequency of evaluation
+    "evaluation_frequency": 25,  # frequency of evaluation
     "evaluation_batch_size": 200,  # batch size for evaluation
     "device": "mps",  # device to use, 'cpu' or 'mps' or 'cuda'
     "replay_buffer_length": 10000,  # replay buffer length
@@ -58,13 +63,13 @@ params: dict[str, Any] = {
     "shared_replay_buffer": False,  # shared replay buffer
     "network_type": "FullyCNN",  # flag for network type, 'FCN' or 'CNN' or 'Equivariant' or 'FullyCNN'
     "periodic": True,  # periodic boundary conditions
-    "save_models": True # flag for saving models
+    "save_models": True,  # flag for saving models
 }
 
 # Define parameter sweep ranges
 param_sweep = {
-    "rows": [5],
-    "win_length": [5],
+    "rows": [3],
+    "win_length": [3],
     # "rows": [3, 5],
     # "win_length": [3, 4],
     # "learning_rate": [0.0001, 0.001],
@@ -119,6 +124,10 @@ for sweep_idx, combination in enumerate(sweep_combinations):
 
     game = TicTacToe(learning_agent1, learning_agent2, display=None, rows=rows, cols=rows, win_length=win_length, periodic=params["periodic"])
 
+    X_win_rates = deque(maxlen=10)
+    O_win_rates = deque(maxlen=10)
+    current_exploration_rate = params["epsilon_start"]
+
     try:
         for episode in tqdm(range(nr_of_episodes)):
             outcome = game.play()
@@ -126,7 +135,7 @@ for sweep_idx, combination in enumerate(sweep_combinations):
                 outcomes[outcome] += 1
 
             if episode > 0 and episode % params["evaluation_frequency"] == 0:
-                evaluate_performance(
+                evaluation_data = evaluate_performance(
                     learning_agent1,
                     learning_agent2,
                     nr_of_episodes=params["evaluation_batch_size"],
@@ -136,7 +145,31 @@ for sweep_idx, combination in enumerate(sweep_combinations):
                     device = params["device"],
                     periodic=params["periodic"]
                 )
+                mode = "X_against_random:"
+                X_win_rate = evaluation_data[f"{mode} X wins"]
+                X_win_rates.append(X_win_rate)
+                mode = "O_against_random:"
+                O_win_rate = evaluation_data[f"{mode} O wins"]
+                O_win_rates.append(O_win_rate)
 
+                if (
+                    params["set_exploration_rate_externally"]
+                    and len(X_win_rates) > 1
+                    and len(O_win_rates) > 1
+                ):
+                    delta_X = abs(X_win_rates[-2] - X_win_rates[-1])
+                    delta_O = abs(O_win_rates[-2] - O_win_rates[-1])
+
+                    if delta_X < params["epsilon_update_threshold"] and delta_O < params["epsilon_update_threshold"]:
+                        current_exploration_rate = max(
+                            current_exploration_rate * params["epsilon_update_factor"],
+                            params["epsilon_min"]
+                        )
+                        learning_agent1.set_exploration_rate(current_exploration_rate)
+                        learning_agent2.set_exploration_rate(current_exploration_rate)
+
+                        print(f"X_win_rates = {X_win_rates}, O_win_rates = {O_win_rates}, current_exploration_rate = {current_exploration_rate}")
+        
         print(f"Outcomes during learning for sweep {sweep_idx + 1}:")
         print(
             f"X wins: {outcomes['X']/nr_of_episodes}, O wins: {outcomes['O']/nr_of_episodes}, draws: {outcomes['D']/nr_of_episodes}"

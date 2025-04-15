@@ -343,6 +343,12 @@ class DeepQLearningAgent(Agent):
         self._log_training_metrics()
         self.train_step_count += 1
 
+    def safe_mean(self, x):
+        return np.mean(x) if len(x) > 0 else 0
+
+    def safe_var(self, x):
+        return np.var(x) if len(x) > 0 else 0
+
     def _log_training_metrics(self) -> None:
         """
         Log training metrics to WandB.
@@ -351,14 +357,14 @@ class DeepQLearningAgent(Agent):
             if self.wandb:
                 wandb.log(
                     {
-                        "loss": np.mean(self.evaluation_data["loss"]),
-                        "action_value": np.mean(self.evaluation_data["action_value"]),
-                        "mean_reward": np.mean(self.evaluation_data["rewards"]),
-                        "var_reward": np.var(self.evaluation_data["rewards"]),
+                        "loss": self.safe_mean(self.evaluation_data["loss"]),
+                        "action_value": self.safe_mean(self.evaluation_data["action_value"]),
+                        "mean_reward": self.safe_mean(self.evaluation_data["rewards"]),
+                        "var_reward": self.safe_var(self.evaluation_data["rewards"]),
                         "episode_count": self.episode_count,
                         "train_step_count": self.train_step_count,
                         "epsilon": self.epsilon,
-                        "learning_rate": np.mean(self.evaluation_data["learning_rate"]),
+                        "learning_rate": self.safe_mean(self.evaluation_data["learning_rate"]),
                     }
                 )
 

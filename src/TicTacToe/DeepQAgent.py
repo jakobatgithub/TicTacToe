@@ -9,6 +9,7 @@ import torch.optim as optim
 import wandb
 from TicTacToe.Agent import Agent
 from TicTacToe.QNetworks import QNetwork, CNNQNetwork, FullyConvQNetwork, EquivariantNN
+from TicTacToe.EvaluationMixin import EvaluationMixin
 
 if TYPE_CHECKING:
     from TicTacToe.TicTacToe import TwoPlayerBoardGame  # Import only for type hinting
@@ -112,7 +113,7 @@ class ReplayBuffer:
         """
         return self.current_size
 
-class DeepQLearningAgent(Agent):
+class DeepQLearningAgent(Agent, EvaluationMixin):
     """
     A Deep Q-Learning agent for playing Tic Tac Toe.
     """
@@ -196,13 +197,6 @@ class DeepQLearningAgent(Agent):
         self.board_to_state_translation = {"X": 1, "O": -1, " ": 0}
         self.state_to_board_translation = {1: "X", -1: "O", 0: " "}
 
-        self.evaluation_data: dict[str, Any] = {
-            "loss": [],
-            "action_value": [],
-            "rewards": [],
-            "learning_rate": [],
-        }
-
         self.transformations: list[Any] = [
             lambda x: x,  # type: ignore Identity
             lambda x: np.fliplr(x),  # type: ignore Horizontal reflection
@@ -214,6 +208,7 @@ class DeepQLearningAgent(Agent):
             lambda x: np.flipud(np.fliplr(np.transpose(x))),  # type: ignore Vertical reflection
         ]
         self.compute_symmetrized_loss = self.create_symmetrized_loss(self.compute_loss, self.transformations, self.rows)
+        EvaluationMixin.__init__(self, wandb_enabled=params["wandb"], wandb_logging_frequency=params["wandb_logging_frequency"])
 
     def generate_permutations(self, transformations: list[Any], rows: int) -> tuple[torch.Tensor, torch.Tensor]:
         """
@@ -298,7 +293,7 @@ class DeepQLearningAgent(Agent):
             The chosen action.
         """
         next_board, reward, done = state_transition
-        self.evaluation_data["rewards"].append(reward)
+        self.record_eval_data("rewards", reward)
 
         if len(self.episode_history) > 0:
             self._update_state_transitions_and_replay_buffer(next_board, reward, done)
@@ -339,41 +334,9 @@ class DeepQLearningAgent(Agent):
         self.optimizer.zero_grad()
         loss.backward()  # type: ignore
         self.optimizer.step()  # type: ignore
-        self.evaluation_data["loss"].append(loss.item())
-        self._log_training_metrics()
+        self.record_eval_data("loss", loss.item())
+        self.maybe_log_metrics()
         self.train_step_count += 1
-
-    def safe_mean(self, x):
-        return np.mean(x) if len(x) > 0 else 0
-
-    def safe_var(self, x):
-        return np.var(x) if len(x) > 0 else 0
-
-    def _log_training_metrics(self) -> None:
-        """
-        Log training metrics to WandB.
-        """
-        if self.train_step_count % self.wandb_logging_frequency == 0:
-            if self.wandb:
-                wandb.log(
-                    {
-                        "loss": self.safe_mean(self.evaluation_data["loss"]),
-                        "action_value": self.safe_mean(self.evaluation_data["action_value"]),
-                        "mean_reward": self.safe_mean(self.evaluation_data["rewards"]),
-                        "var_reward": self.safe_var(self.evaluation_data["rewards"]),
-                        "episode_count": self.episode_count,
-                        "train_step_count": self.train_step_count,
-                        "epsilon": self.epsilon,
-                        "learning_rate": self.safe_mean(self.evaluation_data["learning_rate"]),
-                    }
-                )
-
-            self.evaluation_data: dict[str, Any] = {
-                "loss": [],
-                "action_value": [],
-                "rewards": [],
-                "learning_rate": [],
-            }
 
     def _handle_incomplete_game(self, next_board: Board | None) -> Action:
         """
@@ -496,7 +459,7 @@ class DeepQLearningAgent(Agent):
             q_values = q_network(state_tensor).squeeze()
             max_q = torch.max(q_values)
 
-            self.evaluation_data["action_value"].append(max_q.item())
+            self.record_eval_data("action_value", max_q.item())
 
             max_q_indices = torch.nonzero(q_values == max_q, as_tuple=False)
             if max_q_indices.size(0) > 1:

@@ -34,7 +34,7 @@ from TicTacToe.Evaluation import evaluate_performance
 from TicTacToe.TicTacToe import TicTacToe
 
 params: dict[str, Any] = {
-    "nr_of_episodes": 100,  # number of episodes for training
+    "nr_of_episodes": 1000,  # number of episodes for training
     "rows": 3,  # rows of the board, rows = cols
     "epsilon_start": 0.95,  # initial exploration rate
     # "epsilon_min": 0.05,  # minimum exploration rate
@@ -63,8 +63,8 @@ params: dict[str, Any] = {
 
 # Define parameter sweep ranges
 param_sweep = {
-    "rows": [3],
-    "win_length": [3],
+    "rows": [5],
+    "win_length": [5],
     # "rows": [3, 5],
     # "win_length": [3, 4],
     # "learning_rate": [0.0001, 0.001],

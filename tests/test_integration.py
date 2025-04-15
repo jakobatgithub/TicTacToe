@@ -44,6 +44,7 @@ class TestIntegration(unittest.TestCase):
             "shared_replay_buffer": False,
             "network_type": "FCN",
             "periodic": False,
+            "set_exploration_rate_externally": True,
         }
         agent1 = DeepQLearningAgent(params)
         agent2 = RandomAgent(player="O")
@@ -77,6 +78,7 @@ class TestIntegration(unittest.TestCase):
             "shared_replay_buffer": False,
             "network_type": "FCN",
             "periodic": False,
+            "set_exploration_rate_externally": True,
         }
         agent1 = DeepQLearningAgent(params)
         agent2 = RandomAgent(player="O")
@@ -110,6 +112,7 @@ class TestIntegration(unittest.TestCase):
             "shared_replay_buffer": False,
             "network_type": "CNN",
             "periodic": False,
+            "set_exploration_rate_externally": True,
         }
         agent1 = DeepQLearningAgent(params)
         agent2 = RandomAgent(player="O")
@@ -143,6 +146,7 @@ class TestIntegration(unittest.TestCase):
             "shared_replay_buffer": False,
             "network_type": "FullyCNN",
             "periodic": True,
+            "set_exploration_rate_externally": True,
         }
         agent1 = DeepQLearningAgent(params)
         agent2 = RandomAgent(player="O")
@@ -177,6 +181,7 @@ class TestIntegration(unittest.TestCase):
             "shared_replay_buffer": False,
             "network_type": "CNN",
             "periodic": True,
+            "set_exploration_rate_externally": True,
         }
         agent1 = DeepQLearningAgent(params)
         agent2 = RandomAgent(player="O")

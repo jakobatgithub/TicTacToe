@@ -13,13 +13,17 @@ from TicTacToe.TicTacToe import TicTacToe
 
 
 def average_array(array: list[float] | list[int], chunk_size: Optional[int] = None) -> list[float]:
+    if not array:  # Check if the array is empty
+        return []
+
     means: list[float | int] = []
     if chunk_size is None:
         chunk_size = max((len(array) // 100, 1))
 
     for i in range(0, len(array), chunk_size):
         sublist = array[i : i + chunk_size]
-        means.append(sum(sublist) / len(sublist))
+        if sublist:  # Ensure the sublist is not empty
+            means.append(sum(sublist) / len(sublist))
 
     return means
 

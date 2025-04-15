@@ -91,37 +91,51 @@ class CNNQNetwork(nn.Module):
         x = x.view(-1, self.rows * self.rows)  # Flatten the output to (batch_size, rows*rows)
         return x
 
-
-class FullyConvQNetwork(nn.Module):
-    def __init__(self, input_dim: int, rows: int):
-        """
-        Args:
-            input_dim: Dimension of the input state (e.g., number of channels).
-            rows: Size of the grid (e.g., 3 for 3x3 grid).
-        """
+class PeriodicConvBase(nn.Module):
+    def __init__(self, input_dim: int):
         super().__init__()
-        self.rows = rows
-        self.conv_layers = nn.Sequential(
+        self.encoder = nn.Sequential(
             nn.Conv2d(input_dim, 32, kernel_size=3, stride=1, padding=1, padding_mode='circular'),
             nn.ReLU(),
             nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1, padding_mode='circular'),
-            nn.ReLU(),
-            nn.Conv2d(64, 1, kernel_size=3, stride=1, padding=1, padding_mode='circular')
+            nn.ReLU()
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """
-        Args:
-            x: Tensor of shape (batch_size, input_dim, rows, rows)
+        return self.encoder(x)
 
-        Returns:
-            q_map: Tensor of shape (batch_size, rows*rows) – one Q-value per cell
-        """
+
+class PeriodicQHead(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.head = nn.Conv2d(64, 1, kernel_size=3, stride=1, padding=1, padding_mode='circular')
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = self.head(x)  # shape: (batch_size, 1, rows, cols)
+        return x.squeeze(1)  # shape: (batch_size, rows, cols)
+
+
+class FullyConvQNetwork(nn.Module):
+    def __init__(self, input_dim: int, rows: int):
+        super().__init__()
+        self.rows = rows
+        self.base = PeriodicConvBase(input_dim)
+        self.head = PeriodicQHead()
+
+        # ✅ For backward compatibility with tests
+        self.conv_layers = nn.Sequential(
+            self.base.encoder[0],
+            self.base.encoder[1],
+            self.base.encoder[2],
+            self.base.encoder[3],
+            self.head.head
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = x.view(-1, 1, self.rows, self.rows)
-        x = self.conv_layers(x)
-        x = x.view(-1, self.rows * self.rows)  # Flatten the output to (batch_size, rows*rows)
-        return x
-
+        x = self.base(x)
+        x = self.head(x)  # shape: (batch_size, rows, cols)
+        return x.view(x.size(0), -1)  # shape: (batch_size, rows * cols)
 
 def permutation_matrix(permutation: list[Any]) -> np.ndarray[Any, Any]:
     """

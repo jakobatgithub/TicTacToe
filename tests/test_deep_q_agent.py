@@ -324,6 +324,26 @@ class TestFullyConvQNetwork(unittest.TestCase):
             self.assertIsNotNone(param.grad, "Parameter does not have gradients.")
             self.assertTrue((param.grad != 0).any(), "Parameter gradients should not be zero.")
 
+    def test_parameter_counts(self):
+        """Test that the base and head have the expected number of parameters."""
+        input_dim, rows = 1, 5
+        model = FullyConvQNetwork(input_dim=input_dim, rows=rows)
+
+        base_params = count_trainable_params(model.base)
+        head_params = count_trainable_params(model.head)
+        total_params = count_trainable_params(model)
+
+        self.assertEqual(
+            base_params + head_params,
+            total_params,
+            "Total parameter count should equal the sum of base and head parameters."
+        )
+
+        print("\n")
+        print("Number of parameters in the model FullyConvQNetwork:")
+        print(f"Base parameters: {base_params}")
+        print(f"Head parameters: {head_params}")
+        print(f"Total parameters: {total_params}")
 
 class TestDeepQLearningAgent(unittest.TestCase):
     """Tests for the DeepQLearningAgent class."""
@@ -660,3 +680,6 @@ class TestDeepQPlayingAgent(unittest.TestCase):
         self.agent.on_game_end(None)  # Pass None for game, not used.
         self.assertEqual(self.agent.player, initial_opponent)
         self.assertEqual(self.agent.opponent, initial_player)
+
+def count_trainable_params(model: nn.Module) -> int:
+    return sum(p.numel() for p in model.parameters() if p.requires_grad)

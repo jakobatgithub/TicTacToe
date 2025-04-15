@@ -198,19 +198,19 @@ class TestCNNQNetwork(unittest.TestCase):
 
     def test_forward_pass(self):
         """Ensure the forward pass produces output of the correct shape."""
-        input_dim, grid_size, output_dim = 1, 3, 9
-        model = CNNQNetwork(input_dim=input_dim, rows=grid_size, output_dim=output_dim)
-        test_input = torch.randn((5, input_dim, grid_size, grid_size))  # Batch of 5 inputs
+        batch_size, input_dim, rows = 5, 1, 3
+        model = CNNQNetwork(input_dim=input_dim, rows=rows, output_dim=rows * rows)
+        test_input = torch.randn((batch_size, rows * rows))  # Batch of 5 inputs
         output = model(test_input)
 
-        self.assertEqual(output.shape, (5, output_dim), "Output shape is incorrect.")
+        self.assertEqual(output.shape, (batch_size, rows * rows), "Output shape is incorrect.")
 
     def test_gradient_flow(self):
         """Confirm that gradients flow correctly during backpropagation."""
-        input_dim, grid_size, output_dim = 1, 3, 9
-        model = CNNQNetwork(input_dim=input_dim, rows=grid_size, output_dim=output_dim)
-        test_input = torch.randn((5, input_dim, grid_size, grid_size))
-        target = torch.randn((5, output_dim))
+        batch_size, input_dim, rows, output_dim = 5, 1, 3, 9
+        model = CNNQNetwork(input_dim=input_dim, rows=rows, output_dim=output_dim)
+        test_input = torch.randn((batch_size, rows * rows))
+        target = torch.randn((batch_size, output_dim))
 
         criterion = torch.nn.MSELoss()
         optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
@@ -241,7 +241,7 @@ class TestCNNQNetwork(unittest.TestCase):
         self.assertEqual(total_params, expected_params, "The number of trainable parameters is incorrect.")
 
 
-class TestFullyCNNQNetwork(unittest.TestCase):
+class TestFullyConvQNetwork(unittest.TestCase):
     """Tests for the FullyConvQNetwork class."""
 
     def test_output_dimensions(self):
@@ -250,8 +250,8 @@ class TestFullyCNNQNetwork(unittest.TestCase):
         model = FullyConvQNetwork(input_dim=input_dim, rows=rows)
 
         # Create a test input tensor
-        test_input = torch.zeros((batch_size, input_dim, rows, rows))
-        test_input[0, 0, 2, 2] = 1.0  # Set a single active cell in the center
+        test_input = torch.zeros((batch_size, rows * rows))
+        test_input[0, 4] = 1.0  # Set a single active cell in the center
         output = model(test_input)
         self.assertEqual(output.shape, (batch_size, rows * rows), "Output shape is incorrect.")
 
@@ -261,7 +261,7 @@ class TestFullyCNNQNetwork(unittest.TestCase):
         model = FullyConvQNetwork(input_dim=input_dim, rows=rows)
 
         # Create a test input tensor
-        test_input = torch.zeros((batch_size, input_dim, rows, rows))
+        test_input = torch.zeros((batch_size, rows * rows)).view(-1, 1, rows, rows)
         test_input[0, 0, 2, 2] = 1.0  # Set a single active cell in the center
 
         # Define a shift (x, y)
@@ -279,7 +279,7 @@ class TestFullyCNNQNetwork(unittest.TestCase):
 
         # Compare the results
         self.assertTrue(
-            torch.allclose(shifted_output, shifted_original_output, atol=1e-3),
+            torch.allclose(shifted_output, shifted_original_output, atol=1e-7),
             "Shifting the input and then applying conv_layers should yield the same result as applying conv_layers and then shifting the output.",
         )
 
@@ -304,7 +304,7 @@ class TestFullyCNNQNetwork(unittest.TestCase):
         model = FullyConvQNetwork(input_dim=input_dim, rows=rows)
 
         # Create a random input tensor
-        test_input = torch.randn((batch_size, input_dim, rows, rows), requires_grad=True)
+        test_input = torch.randn((batch_size, rows * rows), requires_grad=True)
         target = torch.randn((batch_size, rows * rows))
 
         # Define a loss function and optimizer

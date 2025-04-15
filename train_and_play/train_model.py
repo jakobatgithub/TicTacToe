@@ -1,3 +1,23 @@
+"""
+Deep Q-Learning Training Script for Tic Tac Toe Variants
+
+This script trains Deep Q-Learning agents to play Tic Tac Toe on customizable grids
+with optional periodic boundary conditions. It supports:
+
+- Parameter sweeps over different game configurations
+- Fully convolutional Q-networks
+- Evaluation against random agents
+- Adaptive exploration strategies
+- Optional pretrained model loading
+- Weights & artifact saving
+- Weights & Biases logging
+
+Key Classes & Dependencies:
+- DeepQLearningAgent: Q-learning agent with optional FullyConvQNetwork
+- TicTacToe: Environment handling gameplay with two agents
+- evaluate_performance: Evaluates agents against random baselines
+"""
+
 import copy
 import json
 import os
@@ -16,10 +36,31 @@ from TicTacToe.TicTacToe import TicTacToe
 
 
 def get_param_sweep_combinations(param_sweep: dict) -> tuple[list[tuple[Any, ...]], list[str]]:
+    """
+    Generates all combinations of hyperparameter values for sweeping.
+
+    Args:
+        param_sweep (dict): Dictionary mapping parameter names to lists of values.
+
+    Returns:
+        tuple: A tuple containing:
+            - List of all combinations of values as tuples
+            - List of parameter keys in the same order
+    """
     return list(product(*param_sweep.values())), list(param_sweep.keys())
 
 
 def load_pretrained_models(paramsX: dict, paramsO: dict) -> tuple[dict, dict]:
+    """
+    Loads pretrained models from disk and updates the parameter dicts with their paths.
+
+    Args:
+        paramsX (dict): Parameters for player X.
+        paramsO (dict): Parameters for player O.
+
+    Returns:
+        tuple: Updated (paramsX, paramsO) with model paths inserted.
+    """
     script_dir = Path(__file__).resolve().parent
     relative_folder = (script_dir / '../models/foundational').resolve()
     model_path_X = f"{relative_folder}/q_network_5x5x5_X_weights.pth"
@@ -35,6 +76,17 @@ def load_pretrained_models(paramsX: dict, paramsO: dict) -> tuple[dict, dict]:
 
 
 def save_model_artifacts(agent1, agent2, rows, win_length, params, model_metadata):
+    """
+    Saves full models and weight components for both agents and appends metadata.
+
+    Args:
+        agent1: Agent playing as 'X'.
+        agent2: Agent playing as 'O'.
+        rows (int): Grid size.
+        win_length (int): Win condition (number of in-a-row).
+        params (dict): Parameter configuration.
+        model_metadata (list): List to append model metadata entries to.
+    """
     script_dir = Path(__file__).resolve().parent
     all_models_folder = (script_dir / '../models/all_models').resolve()
     all_models_folder.mkdir(parents=True, exist_ok=True)
@@ -42,8 +94,8 @@ def save_model_artifacts(agent1, agent2, rows, win_length, params, model_metadat
 
     def save_agent(agent, player):
         model_name = f"q_network_{rows}x{rows}x{win_length}_{player}"
-        torch.save(agent.q_network, all_models_folder / f"{model_name}.pth")
-        torch.save(agent.q_network.state_dict(), all_models_folder / f"{model_name}_weights.pth")
+        torch.save(agent.q_network, all_models_folder / f"{model_name}.pth")  # full model
+        torch.save(agent.q_network.state_dict(), all_models_folder / f"{model_name}_weights.pth")  # state dict
 
         base, head = None, None
         if isinstance(agent.q_network, FullyConvQNetwork):
@@ -72,38 +124,41 @@ def save_model_artifacts(agent1, agent2, rows, win_length, params, model_metadat
         json.dump(model_metadata, f, indent=4)
 
 
+# --- Training Parameters ---
 params: dict[str, Any] = {
-    "nr_of_episodes": 1000,
-    "rows": 3,
-    "learning_rate": 0.0001,
-    "gamma": 0.95,
-    "switching": True,
-    "win_length": 3,
-    "epsilon_start": 0.925,
-    "epsilon_min": 0.1,
-    "set_exploration_rate_externally": True,
-    "epsilon_update_threshold": 0.025,
-    "epsilon_update_factor": 0.99,
-    "batch_size": 256,
-    "target_update_frequency": 25,
-    "evaluation": True,
-    "evaluation_frequency": 25,
-    "evaluation_batch_size": 200,
-    "device": "mps",
-    "replay_buffer_length": 10000,
-    "wandb": False,
-    "wandb_logging_frequency": 25,
-    "load_network": False,
-    "shared_replay_buffer": False,
-    "network_type": "FullyCNN",
-    "periodic": True,
-    "save_models": True,
+    "nr_of_episodes": 1000,  # Number of training games
+    "rows": 3,  # Board size (rows x rows)
+    "learning_rate": 0.0001,  # Optimizer learning rate
+    "gamma": 0.95,  # Discount factor for future rewards
+    "switching": True,  # Whether players switch turns
+    "win_length": 3,  # Number of in-a-row needed to win
+    "epsilon_start": 0.925,  # Initial exploration rate
+    "epsilon_min": 0.1,  # Minimum exploration rate
+    "set_exploration_rate_externally": True,  # Adaptive epsilon enabled
+    "epsilon_update_threshold": 0.025,  # Epsilon adjustment sensitivity
+    "epsilon_update_factor": 0.99,  # Decay rate for epsilon
+    "batch_size": 256,  # Batch size for training updates
+    "target_update_frequency": 25,  # Frequency to sync target network
+    # "evaluation": True,  # Whether to run evaluations
+    "evaluation_frequency": 25,  # Episodes between evaluations
+    "evaluation_batch_size": 200,  # Games to evaluate per round
+    "device": "mps",  # Device: "cuda", "mps", or "cpu"
+    "replay_buffer_length": 10000,  # Max length of replay buffer
+    "wandb": False,  # Enable Weights & Biases logging
+    "wandb_logging_frequency": 25,  # Logging frequency (in episodes)
+    "load_network": False,  # Whether to load pretrained weights
+    "shared_replay_buffer": False,  # Unused flag (placeholder)
+    "network_type": "FullyCNN",  # Network architecture
+    "periodic": True,  # Periodic boundary conditions
+    "save_models": True,  # Save weights after training
 }
 
+# --- Sweep Setup ---
 param_sweep = {"rows": [3], "win_length": [3]}
 sweep_combinations, param_keys = get_param_sweep_combinations(param_sweep)
 model_metadata = []
 
+# --- Sweep Loop ---
 for sweep_idx, combination in enumerate(sweep_combinations):
     print(f"Starting parameter sweep {sweep_idx + 1}/{len(sweep_combinations)}")
     for key, value in zip(param_keys, combination):
@@ -115,10 +170,10 @@ for sweep_idx, combination in enumerate(sweep_combinations):
 
     paramsX = copy.deepcopy(params)
     paramsO = copy.deepcopy(params)
-    paramsX["player"] = "X"
-    paramsO["player"] = "O"
-    paramsX["wandb"] = True
-    paramsO["wandb"] = False
+    paramsX["player"] = "X"  # Player symbol for Agent 1
+    paramsO["player"] = "O"  # Player symbol for Agent 2
+    paramsX["wandb"] = True  # Log Agent 1 with wandb
+    paramsO["wandb"] = False  # Do not log Agent 2
 
     if params["load_network"]:
         paramsX, paramsO = load_pretrained_models(paramsX, paramsO)
@@ -127,7 +182,15 @@ for sweep_idx, combination in enumerate(sweep_combinations):
     agent1 = DeepQLearningAgent(paramsX)
     agent2 = DeepQLearningAgent(paramsO)
 
-    game = TicTacToe(agent1, agent2, display=None, rows=rows, cols=rows, win_length=win_length, periodic=params["periodic"])
+    game = TicTacToe(
+        agent1,
+        agent2,
+        display=None,
+        rows=rows,
+        cols=rows,
+        win_length=win_length,
+        periodic=params["periodic"]
+    )
 
     X_win_rates, O_win_rates = deque(maxlen=10), deque(maxlen=10)
     exploration_rate = params["epsilon_start"]

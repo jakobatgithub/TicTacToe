@@ -119,7 +119,6 @@ class FullyConvQNetwork(nn.Module):
         """
         x = x.view(-1, 1, self.rows, self.rows)
         x = self.conv_layers(x)
-        x = self.conv_layers(x)
         x = x.view(-1, self.rows * self.rows)  # Flatten the output to (batch_size, rows*rows)
         return x
 

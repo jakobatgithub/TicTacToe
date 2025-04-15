@@ -75,7 +75,7 @@ def load_pretrained_models(paramsX: dict, paramsO: dict) -> tuple[dict, dict]:
     return paramsX, paramsO
 
 
-def save_model_artifacts(agent1, agent2, rows, win_length, params, model_metadata):
+def save_model_artifacts(agent1, agent2, params, model_metadata):
     """
     Saves full models and weight components for both agents and appends metadata.
 
@@ -93,7 +93,7 @@ def save_model_artifacts(agent1, agent2, rows, win_length, params, model_metadat
     metadata_file = all_models_folder / "model_metadata.json"
 
     def save_agent(agent, player):
-        model_name = f"q_network_{rows}x{rows}x{win_length}_{player}"
+        model_name = f"q_network_{params["rows"]}x{params["rows"]}x{params["win_length"]}_{player}"
         torch.save(agent.q_network, all_models_folder / f"{model_name}.pth")  # full model
         torch.save(agent.q_network.state_dict(), all_models_folder / f"{model_name}_weights.pth")  # state dict
 
@@ -124,6 +124,64 @@ def save_model_artifacts(agent1, agent2, rows, win_length, params, model_metadat
         json.dump(model_metadata, f, indent=4)
 
 
+def update_exploration_rate(agent1, agent2, params, eval_data, exploration_rate, win_rate_deques):
+    """
+    Updates the exploration rate based on evaluation data.
+    If the win rates of both agents are stable, the exploration rate is decreased.
+    Args:
+        agent1: Agent playing as 'X'.
+        agent2: Agent playing as 'O'.
+        params (dict): Parameter configuration.
+        eval_data (dict): Evaluation data containing win rates.
+        exploration_rate (float): Current exploration rate.
+    """
+
+    X_win_rates, O_win_rates = win_rate_deques
+    X_win, O_win = eval_data["X_against_random: X wins"], eval_data["O_against_random: O wins"]
+    X_win_rates.append(X_win)
+    O_win_rates.append(O_win)
+
+    if params["set_exploration_rate_externally"] and len(X_win_rates) > 1:
+        delta_X = abs(X_win_rates[-2] - X_win_rates[-1])
+        delta_O = abs(O_win_rates[-2] - O_win_rates[-1])
+
+        if delta_X < params["epsilon_update_threshold"] and delta_O < params["epsilon_update_threshold"]:
+            exploration_rate = max(exploration_rate * params["epsilon_update_factor"], params["epsilon_min"])
+            agent1.set_exploration_rate(exploration_rate)
+            agent2.set_exploration_rate(exploration_rate)
+            print(f"X_win_rates = {X_win_rates}, O_win_rates = {O_win_rates}, current_exploration_rate = {exploration_rate}")
+
+
+def train_and_evaluate(params: dict, sweep_idx: int):
+    """
+    Trains and evaluates two agents in a Tic Tac Toe game.
+    Args:
+        params (dict): Parameter configuration.
+        sweep_idx (int): Index of the current parameter sweep.
+    """
+
+    for episode in tqdm(range(params["nr_of_episodes"])):
+        outcome = game.play()
+        if outcome:
+            outcomes[outcome] += 1
+
+        if episode > 0 and episode % params["evaluation_frequency"] == 0:
+            eval_data = evaluate_performance(
+                agent1,
+                agent2,
+                evaluation_batch_size=params["evaluation_batch_size"],
+                rows=params["rows"],
+                win_length=params["win_length"],
+                wandb_logging=paramsX["wandb"] or paramsO["wandb"],
+                device=params["device"],
+                periodic=params["periodic"]
+            )
+            if params["set_exploration_rate_externally"]:
+                update_exploration_rate(agent1, agent2, params, eval_data, exploration_rate, (X_win_rates, O_win_rates))
+
+    print(f"Outcomes during learning for sweep {sweep_idx + 1}:")
+    print(f"X wins: {outcomes['X'] / params["nr_of_episodes"]}, O wins: {outcomes['O'] / params["nr_of_episodes"]}, draws: {outcomes['D'] / params["nr_of_episodes"]}")
+
 # --- Training Parameters ---
 params: dict[str, Any] = {
     "nr_of_episodes": 1000,  # Number of training games
@@ -133,7 +191,7 @@ params: dict[str, Any] = {
     "switching": True,  # Whether players switch turns
     "win_length": 3,  # Number of in-a-row needed to win
     "epsilon_start": 0.925,  # Initial exploration rate
-    "epsilon_min": 0.1,  # Minimum exploration rate
+    "epsilon_min": 0.025,  # Minimum exploration rate
     "set_exploration_rate_externally": True,  # Adaptive epsilon enabled
     "epsilon_update_threshold": 0.025,  # Epsilon adjustment sensitivity
     "epsilon_update_factor": 0.99,  # Decay rate for epsilon
@@ -163,10 +221,6 @@ for sweep_idx, combination in enumerate(sweep_combinations):
     for key, value in zip(param_keys, combination):
         params[key] = value
 
-    rows = params["rows"]
-    win_length = params["win_length"]
-    nr_of_episodes = params["nr_of_episodes"]
-
     paramsX = copy.deepcopy(params)
     paramsO = copy.deepcopy(params)
     paramsX["player"] = "X"  # Player symbol for Agent 1
@@ -185,9 +239,9 @@ for sweep_idx, combination in enumerate(sweep_combinations):
         agent1,
         agent2,
         display=None,
-        rows=rows,
-        cols=rows,
-        win_length=win_length,
+        rows=params["rows"],
+        cols=params["rows"],
+        win_length=params["win_length"],
         periodic=params["periodic"]
     )
 
@@ -195,42 +249,10 @@ for sweep_idx, combination in enumerate(sweep_combinations):
     exploration_rate = params["epsilon_start"]
 
     try:
-        for episode in tqdm(range(nr_of_episodes)):
-            outcome = game.play()
-            if outcome:
-                outcomes[outcome] += 1
-
-            if episode > 0 and episode % params["evaluation_frequency"] == 0:
-                eval_data = evaluate_performance(
-                    agent1,
-                    agent2,
-                    nr_of_episodes=params["evaluation_batch_size"],
-                    rows=rows,
-                    win_length=win_length,
-                    wandb_logging=paramsX["wandb"] or paramsO["wandb"],
-                    device=params["device"],
-                    periodic=params["periodic"]
-                )
-
-                X_win, O_win = eval_data["X_against_random: X wins"], eval_data["O_against_random: O wins"]
-                X_win_rates.append(X_win)
-                O_win_rates.append(O_win)
-
-                if params["set_exploration_rate_externally"] and len(X_win_rates) > 1:
-                    delta_X = abs(X_win_rates[-2] - X_win_rates[-1])
-                    delta_O = abs(O_win_rates[-2] - O_win_rates[-1])
-
-                    if delta_X < params["epsilon_update_threshold"] and delta_O < params["epsilon_update_threshold"]:
-                        exploration_rate = max(exploration_rate * params["epsilon_update_factor"], params["epsilon_min"])
-                        agent1.set_exploration_rate(exploration_rate)
-                        agent2.set_exploration_rate(exploration_rate)
-                        print(f"X_win_rates = {X_win_rates}, O_win_rates = {O_win_rates}, current_exploration_rate = {exploration_rate}")
-
-        print(f"Outcomes during learning for sweep {sweep_idx + 1}:")
-        print(f"X wins: {outcomes['X']/nr_of_episodes}, O wins: {outcomes['O']/nr_of_episodes}, draws: {outcomes['D']/nr_of_episodes}")
+        train_and_evaluate(params, sweep_idx)
 
     finally:
         if params["save_models"]:
-            save_model_artifacts(agent1, agent2, rows, win_length, params, model_metadata)
+            save_model_artifacts(agent1, agent2, params, model_metadata)
 
     wandb.finish()

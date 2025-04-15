@@ -13,6 +13,16 @@ from TicTacToe.TicTacToe import TicTacToe
 
 
 def average_array(array: list[float] | list[int], chunk_size: Optional[int] = None) -> list[float]:
+    """
+    Compute the average of elements in the array in chunks.
+
+    Args:
+        array (list[float] | list[int]): The input array of numbers.
+        chunk_size (Optional[int]): The size of each chunk. If None, it defaults to 1% of the array length.
+
+    Returns:
+        list[float]: A list of averaged values for each chunk.
+    """
     if not array:  # Check if the array is empty
         return []
 
@@ -29,6 +39,14 @@ def average_array(array: list[float] | list[int], chunk_size: Optional[int] = No
 
 
 def plot_graphs(loss: list[float], action_value: list[float], rewards: list[float]) -> None:
+    """
+    Plot graphs for loss, action value, and rewards over training steps.
+
+    Args:
+        loss (list[float]): List of loss values.
+        action_value (list[float]): List of action values.
+        rewards (list[float]): List of rewards.
+    """
     # Create a figure with two subplots next to each other
     _, axs = plt.subplots(1, 3, figsize=(12, 3))  # type: ignore
 
@@ -70,6 +88,12 @@ def plot_graphs(loss: list[float], action_value: list[float], rewards: list[floa
 
 
 def plot_valid_actions(learning_agent: DeepQLearningAgent) -> None:
+    """
+    Plot the fraction of valid actions taken by the learning agent during training.
+
+    Args:
+        learning_agent (DeepQLearningAgent): The learning agent being evaluated.
+    """
     evaluation_data: dict[str, Any] = learning_agent.evaluation_data
     valid_actions: list[int] = evaluation_data["valid_actions"]
     chunk_size = max((len(valid_actions) // 100, 1))
@@ -89,6 +113,12 @@ def plot_valid_actions(learning_agent: DeepQLearningAgent) -> None:
 
 
 def plot_evaluation_data(learning_agent: DeepQLearningAgent) -> None:
+    """
+    Plot evaluation data including loss, action value, and rewards for a learning agent.
+
+    Args:
+        learning_agent (DeepQLearningAgent): The learning agent being evaluated.
+    """
     evaluation_data = learning_agent.evaluation_data
     loss = evaluation_data["loss"]
     action_value = evaluation_data["action_value"]
@@ -100,7 +130,15 @@ def plot_evaluation_data(learning_agent: DeepQLearningAgent) -> None:
 
 
 def extract_values(dictionary: dict[Any, float]) -> list[float]:
-    """Extract all values from a potentially nested dictionary."""
+    """
+    Extract all values from a potentially nested dictionary.
+
+    Args:
+        dictionary (dict[Any, float]): The input dictionary.
+
+    Returns:
+        list[float]: A list of all values extracted from the dictionary.
+    """
     values: list[float] = []
     for _, value in dictionary.items():
         if isinstance(value, dict):  # If the value is a dictionary, recurse
@@ -111,6 +149,13 @@ def extract_values(dictionary: dict[Any, float]) -> list[float]:
 
 
 def evaluate_and_plot_Q(learning_agent: QLearningAgent, player: Player) -> None:
+    """
+    Evaluate and plot statistics of Q-values for a Q-learning agent.
+
+    Args:
+        learning_agent (QLearningAgent): The Q-learning agent being evaluated.
+        player (Player): The player ('X' or 'O') associated with the agent.
+    """
     qMatrix = learning_agent.Q.qMatrix
     qValues = extract_values(qMatrix)
     print(qValues)
@@ -146,6 +191,17 @@ def QAgent_plays_against_RandomAgent(
     cols: int = 3,
     win_length: int = 3,
 ) -> None:
+    """
+    Simulate games where a Q-learning agent plays against a random agent.
+
+    Args:
+        Q (FullySymmetricMatrix): The Q-matrix of the agent.
+        player (Player): The player ('X' or 'O') for the Q-learning agent.
+        nr_of_episodes (int): Number of episodes to simulate.
+        rows (int): Number of rows in the TicTacToe board.
+        cols (int): Number of columns in the TicTacToe board.
+        win_length (int): Number of consecutive marks needed to win.
+    """
     playing_agent1 = QPlayingAgent(Q, player=player, switching=False)
     opponent = "O" if player == "X" else "X"
     random_agent1 = RandomAgent(player=opponent, switching=False)
@@ -172,6 +228,19 @@ def QAgent_plays_against_QAgent(
     cols: int = 3,
     win_length: int = 3,
 ) -> None:
+    """
+    Simulate games where two Q-learning agents play against each other.
+
+    Args:
+        Q1 (FullySymmetricMatrix): The Q-matrix of the first agent.
+        player1 (Player): The player ('X' or 'O') for the first agent.
+        Q2 (FullySymmetricMatrix): The Q-matrix of the second agent.
+        player2 (Player | None): The player ('X' or 'O') for the second agent. Defaults to the opposite of player1.
+        nr_of_episodes (int): Number of episodes to simulate.
+        rows (int): Number of rows in the TicTacToe board.
+        cols (int): Number of columns in the TicTacToe board.
+        win_length (int): Number of consecutive marks needed to win.
+    """
     playing_agent1 = QPlayingAgent(Q1, player=player1, switching=False)
     if not player2:
         player2 = "O" if player1 == "X" else "X"
@@ -193,22 +262,37 @@ def QAgent_plays_against_QAgent(
 def evaluate_performance(
     learning_agent1: DeepQLearningAgent,
     learning_agent2: DeepQLearningAgent,
-    nr_of_episodes: int = 1000,
+    evaluation_batch_size: int = 1000,
     rows: int = 3,
     win_length: int = 3,
     wandb_logging: bool = True,
     device: str = "cpu",
     periodic: bool = False,
 ) -> dict[str, float]:
+    """
+    Evaluate the performance of two Deep Q-learning agents against random agents and each other.
+
+    Args:
+        learning_agent1 (DeepQLearningAgent): The first learning agent.
+        learning_agent2 (DeepQLearningAgent): The second learning agent.
+        evaluation_batch_size (int): Number of games to simulate for evaluation.
+        rows (int): Number of rows in the TicTacToe board.
+        win_length (int): Number of consecutive marks needed to win.
+        wandb_logging (bool): Whether to log results to Weights & Biases.
+        device (str): The device ('cpu' or 'cuda') for computation.
+        periodic (bool): Whether the board has periodic boundaries.
+
+    Returns:
+        dict[str, float]: A dictionary containing evaluation metrics.
+    """
     q_network1 = learning_agent1.q_network
     playing_agent1 = DeepQPlayingAgent(q_network1, player="X", switching=False, device=device)
     random_agent2 = RandomAgent(player="O", switching=False)
     all_data = {}
 
     game = TicTacToe(playing_agent1, random_agent2, display=None, rows=rows, cols=rows, win_length=win_length, periodic=periodic)
-    nr_of_episodes = nr_of_episodes
     outcomes = {"X": 0, "O": 0, "D": 0}
-    for _ in range(nr_of_episodes):
+    for _ in range(evaluation_batch_size):
         outcome = game.play()
         if outcome is not None:
             outcomes[outcome] += 1
@@ -216,9 +300,9 @@ def evaluate_performance(
     mode = "X_against_random:"
     if wandb_logging:
         data = {
-                f"{mode} X wins": outcomes["X"] / nr_of_episodes,
-                f"{mode} O wins": outcomes["O"] / nr_of_episodes,
-                f"{mode} draws": outcomes["D"] / nr_of_episodes,
+                f"{mode} X wins": outcomes["X"] / evaluation_batch_size,
+                f"{mode} O wins": outcomes["O"] / evaluation_batch_size,
+                f"{mode} draws": outcomes["D"] / evaluation_batch_size,
             }
         wandb.log(data)
         all_data = all_data | data
@@ -228,9 +312,9 @@ def evaluate_performance(
     random_agent1 = RandomAgent(player="X", switching=False)
 
     game = TicTacToe(random_agent1, playing_agent2, display=None, rows=rows, cols=rows, win_length=win_length, periodic=periodic)
-    nr_of_episodes = nr_of_episodes
+    evaluation_batch_size = evaluation_batch_size
     outcomes = {"X": 0, "O": 0, "D": 0}
-    for _ in range(nr_of_episodes):
+    for _ in range(evaluation_batch_size):
         outcome = game.play()
         if outcome is not None:
             outcomes[outcome] += 1
@@ -238,17 +322,17 @@ def evaluate_performance(
     mode = "O_against_random:"
     if wandb_logging:
         data = {
-                f"{mode} X wins": outcomes["X"] / nr_of_episodes,
-                f"{mode} O wins": outcomes["O"] / nr_of_episodes,
-                f"{mode} draws": outcomes["D"] / nr_of_episodes,
+                f"{mode} X wins": outcomes["X"] / evaluation_batch_size,
+                f"{mode} O wins": outcomes["O"] / evaluation_batch_size,
+                f"{mode} draws": outcomes["D"] / evaluation_batch_size,
             }
         wandb.log(data)
         all_data = all_data | data
 
     game = TicTacToe(playing_agent1, playing_agent2, display=None, rows=rows, cols=rows, win_length=win_length)
-    nr_of_episodes = nr_of_episodes
+    evaluation_batch_size = evaluation_batch_size
     outcomes = {"X": 0, "O": 0, "D": 0}
-    for _ in range(nr_of_episodes):
+    for _ in range(evaluation_batch_size):
         outcome = game.play()
         if outcome is not None:
             outcomes[outcome] += 1
@@ -256,9 +340,9 @@ def evaluate_performance(
     mode = "X_against_O:"
     if wandb_logging:
         data = {
-                f"{mode} X wins": outcomes["X"] / nr_of_episodes,
-                f"{mode} O wins": outcomes["O"] / nr_of_episodes,
-                f"{mode} draws": outcomes["D"] / nr_of_episodes,
+                f"{mode} X wins": outcomes["X"] / evaluation_batch_size,
+                f"{mode} O wins": outcomes["O"] / evaluation_batch_size,
+                f"{mode} draws": outcomes["D"] / evaluation_batch_size,
             }
         wandb.log(data)
         all_data = all_data | data

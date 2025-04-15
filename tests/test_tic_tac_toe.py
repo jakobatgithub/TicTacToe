@@ -161,3 +161,33 @@ class TestTicTacToe(unittest.TestCase):
                       " ", " ", " ", " ", " ",  # Row 3
                       " ", " ", " ", " ", " "]  # Row 4
         self.assertTrue(game.is_won("X"))
+
+    def test_initialize(self) -> None:
+        """Test the _initialize method."""
+        self.game._initialize()
+        self.assertEqual(self.game.board, [" "] * 9)
+        self.assertEqual(self.game.current_player, "X")
+
+    def test_get_board(self) -> None:
+        """Test the get_board method."""
+        self.game.board = ["X", "O", " ", "X", "O", "X", " ", " ", " "]
+        self.assertEqual(self.game.get_board(), self.game.board)
+
+    def test_get_valid_actions(self) -> None:
+        """Test the get_valid_actions method."""
+        self.game.board = ["X", "O", " ", "X", "O", "X", " ", " ", " "]
+        valid_actions = self.game.get_valid_actions()
+        self.assertEqual(valid_actions, [2, 6, 7, 8])
+
+    def test_display_board_with_outcome(self) -> None:
+        """Test display_board with an outcome."""
+        board = ["X", "O", " ", "X", "O", "X", " ", " ", " "]
+        outcome = "X"
+        self.game.display = self.display
+        self.game.display_board(board, outcome)
+        self.display.update_display.assert_called_with(board, outcome)
+
+    def test_terminal_rewards_draw(self) -> None:
+        """Test terminal rewards for a draw outcome."""
+        rewards = self.game.get_terminal_rewards("D")
+        self.assertEqual(rewards, (0.0, 0.0))

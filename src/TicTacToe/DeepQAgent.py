@@ -94,8 +94,12 @@ class DeepQLearningAgent(Agent, EvaluationMixin):
             self.q_network = QNetwork(state_size, output_dim=action_size).to(self.device)
             self.target_network = QNetwork(state_size, output_dim=action_size).to(self.device)
         elif params["network_type"] == "FullyCNN":
-            self.q_network = FullyConvQNetwork().to(self.device)
-            self.target_network = FullyConvQNetwork().to(self.device)
+            if params.get("one_hot_encoding", False):
+                self.q_network = FullyConvQNetwork(input_dim=3).to(self.device)
+                self.target_network = FullyConvQNetwork(input_dim=3).to(self.device)
+            else:
+                self.q_network = FullyConvQNetwork(input_dim=1).to(self.device)
+                self.target_network = FullyConvQNetwork(input_dim=1).to(self.device)
 
         # Optionally load weights if a file is provided
         if params["load_network"]:
@@ -109,19 +113,28 @@ class DeepQLearningAgent(Agent, EvaluationMixin):
             self.replay_buffer = params["shared_replay_buffer"]
         else:
             if params["2D state"]:
-                self.replay_buffer = ReplayBuffer(self.replay_buffer_length, (1, self.rows, self.rows), device=params["device"])
+                if params.get("one_hot_encoding", False):
+                    self.replay_buffer = ReplayBuffer(self.replay_buffer_length, (3, self.rows, self.rows), device=params["device"])
+                else:
+                    self.replay_buffer = ReplayBuffer(self.replay_buffer_length, (1, self.rows, self.rows), device=params["device"])
             else:
                 self.replay_buffer = ReplayBuffer(self.replay_buffer_length, (self.rows**2, ), device=params["device"])
 
         if params["2D state"]:
-            self.board_to_state = self.board_to_state_2D
-            self.state_to_board = self.state_2D_to_board
+            if params.get("one_hot_encoding", False):
+                self.board_to_state = self.board_to_state_4D
+                self.state_to_board = self.state_4D_to_board
+            else:
+                self.board_to_state = self.board_to_state_2D
+                self.state_to_board = self.state_2D_to_board
         else:
             self.board_to_state = self.board_to_state_1D
             self.state_to_board = self.state_1D_to_board
 
         self.board_to_state_translation = {"X": 1, "O": -1, " ": 0}
         self.state_to_board_translation = {1: "X", -1: "O", 0: " "}
+        self.symbol_to_index = {"X": 0, "O": 1, " ": 2}
+        self.index_to_symbol = {0: "X", 1: "O", 2: " "}        
 
         self.transformations: list[Any] = [
             lambda x: x,  # type: ignore Identity
@@ -234,6 +247,7 @@ class DeepQLearningAgent(Agent, EvaluationMixin):
             The computed loss.
         """
         states, actions, rewards, next_states, dones = samples
+        # print(f"states.shape = {states.shape}")
         q_values = self.q_network(states).gather(1, actions.unsqueeze(1)).squeeze(1)
         next_q_values = self.target_network(next_states).max(1, keepdim=True)[0].squeeze(1)
         targets = rewards + (~dones) * self.gamma * next_q_values
@@ -376,6 +390,36 @@ class DeepQLearningAgent(Agent, EvaluationMixin):
         board = [self.state_to_board_translation[cell] for cell in flat_state]
         return board
 
+    def board_to_state_4D(self, board: Board) -> State:
+        """
+        Convert a flat board to a one-hot encoded 4D state (1, 3, rows, rows).
+        """
+        assert len(board) == self.rows * self.rows, "Flat board size doesn't match grid dimensions"
+        state = np.zeros((3, self.rows, self.rows), dtype=np.float32)
+
+        for idx, symbol in enumerate(board):
+            row = idx // self.rows
+            col = idx % self.rows
+            channel = self.symbol_to_index[symbol]
+            state[channel, row, col] = 1.0
+
+        return state[np.newaxis, :]  # Add batch dimension
+
+    def state_4D_to_board(self, state: State) -> Board:
+        """
+        Convert a one-hot encoded 4D state back to a flat board.
+        """
+        state = state[0]  # Remove batch dimension
+        flat_board = []
+
+        for i in range(self.rows):
+            for j in range(self.rows):
+                channel = np.argmax(state[:, i, j])
+                symbol = self.index_to_symbol[int(channel)]
+                flat_board.append(symbol)
+
+        return flat_board
+
     def update_exploration_rate(self, episode: int) -> None:
         """
         Update the exploration rate (epsilon) based on the current episode.
@@ -438,6 +482,7 @@ class DeepQLearningAgent(Agent, EvaluationMixin):
         """
         state = self.board_to_state(board)
         state_tensor = torch.FloatTensor(state).to(self.device)
+        # print(f"state_tensor.shape = {state_tensor.shape}")
         with torch.no_grad():
             q_values = q_network(state_tensor).squeeze()
             max_q = torch.max(q_values)

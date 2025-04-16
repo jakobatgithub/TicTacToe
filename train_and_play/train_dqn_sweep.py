@@ -171,7 +171,7 @@ def update_exploration_rate_smoothly(agent1: DeepQLearningAgent, agent2: DeepQLe
 
     return exploration_rate
 
-def train_and_evaluate(game: TwoPlayerBoardGame, agent1: DeepQLearningAgent, agent2: DeepQLearningAgent, params: dict):
+def train_and_evaluate(game: TwoPlayerBoardGame, agent1: DeepQLearningAgent, agent2: DeepQLearningAgent, params: dict, wandb_logging: bool = True):
     """
     Train and evaluate two agents in a Tic Tac Toe game.
 
@@ -198,7 +198,7 @@ def train_and_evaluate(game: TwoPlayerBoardGame, agent1: DeepQLearningAgent, age
                 evaluation_batch_size=params["evaluation_batch_size"],
                 rows=params["rows"],
                 win_length=params["win_length"],
-                wandb_logging=paramsX["wandb"] or paramsO["wandb"],
+                wandb_logging=wandb_logging,
                 device=params["device"],
                 periodic=params["periodic"]
             )
@@ -272,7 +272,7 @@ for sweep_idx, combination in enumerate(sweep_combinations):
     )
 
     try:
-        train_and_evaluate(game, agent1, agent2, params)
+        train_and_evaluate(game, agent1, agent2, params, wandb_logging=paramsX["wandb"] or paramsO["wandb"])
 
     finally:
         if params["save_models"]:

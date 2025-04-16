@@ -92,10 +92,10 @@ class CNNQNetwork(nn.Module):
         return x
 
 class PeriodicConvBase(nn.Module):
-    def __init__(self, input_dim: int):
+    def __init__(self):
         super().__init__()
         self.encoder = nn.Sequential(
-            nn.Conv2d(input_dim, 32, kernel_size=3, stride=1, padding=1, padding_mode='circular'),
+            nn.Conv2d(1, 32, kernel_size=3, stride=1, padding=1, padding_mode='circular'),
             nn.ReLU(),
             nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1, padding_mode='circular'),
             nn.ReLU()
@@ -116,10 +116,9 @@ class PeriodicQHead(nn.Module):
 
 
 class FullyConvQNetwork(nn.Module):
-    def __init__(self, input_dim: int, rows: int):
+    def __init__(self):
         super().__init__()
-        self.rows = rows
-        self.base = PeriodicConvBase(input_dim)
+        self.base = PeriodicConvBase()
         self.head = PeriodicQHead()
 
         # ✅ For backward compatibility with tests
@@ -132,7 +131,14 @@ class FullyConvQNetwork(nn.Module):
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x = x.view(-1, 1, self.rows, self.rows)
+        if x.ndim == 2:  # (batch_size, rows*cols)
+            spatial_dim = int(x.size(1) ** 0.5)
+            x = x.view(x.size(0), 1, spatial_dim, spatial_dim)
+        elif x.ndim == 4:  # already (batch_size, 1, rows, cols)
+            pass
+        else:
+            raise ValueError(f"Unexpected input shape: {x.shape}")
+
         x = self.base(x)
         x = self.head(x)  # shape: (batch_size, rows, cols)
         return x.view(x.size(0), -1)  # shape: (batch_size, rows * cols)

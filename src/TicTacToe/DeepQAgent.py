@@ -179,8 +179,8 @@ class DeepQLearningAgent(Agent, EvaluationMixin):
             self.q_network = QNetwork(state_size, output_dim=action_size).to(self.device)
             self.target_network = QNetwork(state_size, output_dim=action_size).to(self.device)
         elif params["network_type"] == "FullyCNN":
-            self.q_network = FullyConvQNetwork(input_dim=1, rows=self.rows).to(self.device)
-            self.target_network = FullyConvQNetwork(input_dim=1, rows=self.rows).to(self.device)
+            self.q_network = FullyConvQNetwork().to(self.device)
+            self.target_network = FullyConvQNetwork().to(self.device)
 
         # Optionally load weights if a file is provided
         if params["load_network"]:

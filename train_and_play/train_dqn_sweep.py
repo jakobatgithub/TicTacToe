@@ -44,7 +44,7 @@ params: dict[str, Any] = {
     "win_rate_deque_length": 5,  # Length of win rate deques
     "batch_size": 256,  # Batch size for training updates
     "target_update_frequency": 25,  # Frequency to sync target network
-    "evaluation_frequency": 50,  # Episodes between evaluations
+    "evaluation_frequency": 150,  # Episodes between evaluations
     "evaluation_batch_size": 200,  # Games to evaluate per round
     "device": "mps",  # Device: "cuda", "mps", or "cpu"
     "replay_buffer_length": 10000,  # Max length of replay buffer

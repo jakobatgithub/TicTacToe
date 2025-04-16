@@ -25,8 +25,8 @@ from typing import Any
 
 from TicTacToe.TicTacToe import TicTacToe
 from TicTacToe.DeepQAgent import DeepQLearningAgent
+from TicTacToe.ReplayBuffers import ReplayBuffer
 from TicTacToe.Utils import get_param_sweep_combinations, load_pretrained_models, save_model_artifacts, train_and_evaluate
-
 
 # --- Training Parameters ---
 params: dict[str, Any] = {
@@ -56,6 +56,8 @@ params: dict[str, Any] = {
     "periodic": True,  # Periodic boundary conditions
     "save_models": True,  # Save weights after training
 }
+
+params["shared_replay_buffer"] = ReplayBuffer(params["replay_buffer_length"], (params["rows"]**2, ), device=params["device"])
 
 # --- Sweep Setup ---
 param_sweep = {"rows": [3], "win_length": [3]}

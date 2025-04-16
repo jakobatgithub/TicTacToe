@@ -143,7 +143,7 @@ def update_exploration_rate(agent1, agent2, params, eval_data, exploration_rate,
     X_win_rates.append(X_win)
     O_win_rates.append(O_win)
 
-    if params["set_exploration_rate_externally"] and len(X_win_rates) >= 2:
+    if len(X_win_rates) >= 2:
         # Use smoothed (moving average) win rates
         smoothed_X = np.mean(X_win_rates)
         smoothed_O = np.mean(O_win_rates)
@@ -164,15 +164,22 @@ def update_exploration_rate(agent1, agent2, params, eval_data, exploration_rate,
             agent1.set_exploration_rate(exploration_rate)
             agent2.set_exploration_rate(exploration_rate)
             print(f"Smoothed win rates — X: {smoothed_X:.3f}, O: {smoothed_O:.3f}")
+            print(f"delta_X = {delta_X:.3f}, delta_O = {delta_X:.3f}")
             print(f"New exploration rate: {exploration_rate:.4f}")
 
-def train_and_evaluate(params: dict, sweep_idx: int):
+    return exploration_rate
+
+def train_and_evaluate(game, agent1, agent2, params: dict):
     """
     Trains and evaluates two agents in a Tic Tac Toe game.
     Args:
         params (dict): Parameter configuration.
         sweep_idx (int): Index of the current parameter sweep.
     """
+
+    outcomes = {"X": 0, "O": 0, "D": 0}
+    X_win_rates, O_win_rates = deque(maxlen=params["win_rate_deque_length"]), deque(maxlen=params["win_rate_deque_length"])
+    exploration_rate = params["epsilon_start"]
 
     for episode in tqdm(range(params["nr_of_episodes"])):
         outcome = game.play()
@@ -191,9 +198,9 @@ def train_and_evaluate(params: dict, sweep_idx: int):
                 periodic=params["periodic"]
             )
             if params["set_exploration_rate_externally"]:
-                update_exploration_rate(agent1, agent2, params, eval_data, exploration_rate, (X_win_rates, O_win_rates))
+                exploration_rate = update_exploration_rate(agent1, agent2, params, eval_data, exploration_rate, (X_win_rates, O_win_rates))
 
-    print(f"Outcomes during learning for sweep {sweep_idx + 1}:")
+    print("Outcomes during learning:")
     print(f"X wins: {outcomes['X'] / params["nr_of_episodes"]}, O wins: {outcomes['O'] / params["nr_of_episodes"]}, draws: {outcomes['D'] / params["nr_of_episodes"]}")
 
 # --- Training Parameters ---
@@ -226,7 +233,7 @@ params: dict[str, Any] = {
 }
 
 # --- Sweep Setup ---
-param_sweep = {"rows": [5], "win_length": [5]}
+param_sweep = {"rows": [3], "win_length": [3]}
 sweep_combinations, param_keys = get_param_sweep_combinations(param_sweep)
 model_metadata = []
 
@@ -246,7 +253,6 @@ for sweep_idx, combination in enumerate(sweep_combinations):
     if params["load_network"]:
         paramsX, paramsO = load_pretrained_models(paramsX, paramsO)
 
-    outcomes = {"X": 0, "O": 0, "D": 0}
     agent1 = DeepQLearningAgent(paramsX)
     agent2 = DeepQLearningAgent(paramsO)
 
@@ -260,11 +266,8 @@ for sweep_idx, combination in enumerate(sweep_combinations):
         periodic=params["periodic"]
     )
 
-    X_win_rates, O_win_rates = deque(maxlen=params["win_rate_deque_length"]), deque(maxlen=params["win_rate_deque_length"])
-    exploration_rate = params["epsilon_start"]
-
     try:
-        train_and_evaluate(params, sweep_idx)
+        train_and_evaluate(game, agent1, agent2, params)
 
     finally:
         if params["save_models"]:

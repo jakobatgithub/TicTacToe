@@ -92,10 +92,10 @@ class CNNQNetwork(nn.Module):
         return x
 
 class PeriodicConvBase(nn.Module):
-    def __init__(self, input_dim: int):
+    def __init__(self):
         super().__init__()
         self.encoder = nn.Sequential(
-            nn.Conv2d(input_dim, 32, kernel_size=3, stride=1, padding=1, padding_mode='circular'),
+            nn.Conv2d(1, 32, kernel_size=3, stride=1, padding=1, padding_mode='circular'),
             nn.ReLU(),
             nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1, padding_mode='circular'),
             nn.ReLU()
@@ -116,10 +116,10 @@ class PeriodicQHead(nn.Module):
 
 
 class FullyConvQNetwork(nn.Module):
-    def __init__(self, input_dim: int, rows: int):
+    def __init__(self, rows: int):
         super().__init__()
         self.rows = rows
-        self.base = PeriodicConvBase(input_dim)
+        self.base = PeriodicConvBase()
         self.head = PeriodicQHead()
 
         # ✅ For backward compatibility with tests

@@ -75,7 +75,7 @@ def test_save_model_artifacts(mock_path_class, dummy_agents, tmp_path):
     mock_path_class.return_value.resolve.return_value.parent = mock_script_dir
     mock_script_dir.__truediv__.return_value.resolve.return_value = models_dir
 
-    params = {"rows": 5, "win_length": 5}
+    params = {"rows": 5, "win_length": 5, "shared_replay_buffer": False}
     metadata = []
 
     save_model_artifacts(agent1, agent2, params, metadata)

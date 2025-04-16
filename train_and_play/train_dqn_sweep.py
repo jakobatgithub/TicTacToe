@@ -180,6 +180,7 @@ def train_and_evaluate(game: TwoPlayerBoardGame, agent1: DeepQLearningAgent, age
         agent1 (DeepQLearningAgent): Agent playing as 'X'.
         agent2 (DeepQLearningAgent): Agent playing as 'O'.
         params (dict): Parameter configuration.
+        wandb_logging (bool): Whether to log to Weights & Biases.
     """
 
     outcomes = {"X": 0, "O": 0, "D": 0}

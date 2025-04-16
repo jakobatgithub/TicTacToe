@@ -30,7 +30,7 @@ from TicTacToe.Utils import get_param_sweep_combinations, load_pretrained_models
 
 # --- Training Parameters ---
 params: dict[str, Any] = {
-    "nr_of_episodes": 2000,  # Number of training games
+    "nr_of_episodes": 3500,  # Number of training games
     "rows": 3,  # Board size (rows x rows)
     "learning_rate": 0.0001,  # Optimizer learning rate
     "gamma": 0.95,  # Discount factor for future rewards
@@ -40,7 +40,7 @@ params: dict[str, Any] = {
     "epsilon_min": 0.025,  # Minimum exploration rate
     "set_exploration_rate_externally": True,  # Adaptive epsilon enabled
     "epsilon_update_threshold": 0.025,  # Epsilon adjustment sensitivity
-    "epsilon_decay": 0.99,  # Decay rate for epsilon
+    "epsilon_decay": 0.95,  # Decay rate for epsilon
     "win_rate_deque_length": 5,  # Length of win rate deques
     "batch_size": 256,  # Batch size for training updates
     "target_update_frequency": 25,  # Frequency to sync target network
@@ -64,7 +64,7 @@ params: dict[str, Any] = {
 # params["shared_replay_buffer"] = ReplayBuffer(params["replay_buffer_length"], (params["rows"]**2, ), device=params["device"])
 
 # --- Sweep Setup ---
-param_sweep = {"state_shape": ["flat", "2D"], "symmetrized_loss": [True, False]}
+param_sweep = {"state_shape": ["one-hot", "flat", "2D"], "symmetrized_loss": [False, True]}
 sweep_combinations, param_keys = get_param_sweep_combinations(param_sweep)
 model_metadata = []
 

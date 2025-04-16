@@ -56,13 +56,14 @@ params: dict[str, Any] = {
     "periodic": True,  # Periodic boundary conditions
     "save_models": True,  # Save weights after training
     "2D state": True,  # Use 2D state representation
-    "symmetrized_loss": True,  # Use symmetrized loss
+    "one_hot_encoding": True,  # One-hot encoding for state representation
+    "symmetrized_loss": False,  # Use symmetrized loss
 }
 
 # params["shared_replay_buffer"] = ReplayBuffer(params["replay_buffer_length"], (params["rows"]**2, ), device=params["device"])
 
 # --- Sweep Setup ---
-param_sweep = {"rows": [5], "win_length": [5]}
+param_sweep = {"rows": [3], "win_length": [3]}
 sweep_combinations, param_keys = get_param_sweep_combinations(param_sweep)
 model_metadata = []
 

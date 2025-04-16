@@ -21,14 +21,16 @@ Key Classes & Dependencies:
 import copy
 import json
 import os
+import torch
+import wandb
+
 from collections import deque
 from itertools import product
 from pathlib import Path
 from typing import Any
-
-import torch
-import wandb
 from tqdm import tqdm
+
+import numpy as np
 
 from TicTacToe.DeepQAgent import DeepQLearningAgent, FullyConvQNetwork
 from TicTacToe.Evaluation import evaluate_performance
@@ -123,17 +125,17 @@ def save_model_artifacts(agent1, agent2, params, model_metadata):
     with open(metadata_file, "w") as f:
         json.dump(model_metadata, f, indent=4)
 
-
 def update_exploration_rate(agent1, agent2, params, eval_data, exploration_rate, win_rate_deques):
     """
-    Updates the exploration rate based on evaluation data.
-    If the win rates of both agents are stable, the exploration rate is decreased.
+    Updates the exploration rate based on smoothed average of recent win rates.
+    If the smoothed win rates of both agents are stable, the exploration rate is decreased.
     Args:
         agent1: Agent playing as 'X'.
         agent2: Agent playing as 'O'.
         params (dict): Parameter configuration.
         eval_data (dict): Evaluation data containing win rates.
         exploration_rate (float): Current exploration rate.
+        win_rate_deques (tuple): Two deques storing recent win rates for 'X' and 'O'.
     """
 
     X_win_rates, O_win_rates = win_rate_deques
@@ -141,16 +143,28 @@ def update_exploration_rate(agent1, agent2, params, eval_data, exploration_rate,
     X_win_rates.append(X_win)
     O_win_rates.append(O_win)
 
-    if params["set_exploration_rate_externally"] and len(X_win_rates) > 1:
-        delta_X = abs(X_win_rates[-2] - X_win_rates[-1])
-        delta_O = abs(O_win_rates[-2] - O_win_rates[-1])
+    if params["set_exploration_rate_externally"] and len(X_win_rates) >= 2:
+        # Use smoothed (moving average) win rates
+        smoothed_X = np.mean(X_win_rates)
+        smoothed_O = np.mean(O_win_rates)
+
+        # Compute smoothed deltas (between current average and previous average)
+        if len(X_win_rates) >= 3:
+            previous_smoothed_X = np.mean(list(X_win_rates)[:-1])
+            previous_smoothed_O = np.mean(list(O_win_rates)[:-1])
+        else:
+            previous_smoothed_X = smoothed_X
+            previous_smoothed_O = smoothed_O
+
+        delta_X = abs(smoothed_X - previous_smoothed_X)
+        delta_O = abs(smoothed_O - previous_smoothed_O)
 
         if delta_X < params["epsilon_update_threshold"] and delta_O < params["epsilon_update_threshold"]:
-            exploration_rate = max(exploration_rate * params["epsilon_update_factor"], params["epsilon_min"])
+            exploration_rate = max(exploration_rate * params["epsilon_decay"], params["epsilon_min"])
             agent1.set_exploration_rate(exploration_rate)
             agent2.set_exploration_rate(exploration_rate)
-            print(f"X_win_rates = {X_win_rates}, O_win_rates = {O_win_rates}, current_exploration_rate = {exploration_rate}")
-
+            print(f"Smoothed win rates — X: {smoothed_X:.3f}, O: {smoothed_O:.3f}")
+            print(f"New exploration rate: {exploration_rate:.4f}")
 
 def train_and_evaluate(params: dict, sweep_idx: int):
     """
@@ -184,7 +198,7 @@ def train_and_evaluate(params: dict, sweep_idx: int):
 
 # --- Training Parameters ---
 params: dict[str, Any] = {
-    "nr_of_episodes": 1000,  # Number of training games
+    "nr_of_episodes": 2000,  # Number of training games
     "rows": 3,  # Board size (rows x rows)
     "learning_rate": 0.0001,  # Optimizer learning rate
     "gamma": 0.95,  # Discount factor for future rewards
@@ -194,7 +208,8 @@ params: dict[str, Any] = {
     "epsilon_min": 0.025,  # Minimum exploration rate
     "set_exploration_rate_externally": True,  # Adaptive epsilon enabled
     "epsilon_update_threshold": 0.025,  # Epsilon adjustment sensitivity
-    "epsilon_update_factor": 0.99,  # Decay rate for epsilon
+    "epsilon_decay": 0.99,  # Decay rate for epsilon
+    "win_rate_deque_length": 5,  # Length of win rate deques
     "batch_size": 256,  # Batch size for training updates
     "target_update_frequency": 25,  # Frequency to sync target network
     "evaluation_frequency": 25,  # Episodes between evaluations
@@ -211,7 +226,7 @@ params: dict[str, Any] = {
 }
 
 # --- Sweep Setup ---
-param_sweep = {"rows": [3], "win_length": [3]}
+param_sweep = {"rows": [5], "win_length": [5]}
 sweep_combinations, param_keys = get_param_sweep_combinations(param_sweep)
 model_metadata = []
 
@@ -245,7 +260,7 @@ for sweep_idx, combination in enumerate(sweep_combinations):
         periodic=params["periodic"]
     )
 
-    X_win_rates, O_win_rates = deque(maxlen=10), deque(maxlen=10)
+    X_win_rates, O_win_rates = deque(maxlen=params["win_rate_deque_length"]), deque(maxlen=params["win_rate_deque_length"])
     exploration_rate = params["epsilon_start"]
 
     try:

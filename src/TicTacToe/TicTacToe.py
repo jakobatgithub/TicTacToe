@@ -74,6 +74,10 @@ class TwoPlayerBoardGame(ABC):
     def get_terminal_rewards(self, outcome: Outcome) -> Tuple[Reward, Reward]:
         pass
 
+    def set_rows_and_cols(self, rows: int, cols: int) -> None:
+        self._rows = rows
+        self._cols = cols
+
     @abstractmethod
     def get_valid_actions(self) -> Actions:
         pass

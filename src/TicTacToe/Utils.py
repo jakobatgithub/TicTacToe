@@ -85,6 +85,8 @@ def save_model_artifacts(agent1: Agent, agent2: Agent, params: dict, model_metad
 
     model_X, weights_X, base_X, head_X = save_agent(agent1, "X")
     model_O, weights_O, base_O, head_O = save_agent(agent2, "O")
+    if params["shared_replay_buffer"]:
+        params["shared_replay_buffer"] = True
 
     model_metadata.append({
         "full_model_X": f"{model_X}.pth",

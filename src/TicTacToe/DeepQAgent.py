@@ -108,7 +108,17 @@ class DeepQLearningAgent(Agent, EvaluationMixin):
         if params["shared_replay_buffer"]:
             self.replay_buffer = params["shared_replay_buffer"]
         else:
-            self.replay_buffer = ReplayBuffer(self.replay_buffer_length, (self.rows**2, ), device=params["device"])
+            if params["2D state"]:
+                self.replay_buffer = ReplayBuffer(self.replay_buffer_length, (1, self.rows, self.rows), device=params["device"])
+            else:
+                self.replay_buffer = ReplayBuffer(self.replay_buffer_length, (self.rows**2, ), device=params["device"])
+
+        if params["2D state"]:
+            self.board_to_state = self.board_to_state_2D
+            self.state_to_board = self.state_2D_to_board
+        else:
+            self.board_to_state = self.board_to_state_1D
+            self.state_to_board = self.state_1D_to_board
 
         self.board_to_state_translation = {"X": 1, "O": -1, " ": 0}
         self.state_to_board_translation = {1: "X", -1: "O", 0: " "}
@@ -123,7 +133,14 @@ class DeepQLearningAgent(Agent, EvaluationMixin):
             lambda x: np.flipud(np.transpose(x)),  # type: ignore Vertical reflection
             lambda x: np.flipud(np.fliplr(np.transpose(x))),  # type: ignore Vertical reflection
         ]
-        self.compute_symmetrized_loss = self.create_symmetrized_loss(self.compute_loss, self.transformations, self.rows)
+        if params["2D state"]:
+            self.compute_symmetrized_loss = self.compute_loss
+        else:
+            if params.get("symmetrized_loss", True):
+                self.compute_symmetrized_loss = self.create_symmetrized_loss(self.compute_loss, self.transformations, self.rows)
+            else:
+                self.compute_symmetrized_loss = self.create_symmetrized_loss(self.compute_loss, self.transformations, self.rows)
+    
         EvaluationMixin.__init__(self, wandb_enabled=params["wandb"], wandb_logging_frequency=params["wandb_logging_frequency"])
 
     def set_exploration_rate(self, epsilon: float) -> None:
@@ -173,18 +190,34 @@ class DeepQLearningAgent(Agent, EvaluationMixin):
             A symmetrized loss function.
         """
         permutations, inverse_permutations = self.generate_permutations(transformations, rows)
+        permutations = [torch.tensor(p, device=self.device) for p in permutations]
+        inverse_permutations = [torch.tensor(ip, device=self.device) for ip in inverse_permutations]
+
+        def apply_permutation(x: torch.Tensor, perm: torch.Tensor) -> torch.Tensor:
+            B = x.shape[0]
+            if x.dim() == 2:
+                # Shape: (B, rows*rows)
+                return x[:, perm]
+            elif x.dim() == 4:
+                # Shape: (B, C, rows, rows)
+                B, C, H, W = x.shape
+                flat = x.view(B, C, -1)  # (B, C, rows*rows)
+                permuted = flat[:, :, perm]  # Apply permutation to last dim
+                return permuted.view(B, C, H, W)
+            else:
+                raise ValueError(f"Unsupported tensor shape: {x.shape}")
 
         def symmetrized_loss(samples: tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]):
-            (states, actions, rewards, next_states, dones) = samples
+            states, actions, rewards, next_states, dones = samples
 
-            symmetric_loss = 0.0
-            for permutation, inverse_permutation in zip(permutations, inverse_permutations):
-                transformed_states = states[:, permutation]
-                transformed_actions = torch.tensor([inverse_permutation[action] for action in actions]).to(self.device)
-                transformed_next_states = next_states[:, permutation]
-                transformed_samples = (transformed_states, transformed_actions, rewards, transformed_next_states, dones)
-                symmetric_loss += loss(transformed_samples)
-            return symmetric_loss / len(permutations)
+            total_loss = 0.0
+            for p, ip in zip(permutations, inverse_permutations):
+                ts = apply_permutation(states, p)
+                ta = ip[actions]
+                tns = apply_permutation(next_states, p)
+                total_loss += loss((ts, ta, rewards, tns, dones))
+
+            return total_loss / len(permutations)
 
         return symmetrized_loss
 
@@ -244,10 +277,7 @@ class DeepQLearningAgent(Agent, EvaluationMixin):
         self.state_transitions.append((board, action, next_board, reward, done))
 
         state = self.board_to_state(board)
-        next_state = (
-            self.board_to_state(next_board) if next_board is not None else self.board_to_state(["X"] * (self.rows**2))
-        )
-
+        next_state = self.board_to_state(next_board) if next_board is not None else self.board_to_state(["X"] * (self.rows**2))
         self.replay_buffer.add(state, action, reward, next_state, done)
 
     def _train_network(self) -> None:
@@ -294,7 +324,7 @@ class DeepQLearningAgent(Agent, EvaluationMixin):
         
         self.episode_history = []
 
-    def board_to_state(self, board: Board):
+    def board_to_state_1D(self, board: Board):
         """
         Convert a board to a state representation.
 
@@ -306,12 +336,38 @@ class DeepQLearningAgent(Agent, EvaluationMixin):
         """
         return np.array([self.board_to_state_translation[cell] for cell in board]).reshape(1, -1)
 
-    def state_to_board(self, state: State) -> Board:
+    def state_1D_to_board(self, state: State) -> Board:
         """
         Convert a state representation to a board.
 
         Args:
             state: The state representation.
+
+        Returns:
+            The board state.
+        """
+        flat_state = state.flatten()
+        board = [self.state_to_board_translation[cell] for cell in flat_state]
+        return board
+
+    def board_to_state_2D(self, board: Board):
+        """
+        Convert a board to a 2D state representation.
+
+        Args:
+            board: The board state.
+
+        Returns:
+            The 2D state representation.
+        """
+        return np.array([self.board_to_state_translation[cell] for cell in board]).reshape(1, 1, self.rows, self.rows)
+    
+    def state_2D_to_board(self, state: State):
+        """
+        Convert a 2D state representation to a board.
+
+        Args:
+            state: The 2D state representation.
 
         Returns:
             The board state.

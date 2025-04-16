@@ -17,7 +17,7 @@ class TestReplayBuffer(unittest.TestCase):
 
     def test_initialization(self) -> None:
         """Test ReplayBuffer initialization with proper size and device allocation."""
-        buffer = ReplayBuffer(size=10, state_dim=4, device="cpu")
+        buffer = ReplayBuffer(size=10, state_shape=(4, ), device="cpu")
         self.assertEqual(buffer.size, 10, "Buffer size should be correctly initialized.")
         self.assertEqual(buffer.device, "cpu", "Buffer device should be correctly initialized.")
         self.assertEqual(len(buffer), 0, "Buffer should initially have zero stored experiences.")
@@ -25,7 +25,7 @@ class TestReplayBuffer(unittest.TestCase):
 
     def test_add_experience(self) -> None:
         """Ensure experiences are added correctly, including overwriting behavior."""
-        buffer = ReplayBuffer(size=3, state_dim=4, device="cpu")
+        buffer = ReplayBuffer(size=3, state_shape=(4, ), device="cpu")
         for i in range(5):  # Add more experiences than the buffer size
             buffer.add(
                 state=np.array([i, i + 1, i + 2, i + 3]),
@@ -48,7 +48,7 @@ class TestReplayBuffer(unittest.TestCase):
 
     def test_sample_experiences(self) -> None:
         """Check that the sampling returns correct shapes and values, including the last added experience."""
-        buffer = ReplayBuffer(size=5, state_dim=4, device="cpu")
+        buffer = ReplayBuffer(size=5, state_shape=(4, ), device="cpu")
         for i in range(5):
             buffer.add(
                 state=np.array([i, i + 1, i + 2, i + 3]),
@@ -99,7 +99,7 @@ class TestReplayBuffer(unittest.TestCase):
 
     def test_buffer_length(self) -> None:
         """Verify __len__ returns the correct number of stored experiences."""
-        buffer = ReplayBuffer(size=5, state_dim=4, device="cpu")
+        buffer = ReplayBuffer(size=5, state_shape=(4, ), device="cpu")
         self.assertEqual(len(buffer), 0, "Initial buffer length should be zero.")
         for i in range(7):  # Add more experiences than buffer size
             buffer.add(

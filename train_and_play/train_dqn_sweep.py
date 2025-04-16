@@ -57,7 +57,7 @@ params: dict[str, Any] = {
     "save_models": True,  # Save weights after training
 }
 
-params["shared_replay_buffer"] = ReplayBuffer(params["replay_buffer_length"], params["rows"]**2, device=params["device"])
+params["shared_replay_buffer"] = ReplayBuffer(params["replay_buffer_length"], (params["rows"]**2, ), device=params["device"])
 
 # --- Sweep Setup ---
 param_sweep = {"rows": [3], "win_length": [3]}

@@ -247,7 +247,7 @@ class TestFullyConvQNetwork(unittest.TestCase):
     def test_output_dimensions(self):
         """Test that the output dimension is correct."""
         batch_size, rows = 1, 5  # Example grid size
-        model = FullyConvQNetwork(rows=rows)
+        model = FullyConvQNetwork()
 
         # Create a test input tensor
         test_input = torch.zeros((batch_size, rows * rows))
@@ -258,7 +258,7 @@ class TestFullyConvQNetwork(unittest.TestCase):
     def test_shift_invariance(self):
         """Test that shifting the input and then applying conv_layers yields the same result as applying conv_layers and then shifting the output."""
         batch_size, rows = 1, 5  # Example grid size
-        model = FullyConvQNetwork(rows=rows)
+        model = FullyConvQNetwork()
 
         # Create a test input tensor
         test_input = torch.zeros((batch_size, rows * rows)).view(-1, 1, rows, rows)
@@ -286,7 +286,7 @@ class TestFullyConvQNetwork(unittest.TestCase):
     def test_random_input(self):
         """Test that the network produces consistent outputs for the same random input."""
         batch_size, rows = 1, 5  # Example grid size
-        model = FullyConvQNetwork(rows=rows)
+        model = FullyConvQNetwork()
 
         # Create a random input tensor
         test_input = torch.randn((batch_size, 1, rows, rows))
@@ -301,7 +301,7 @@ class TestFullyConvQNetwork(unittest.TestCase):
     def test_gradient_flow(self):
         """Test that gradients flow correctly during backpropagation."""
         batch_size, rows = 1, 5  # Example grid size
-        model = FullyConvQNetwork(rows=rows)
+        model = FullyConvQNetwork()
 
         # Create a random input tensor
         test_input = torch.randn((batch_size, rows * rows), requires_grad=True)
@@ -326,8 +326,7 @@ class TestFullyConvQNetwork(unittest.TestCase):
 
     def test_parameter_counts(self):
         """Test that the base and head have the expected number of parameters."""
-        rows = 5
-        model = FullyConvQNetwork(rows=rows)
+        model = FullyConvQNetwork()
 
         base_params = count_trainable_params(model.base)
         head_params = count_trainable_params(model.head)

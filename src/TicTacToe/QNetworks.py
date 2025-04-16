@@ -116,9 +116,8 @@ class PeriodicQHead(nn.Module):
 
 
 class FullyConvQNetwork(nn.Module):
-    def __init__(self, rows: int):
+    def __init__(self):
         super().__init__()
-        self.rows = rows
         self.base = PeriodicConvBase()
         self.head = PeriodicQHead()
 
@@ -132,7 +131,14 @@ class FullyConvQNetwork(nn.Module):
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x = x.view(-1, 1, self.rows, self.rows)
+        if x.ndim == 2:  # (batch_size, rows*cols)
+            spatial_dim = int(x.size(1) ** 0.5)
+            x = x.view(x.size(0), 1, spatial_dim, spatial_dim)
+        elif x.ndim == 4:  # already (batch_size, 1, rows, cols)
+            pass
+        else:
+            raise ValueError(f"Unexpected input shape: {x.shape}")
+
         x = self.base(x)
         x = self.head(x)  # shape: (batch_size, rows, cols)
         return x.view(x.size(0), -1)  # shape: (batch_size, rows * cols)

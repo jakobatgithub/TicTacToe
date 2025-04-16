@@ -368,6 +368,7 @@ class TestDeepQLearningAgent(unittest.TestCase):
             "shared_replay_buffer": False,
             "network_type": "FCN",
             "set_exploration_rate_externally": False,
+            "2D state": False,
         }
         self.agent = DeepQLearningAgent(self.params)
 

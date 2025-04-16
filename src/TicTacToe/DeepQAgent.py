@@ -164,12 +164,14 @@ class DeepQLearningAgent(Agent, EvaluationMixin):
             self.q_network = QNetwork(state_size, output_dim=action_size).to(self.device)
             self.target_network = QNetwork(state_size, output_dim=action_size).to(self.device)
         elif params["network_type"] == "FullyCNN":
-            if params.get("one_hot_encoding", False):
+            if params["state_shape"] == "one-hot":
                 self.q_network = FullyConvQNetwork(input_dim=3).to(self.device)
                 self.target_network = FullyConvQNetwork(input_dim=3).to(self.device)
             else:
                 self.q_network = FullyConvQNetwork(input_dim=1).to(self.device)
                 self.target_network = FullyConvQNetwork(input_dim=1).to(self.device)
+        else:
+            raise ValueError(f"Unsupported network type: {params['network_type']}")
 
         # Optionally load weights if a file is provided
         if params["load_network"]:

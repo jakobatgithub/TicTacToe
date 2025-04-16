@@ -45,7 +45,7 @@ class TestIntegration(unittest.TestCase):
             "network_type": "FCN",
             "periodic": False,
             "set_exploration_rate_externally": True,
-            "2D state": False,
+            "state_shape": "flat",
         }
         agent1 = DeepQLearningAgent(params)
         agent2 = RandomAgent(player="O")
@@ -80,7 +80,7 @@ class TestIntegration(unittest.TestCase):
             "network_type": "FCN",
             "periodic": False,
             "set_exploration_rate_externally": True,
-            "2D state": False,
+            "state_shape": "flat",
         }
         agent1 = DeepQLearningAgent(params)
         agent2 = RandomAgent(player="O")
@@ -115,7 +115,7 @@ class TestIntegration(unittest.TestCase):
             "network_type": "CNN",
             "periodic": False,
             "set_exploration_rate_externally": True,
-            "2D state": False,
+            "state_shape": "flat",
         }
         agent1 = DeepQLearningAgent(params)
         agent2 = RandomAgent(player="O")
@@ -150,7 +150,7 @@ class TestIntegration(unittest.TestCase):
             "network_type": "FullyCNN",
             "periodic": True,
             "set_exploration_rate_externally": True,
-            "2D state": False,
+            "state_shape": "flat",
         }
         agent1 = DeepQLearningAgent(params)
         agent2 = RandomAgent(player="O")
@@ -185,7 +185,7 @@ class TestIntegration(unittest.TestCase):
             "network_type": "FullyCNN",
             "periodic": True,
             "set_exploration_rate_externally": True,
-            "2D state": True,
+            "state_shape": "2D",
         }
         agent1 = DeepQLearningAgent(params)
         agent2 = RandomAgent(player="O")
@@ -220,7 +220,7 @@ class TestIntegration(unittest.TestCase):
             "network_type": "CNN",
             "periodic": True,
             "set_exploration_rate_externally": True,
-            "2D state": False,
+            "state_shape": "flat",        
         }
         agent1 = DeepQLearningAgent(params)
         agent2 = RandomAgent(player="O")

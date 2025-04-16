@@ -30,7 +30,7 @@ from TicTacToe.Utils import get_param_sweep_combinations, load_pretrained_models
 
 # --- Training Parameters ---
 params: dict[str, Any] = {
-    "nr_of_episodes": 2000,  # Number of training games
+    "nr_of_episodes": 3500,  # Number of training games
     "rows": 3,  # Board size (rows x rows)
     "learning_rate": 0.0001,  # Optimizer learning rate
     "gamma": 0.95,  # Discount factor for future rewards
@@ -40,7 +40,7 @@ params: dict[str, Any] = {
     "epsilon_min": 0.025,  # Minimum exploration rate
     "set_exploration_rate_externally": True,  # Adaptive epsilon enabled
     "epsilon_update_threshold": 0.025,  # Epsilon adjustment sensitivity
-    "epsilon_decay": 0.99,  # Decay rate for epsilon
+    "epsilon_decay": 0.95,  # Decay rate for epsilon
     "win_rate_deque_length": 5,  # Length of win rate deques
     "batch_size": 256,  # Batch size for training updates
     "target_update_frequency": 25,  # Frequency to sync target network
@@ -55,14 +55,16 @@ params: dict[str, Any] = {
     "network_type": "FullyCNN",  # Network architecture
     "periodic": True,  # Periodic boundary conditions
     "save_models": True,  # Save weights after training
-    "2D state": True,  # Use 2D state representation
-    "symmetrized_loss": True,  # Use symmetrized loss
+    "symmetrized_loss": False,  # Use symmetrized loss
+    "state_shape": "flat",  # state representation: 'flat' with shape (batch_size, rows * rows), 
+                            # '2D' with shape (batch_size, 1, rows, rows), 
+                            # 'one-hot' with shape (batch_size, 3, rows, rows)
 }
 
 # params["shared_replay_buffer"] = ReplayBuffer(params["replay_buffer_length"], (params["rows"]**2, ), device=params["device"])
 
 # --- Sweep Setup ---
-param_sweep = {"rows": [5], "win_length": [5]}
+param_sweep = {"state_shape": ["one-hot", "flat", "2D"], "symmetrized_loss": [False, True]}
 sweep_combinations, param_keys = get_param_sweep_combinations(param_sweep)
 model_metadata = []
 

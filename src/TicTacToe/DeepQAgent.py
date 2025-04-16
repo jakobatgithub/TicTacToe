@@ -1,5 +1,5 @@
 import random
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING, Any, Callable, Protocol, List
 
 import numpy as np
 import torch
@@ -27,6 +27,76 @@ from TicTacToe.game_types import (
     StateTransitions2,
 )
 
+
+class StateConverter(Protocol):
+    def board_to_state(self, board: Board) -> np.ndarray:
+        ...
+    
+    def state_to_board(self, state: np.ndarray) -> Board:
+        ...
+
+class FlatStateConverter:
+    def __init__(self, state_to_board_translation=None):
+        self.state_to_board_translation = state_to_board_translation or {"X": 1, "O": -1, " ": 0}
+        self.board_to_state_translation = {v: k for k, v in self.state_to_board_translation.items()}
+
+    def board_to_state(self, board: Board) -> np.ndarray:
+        return np.array([self.state_to_board_translation[cell] for cell in board]).reshape(1, -1)
+
+    def state_to_board(self, state: np.ndarray) -> Board:
+        flat_state = state.flatten()
+        return [self.board_to_state_translation[cell] for cell in flat_state]
+    
+class GridStateConverter:
+    def __init__(self, shape: tuple[int, int], state_to_board_translation=None):
+        self.shape = shape
+        self.state_to_board_translation = state_to_board_translation or {"X": 1, "O": -1, " ": 0}
+        self.board_to_state_translation = {v: k for k, v in self.state_to_board_translation.items()}
+
+    def board_to_state(self, board: Board) -> np.ndarray:
+        grid = np.array([self.state_to_board_translation[cell] for cell in board])
+        return grid.reshape(1, 1, *self.shape)
+
+    def state_to_board(self, state: np.ndarray) -> Board:
+        flat_state = state.flatten()
+        return [self.board_to_state_translation[cell] for cell in flat_state]
+
+class OneHotStateConverter:
+    """
+    Converts board states to one-hot encoded numpy arrays of shape (1, 3, rows, rows),
+    where channels represent 'X', 'O', and empty respectively.
+    """
+
+    def __init__(self, rows: int):
+        self.rows = rows
+        self.cell_to_index = {"X": 0, "O": 1, " ": 2}
+        self.index_to_cell = {v: k for k, v in self.cell_to_index.items()}
+
+    def board_to_state(self, board: Board) -> np.ndarray:
+        """
+        Convert a board to a one-hot encoded state of shape (1, 3, rows, rows).
+        """
+        state = np.zeros((3, self.rows, self.rows), dtype=np.float32)
+
+        for i, cell in enumerate(board):
+            row, col = divmod(i, self.rows)
+            channel = self.cell_to_index[cell]
+            state[channel, row, col] = 1.0
+
+        return state[np.newaxis, ...]  # shape: (1, 3, rows, rows)
+
+    def state_to_board(self, state: np.ndarray) -> Board:
+        """
+        Convert a one-hot encoded state back to a flat board list.
+        """
+        _, channels, rows, cols = state.shape
+        decoded = []
+        one_hot = state.squeeze(0)  # shape: (3, rows, rows)
+        for row in range(rows):
+            for col in range(cols):
+                channel = np.argmax(one_hot[:, row, col])
+                decoded.append(self.index_to_cell[int(channel)])
+        return decoded
 
 class DeepQLearningAgent(Agent, EvaluationMixin):
     """
@@ -94,8 +164,14 @@ class DeepQLearningAgent(Agent, EvaluationMixin):
             self.q_network = QNetwork(state_size, output_dim=action_size).to(self.device)
             self.target_network = QNetwork(state_size, output_dim=action_size).to(self.device)
         elif params["network_type"] == "FullyCNN":
-            self.q_network = FullyConvQNetwork().to(self.device)
-            self.target_network = FullyConvQNetwork().to(self.device)
+            if params["state_shape"] == "one-hot":
+                self.q_network = FullyConvQNetwork(input_dim=3).to(self.device)
+                self.target_network = FullyConvQNetwork(input_dim=3).to(self.device)
+            else:
+                self.q_network = FullyConvQNetwork(input_dim=1).to(self.device)
+                self.target_network = FullyConvQNetwork(input_dim=1).to(self.device)
+        else:
+            raise ValueError(f"Unsupported network type: {params['network_type']}")
 
         # Optionally load weights if a file is provided
         if params["load_network"]:
@@ -105,23 +181,20 @@ class DeepQLearningAgent(Agent, EvaluationMixin):
 
         self.optimizer = optim.Adam(self.q_network.parameters(), lr=self.learning_rate)
 
+        if params["state_shape"] == "flat":
+            self.state_converter = FlatStateConverter()
+            self.replay_buffer = ReplayBuffer(self.replay_buffer_length, (self.rows**2, ), device=params["device"])
+        elif params["state_shape"] == "2D":
+            self.state_converter = GridStateConverter(shape=(self.rows, self.rows))
+            self.replay_buffer = ReplayBuffer(self.replay_buffer_length, (1, self.rows, self.rows), device=params["device"])
+        elif params["state_shape"] == "one-hot":
+            self.state_converter = OneHotStateConverter(rows=self.rows)
+            self.replay_buffer = ReplayBuffer(self.replay_buffer_length, (3, self.rows, self.rows), device=params["device"])
+        else:
+            raise ValueError(f"Unsupported state shape: {params["state_shape"]}")
+
         if params["shared_replay_buffer"]:
             self.replay_buffer = params["shared_replay_buffer"]
-        else:
-            if params["2D state"]:
-                self.replay_buffer = ReplayBuffer(self.replay_buffer_length, (1, self.rows, self.rows), device=params["device"])
-            else:
-                self.replay_buffer = ReplayBuffer(self.replay_buffer_length, (self.rows**2, ), device=params["device"])
-
-        if params["2D state"]:
-            self.board_to_state = self.board_to_state_2D
-            self.state_to_board = self.state_2D_to_board
-        else:
-            self.board_to_state = self.board_to_state_1D
-            self.state_to_board = self.state_1D_to_board
-
-        self.board_to_state_translation = {"X": 1, "O": -1, " ": 0}
-        self.state_to_board_translation = {1: "X", -1: "O", 0: " "}
 
         self.transformations: list[Any] = [
             lambda x: x,  # type: ignore Identity
@@ -133,13 +206,11 @@ class DeepQLearningAgent(Agent, EvaluationMixin):
             lambda x: np.flipud(np.transpose(x)),  # type: ignore Vertical reflection
             lambda x: np.flipud(np.fliplr(np.transpose(x))),  # type: ignore Vertical reflection
         ]
-        if params["2D state"]:
-            self.compute_symmetrized_loss = self.compute_loss
+
+        if params.get("symmetrized_loss", True):
+            self.compute_symmetrized_loss = self.create_symmetrized_loss(self.compute_loss, self.transformations, self.rows)
         else:
-            if params.get("symmetrized_loss", True):
-                self.compute_symmetrized_loss = self.create_symmetrized_loss(self.compute_loss, self.transformations, self.rows)
-            else:
-                self.compute_symmetrized_loss = self.create_symmetrized_loss(self.compute_loss, self.transformations, self.rows)
+            self.compute_symmetrized_loss = self.compute_loss
     
         EvaluationMixin.__init__(self, wandb_enabled=params["wandb"], wandb_logging_frequency=params["wandb_logging_frequency"])
 
@@ -234,6 +305,7 @@ class DeepQLearningAgent(Agent, EvaluationMixin):
             The computed loss.
         """
         states, actions, rewards, next_states, dones = samples
+        # print(f"states.shape = {states.shape}")
         q_values = self.q_network(states).gather(1, actions.unsqueeze(1)).squeeze(1)
         next_q_values = self.target_network(next_states).max(1, keepdim=True)[0].squeeze(1)
         targets = rewards + (~dones) * self.gamma * next_q_values
@@ -278,7 +350,7 @@ class DeepQLearningAgent(Agent, EvaluationMixin):
 
         state = self.board_to_state(board)
         next_state = self.board_to_state(next_board) if next_board is not None else self.board_to_state(["X"] * (self.rows**2))
-        self.replay_buffer.add(state, action, reward, next_state, done)
+        self.replay_buffer.add(state.squeeze(0), action, reward, next_state.squeeze(0), done)
 
     def _train_network(self) -> None:
         """
@@ -324,57 +396,11 @@ class DeepQLearningAgent(Agent, EvaluationMixin):
         
         self.episode_history = []
 
-    def board_to_state_1D(self, board: Board):
-        """
-        Convert a board to a state representation.
+    def board_to_state(self, board: Board) -> np.ndarray:
+        return self.state_converter.board_to_state(board)
 
-        Args:
-            board: The board state.
-
-        Returns:
-            The state representation.
-        """
-        return np.array([self.board_to_state_translation[cell] for cell in board]).reshape(1, -1)
-
-    def state_1D_to_board(self, state: State) -> Board:
-        """
-        Convert a state representation to a board.
-
-        Args:
-            state: The state representation.
-
-        Returns:
-            The board state.
-        """
-        flat_state = state.flatten()
-        board = [self.state_to_board_translation[cell] for cell in flat_state]
-        return board
-
-    def board_to_state_2D(self, board: Board):
-        """
-        Convert a board to a 2D state representation.
-
-        Args:
-            board: The board state.
-
-        Returns:
-            The 2D state representation.
-        """
-        return np.array([self.board_to_state_translation[cell] for cell in board]).reshape(1, 1, self.rows, self.rows)
-    
-    def state_2D_to_board(self, state: State):
-        """
-        Convert a 2D state representation to a board.
-
-        Args:
-            state: The 2D state representation.
-
-        Returns:
-            The board state.
-        """
-        flat_state = state.flatten()
-        board = [self.state_to_board_translation[cell] for cell in flat_state]
-        return board
+    def state_to_board(self, state: np.ndarray) -> Board:
+        return self.state_converter.state_to_board(state)
 
     def update_exploration_rate(self, episode: int) -> None:
         """
@@ -438,6 +464,7 @@ class DeepQLearningAgent(Agent, EvaluationMixin):
         """
         state = self.board_to_state(board)
         state_tensor = torch.FloatTensor(state).to(self.device)
+        # print(f"state_tensor.shape = {state_tensor.shape}")
         with torch.no_grad():
             q_values = q_network(state_tensor).squeeze()
             max_q = torch.max(q_values)
@@ -452,13 +479,17 @@ class DeepQLearningAgent(Agent, EvaluationMixin):
 
         return action
 
-
 class DeepQPlayingAgent(Agent):
     """
     A Deep Q-Playing agent for playing Tic Tac Toe.
     """
 
-    def __init__(self, q_network: nn.Module | str, player: Player = "X", switching: bool = False, device : str = "cpu") -> None:
+    def __init__(self, 
+                q_network: nn.Module | str,
+                player: Player = "X",
+                switching: bool = False,
+                device : str = "cpu",
+                state_shape: str = "flat") -> None:
         """
         Initialize the DeepQPlayingAgent.
 
@@ -476,36 +507,20 @@ class DeepQPlayingAgent(Agent):
             self.q_network = torch.load(q_network, weights_only=False).to(self.device)  # type: ignore
             self.q_network.eval()
 
-        self.state_to_board_translation = {"X": 1, "O": -1, " ": 0}
-        self.board_to_state_translation: dict[int, str] = {}
-        for key, value in self.state_to_board_translation.items():
-            self.board_to_state_translation[value] = key
+        if state_shape == "flat":
+            self.state_converter = FlatStateConverter()
+        elif state_shape == "2D":
+            self.state_converter = GridStateConverter(shape=(3, 3))  # Assuming a 3x3 grid
+        elif state_shape == "one-hot":
+            self.state_converter = OneHotStateConverter(rows=3)  # Assuming a 3x3 grid
+        else:
+            raise ValueError(f"Unsupported state shape: {state_shape}")
 
-    def board_to_state(self, board: Board):
-        """
-        Convert a board to a state representation.
+    def board_to_state(self, board: Board) -> np.ndarray:
+        return self.state_converter.board_to_state(board)
 
-        Args:
-            board: The board state.
-
-        Returns:
-            The state representation.
-        """
-        return np.array([self.state_to_board_translation[cell] for cell in board]).reshape(1, -1)
-
-    def state_to_board(self, state: State) -> Board:
-        """
-        Convert a state representation to a board.
-
-        Args:
-            state: The state representation.
-
-        Returns:
-            The board state.
-        """
-        flat_state = state.flatten()
-        board = [self.board_to_state_translation[cell] for cell in flat_state]
-        return board
+    def state_to_board(self, state: np.ndarray) -> Board:
+        return self.state_converter.state_to_board(state)
 
     def get_valid_actions(self, board: Board) -> Actions:
         """

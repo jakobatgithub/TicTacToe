@@ -9,7 +9,7 @@ from pathlib import Path
 from unittest.mock import patch, MagicMock
 
 from TicTacToe.Agent import Agent
-from TicTacToe.DeepQAgent import DeepQLearningAgent, FullyConvQNetwork
+from TicTacToe.DeepQAgent import DeepQLearningAgent
 from TicTacToe.Utils import (
     get_param_sweep_combinations,
     load_pretrained_models,

@@ -368,7 +368,7 @@ class TestDeepQLearningAgent(unittest.TestCase):
             "shared_replay_buffer": False,
             "network_type": "FCN",
             "set_exploration_rate_externally": False,
-            "2D state": False,
+            "state_shape": "flat",        
         }
         self.agent = DeepQLearningAgent(self.params)
 
@@ -458,7 +458,13 @@ class TestDeepQLearningAgent(unittest.TestCase):
         action = 2
         next_board = ["X", "O", "X", "O", "X", " ", " ", " ", " "]
         self.agent.episode_history = [(board, action)]
-        self.agent.board_to_state = MagicMock(side_effect=[1, 2])
+
+        # Create fake state arrays (matching shape of board_to_state)
+        fake_state = np.ones((1, 9), dtype=np.float32)        # e.g., from board
+        fake_next_state = np.full((1, 9), 2.0, dtype=np.float32)  # e.g., from next_board
+
+        # Mock the board_to_state method
+        self.agent.board_to_state = MagicMock(side_effect=[fake_state, fake_next_state])
 
         # Call the method
         self.agent._update_state_transitions_and_replay_buffer(next_board, reward, done)

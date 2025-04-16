@@ -55,9 +55,10 @@ params: dict[str, Any] = {
     "network_type": "FullyCNN",  # Network architecture
     "periodic": True,  # Periodic boundary conditions
     "save_models": True,  # Save weights after training
-    "2D state": True,  # Use 2D state representation
-    "one_hot_encoding": True,  # One-hot encoding for state representation
     "symmetrized_loss": False,  # Use symmetrized loss
+    "state_shape": "flat",  # state representation: 'flat' with shape (batch_size, rows * rows), 
+                            # '2D' with shape (batch_size, 1, rows, rows), 
+                            # 'one-hot' with shape (batch_size, 3, rows, rows)
 }
 
 # params["shared_replay_buffer"] = ReplayBuffer(params["replay_buffer_length"], (params["rows"]**2, ), device=params["device"])

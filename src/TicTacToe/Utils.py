@@ -144,7 +144,7 @@ def update_exploration_rate_smoothly(agent1: DeepQLearningAgent, agent2: DeepQLe
             exploration_rate = max(exploration_rate * params["epsilon_decay"], params["epsilon_min"])
             agent1.set_exploration_rate(exploration_rate)
             agent2.set_exploration_rate(exploration_rate)
-            print(f"Smoothed win rates — X: {smoothed_X:.3f}, O: {smoothed_O:.3f}")
+            print(f"Smoothed win rates: X: {smoothed_X:.3f}, O: {smoothed_O:.3f}")
             print(f"delta_X = {delta_X:.3f}, delta_O = {delta_X:.3f}")
             print(f"New exploration rate: {exploration_rate:.4f}")
 
@@ -180,7 +180,8 @@ def train_and_evaluate(game: TwoPlayerBoardGame, agent1: DeepQLearningAgent, age
                 win_length=params["win_length"],
                 wandb_logging=wandb_logging,
                 device=params["device"],
-                periodic=params["periodic"]
+                periodic=params["periodic"],
+                state_shape=params["state_shape"],
             )
             if params["set_exploration_rate_externally"]:
                 exploration_rate = update_exploration_rate_smoothly(agent1, agent2, params, eval_data, exploration_rate, (X_win_rates, O_win_rates))

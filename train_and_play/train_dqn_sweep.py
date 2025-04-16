@@ -44,7 +44,7 @@ params: dict[str, Any] = {
     "win_rate_deque_length": 5,  # Length of win rate deques
     "batch_size": 256,  # Batch size for training updates
     "target_update_frequency": 25,  # Frequency to sync target network
-    "evaluation_frequency": 150,  # Episodes between evaluations
+    "evaluation_frequency": 50,  # Episodes between evaluations
     "evaluation_batch_size": 200,  # Games to evaluate per round
     "device": "mps",  # Device: "cuda", "mps", or "cpu"
     "replay_buffer_length": 10000,  # Max length of replay buffer
@@ -64,7 +64,7 @@ params: dict[str, Any] = {
 # params["shared_replay_buffer"] = ReplayBuffer(params["replay_buffer_length"], (params["rows"]**2, ), device=params["device"])
 
 # --- Sweep Setup ---
-param_sweep = {"rows": [3], "win_length": [3]}
+param_sweep = {"state_shape": ["flat", "2D"], "symmetrized_loss": [True, False]}
 sweep_combinations, param_keys = get_param_sweep_combinations(param_sweep)
 model_metadata = []
 

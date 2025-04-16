@@ -138,6 +138,7 @@ def test_train_and_evaluate(mock_tqdm, mock_eval_perf):
         "device": "cpu",
         "periodic": False,
         "win_rate_deque_length": 3,
+        "state_shape": "flat",
     }
 
     mock_eval_perf.return_value = {

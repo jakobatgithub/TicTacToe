@@ -32,9 +32,10 @@ from tqdm import tqdm
 
 import numpy as np
 
+from TicTacToe.Agent import Agent
+from TicTacToe.TicTacToe import TwoPlayerBoardGame, TicTacToe
 from TicTacToe.DeepQAgent import DeepQLearningAgent, FullyConvQNetwork
 from TicTacToe.Evaluation import evaluate_performance
-from TicTacToe.TicTacToe import TicTacToe
 
 
 def get_param_sweep_combinations(param_sweep: dict) -> tuple[list[tuple[Any, ...]], list[str]]:
@@ -77,7 +78,7 @@ def load_pretrained_models(paramsX: dict, paramsO: dict) -> tuple[dict, dict]:
     return paramsX, paramsO
 
 
-def save_model_artifacts(agent1, agent2, params, model_metadata):
+def save_model_artifacts(agent1: Agent, agent2: Agent, params: dict, model_metadata):
     """
     Saves full models and weight components for both agents and appends metadata.
 
@@ -125,7 +126,7 @@ def save_model_artifacts(agent1, agent2, params, model_metadata):
     with open(metadata_file, "w") as f:
         json.dump(model_metadata, f, indent=4)
 
-def update_exploration_rate(agent1, agent2, params, eval_data, exploration_rate, win_rate_deques):
+def update_exploration_rate(agent1: DeepQLearningAgent, agent2: DeepQLearningAgent, params: dict, eval_data: dict, exploration_rate: float, win_rate_deques: tuple[deque, deque]):
     """
     Updates the exploration rate based on smoothed average of recent win rates.
     If the smoothed win rates of both agents are stable, the exploration rate is decreased.
@@ -169,7 +170,7 @@ def update_exploration_rate(agent1, agent2, params, eval_data, exploration_rate,
 
     return exploration_rate
 
-def train_and_evaluate(game, agent1, agent2, params: dict):
+def train_and_evaluate(game: TwoPlayerBoardGame, agent1: DeepQLearningAgent, agent2: DeepQLearningAgent, params: dict):
     """
     Trains and evaluates two agents in a Tic Tac Toe game.
     Args:

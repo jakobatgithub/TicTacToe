@@ -226,7 +226,7 @@ class TestDeepQLearningAgent(unittest.TestCase):
 
         # Assert correct computations
         self.assertAlmostEqual(
-            loss.item(), nn.MSELoss()(expected_q_values, expected_targets).item() / self.agent.batch_size, places=5
+            loss.item(), nn.MSELoss()(expected_q_values, expected_targets).item(), places=5
         )
 
     @patch("torch.randint", wraps=torch.randint)

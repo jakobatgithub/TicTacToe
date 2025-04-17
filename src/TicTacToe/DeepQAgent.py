@@ -392,7 +392,7 @@ class DeepQLearningAgent(Agent, EvaluationMixin):
         q_values = self.q_network(states).gather(1, actions.unsqueeze(1)).squeeze(1)
         next_q_values = self.target_network(next_states).max(1, keepdim=True)[0].squeeze(1)
         targets = rewards + (~dones) * self.gamma * next_q_values
-        return nn.MSELoss()(q_values, targets) / self.batch_size
+        return nn.MSELoss()(q_values, targets)
     
     def _compute_td_errors(self, samples):
         states, actions, rewards, next_states, dones = samples

@@ -104,13 +104,33 @@ class DeepQLearningAgent(Agent, EvaluationMixin):
 
     def __init__(self, params: dict[str, Any]) -> None:
         """
-        Initialize the DeepQLearningAgent.
+        Initialize the DeepQLearningAgent with configuration parameters.
 
         Args:
             params: A dictionary of parameters for the agent.
         """
         super().__init__(player=params["player"], switching=params["switching"])
         self.params = params
+        self._init_config(params)
+        self._init_wandb(params)
+        self._init_group_matrices()
+        self._init_networks(params)
+        self._load_pretrained_weights(params)
+        self._init_optimizer()
+        self._init_state_converter_and_buffer(params)
+        self._override_with_shared_replay_buffer(params)
+        self._init_symmetrized_loss(params)
+        EvaluationMixin.__init__(
+            self, wandb_enabled=params["wandb"], wandb_logging_frequency=params["wandb_logging_frequency"]
+        )
+
+    def _init_config(self, params: dict[str, Any]) -> None:
+        """
+        Initialize internal variables and counters from configuration.
+
+        Args:
+            params: The configuration dictionary.
+        """
         self.gamma = params["gamma"]
         self.epsilon = params["epsilon_start"]
         self.set_exploration_rate_externally = params["set_exploration_rate_externally"]
@@ -126,101 +146,143 @@ class DeepQLearningAgent(Agent, EvaluationMixin):
         self.train_step_count = 0
         self.q_update_count = 0
         self.target_update_count = 0
-
-        if self.wandb:
-            wandb.init(config=params)  # type: ignore
-
         self.episode_history: History = []
         self.state_transitions: StateTransitions2 = []
         self.rows = params["rows"]
         self.device = torch.device(params["device"])
 
-        B0 = [[1, 0], [0, 1]]
-        B1 = [[-1, 0], [0, -1]]
-        B2 = [[-1, 0], [0, 1]]
-        B3 = [[1, 0], [0, -1]]
-        B4 = [[0, 1], [1, 0]]
-        B5 = [[0, -1], [1, 0]]
-        B6 = [[0, 1], [-1, 0]]
-        B7 = [[0, -1], [-1, 0]]
-        Bs = [B0, B1, B2, B3, B4, B5, B6, B7]
+    def _init_wandb(self, params: dict[str, Any]) -> None:
+        """
+        Initialize Weights & Biases logging if enabled.
+
+        Args:
+            params: The configuration dictionary.
+        """
+        if self.wandb:
+            wandb.init(config=params)  # type: ignore
+
+    def _init_group_matrices(self) -> None:
+        """
+        Initialize the 2D transformation matrices used in equivariant networks.
+        """
+        Bs = [
+            [[1, 0], [0, 1]], [[-1, 0], [0, -1]], [[-1, 0], [0, 1]], [[1, 0], [0, -1]],
+            [[0, 1], [1, 0]], [[0, -1], [1, 0]], [[0, 1], [-1, 0]], [[0, -1], [-1, 0]],
+        ]
         self.groupMatrices = [np.array(B) for B in Bs]
 
-        # Instantiate the model architecture
-        if params["network_type"] == "Equivariant":
-            if params["state_shape"] != "flat":
-                raise ValueError("Equivariant network only works for flat state representation, i.e., 'state_shape' must be 'flat'.")
+    def _init_networks(self, params: dict[str, Any]) -> None:
+        """
+        Initialize Q-network and target network based on the selected architecture.
+
+        Args:
+            params: The configuration dictionary.
+        """
+        network_type = params["network_type"]
+        state_shape = params["state_shape"]
+
+        if network_type == "Equivariant":
+            if state_shape != "flat":
+                raise ValueError("Equivariant network requires 'flat' state_shape.")
             if self.rows % 2 != 1:
-                raise ValueError("Equivariant network only works for odd number of rows")
-            ms0 = (self.rows - 1) / 2
-            ms = (ms0, 3, 3, ms0)
+                raise ValueError("Equivariant network requires an odd number of rows.")
+            ms = ((self.rows - 1) / 2, 3, 3, (self.rows - 1) / 2)
             self.q_network = EquivariantNN(self.groupMatrices, ms=ms).to(self.device)
             self.target_network = EquivariantNN(self.groupMatrices, ms=ms).to(self.device)
-        elif params["network_type"] == "CNN":
-            if params["state_shape"] == "one-hot":
-                (state_size, action_size) = (3, self.rows**2)
-                self.q_network = CNNQNetwork(input_dim=state_size, rows=self.rows, output_dim=action_size).to(self.device)
-                self.target_network = CNNQNetwork(input_dim=state_size, rows=self.rows, output_dim=action_size).to(self.device)
-            else:
-                (state_size, action_size) = (1, self.rows**2)
-                self.q_network = CNNQNetwork(input_dim=state_size, rows=self.rows, output_dim=action_size).to(self.device)
-                self.target_network = CNNQNetwork(input_dim=state_size, rows=self.rows, output_dim=action_size).to(self.device)
-        elif params["network_type"] == "FCN":
-            if params["state_shape"] != "flat":
-                raise ValueError("Fully connected network only works for flat state representation, i.e., 'state_shape' must be 'flat'.")
-            (state_size, action_size) = (self.rows**2, self.rows**2)
-            self.q_network = QNetwork(state_size, output_dim=action_size).to(self.device)
-            self.target_network = QNetwork(state_size, output_dim=action_size).to(self.device)
-        elif params["network_type"] == "FullyCNN":
-            if params["state_shape"] == "one-hot":
-                self.q_network = FullyConvQNetwork(input_dim=3).to(self.device)
-                self.target_network = FullyConvQNetwork(input_dim=3).to(self.device)
-            else:
-                self.q_network = FullyConvQNetwork(input_dim=1).to(self.device)
-                self.target_network = FullyConvQNetwork(input_dim=1).to(self.device)
-        else:
-            raise ValueError(f"Unsupported network type: {params['network_type']}")
 
-        # Optionally load weights if a file is provided
-        if params["load_network"]:
+        elif network_type == "CNN":
+            input_dim = 3 if state_shape == "one-hot" else 1
+            output_dim = self.rows**2
+            self.q_network = CNNQNetwork(input_dim=input_dim, rows=self.rows, output_dim=output_dim).to(self.device)
+            self.target_network = CNNQNetwork(input_dim=input_dim, rows=self.rows, output_dim=output_dim).to(self.device)
+
+        elif network_type == "FCN":
+            if state_shape != "flat":
+                raise ValueError("Fully connected network requires 'flat' state_shape.")
+            size = self.rows**2
+            self.q_network = QNetwork(size, output_dim=size).to(self.device)
+            self.target_network = QNetwork(size, output_dim=size).to(self.device)
+
+        elif network_type == "FullyCNN":
+            input_dim = 3 if state_shape == "one-hot" else 1
+            self.q_network = FullyConvQNetwork(input_dim=input_dim).to(self.device)
+            self.target_network = FullyConvQNetwork(input_dim=input_dim).to(self.device)
+
+        else:
+            raise ValueError(f"Unsupported network type: {network_type}")
+
+    def _load_pretrained_weights(self, params: dict[str, Any]) -> None:
+        """
+        Load pretrained weights into the networks, if specified.
+
+        Args:
+            params: The configuration dictionary.
+        """
+        if params.get("load_network"):
             state_dict = torch.load(params["load_network"])
             self.q_network.load_state_dict(state_dict)
             self.target_network.load_state_dict(state_dict)
 
+    def _init_optimizer(self) -> None:
+        """
+        Initialize the optimizer for training the Q-network.
+        """
         self.optimizer = optim.Adam(self.q_network.parameters(), lr=self.learning_rate)
 
-        if params["state_shape"] == "flat":
-            self.state_converter = FlatStateConverter()
-            self.replay_buffer = ReplayBuffer(self.replay_buffer_length, (self.rows**2, ), device=params["device"])
-        elif params["state_shape"] == "2D":
-            self.state_converter = GridStateConverter(shape=(self.rows, self.rows))
-            self.replay_buffer = ReplayBuffer(self.replay_buffer_length, (1, self.rows, self.rows), device=params["device"])
-        elif params["state_shape"] == "one-hot":
-            self.state_converter = OneHotStateConverter(rows=self.rows)
-            self.replay_buffer = ReplayBuffer(self.replay_buffer_length, (3, self.rows, self.rows), device=params["device"])
-        else:
-            raise ValueError(f"Unsupported state shape: {params["state_shape"]}")
+    def _init_state_converter_and_buffer(self, params: dict[str, Any]) -> None:
+        """
+        Initialize state representation converter and the replay buffer.
 
-        if params["shared_replay_buffer"]:
+        Args:
+            params: The configuration dictionary.
+        """
+        state_shape = params["state_shape"]
+        if state_shape == "flat":
+            self.state_converter = FlatStateConverter()
+            shape = (self.rows**2,)
+        elif state_shape == "2D":
+            self.state_converter = GridStateConverter(shape=(self.rows, self.rows))
+            shape = (1, self.rows, self.rows)
+        elif state_shape == "one-hot":
+            self.state_converter = OneHotStateConverter(rows=self.rows)
+            shape = (3, self.rows, self.rows)
+        else:
+            raise ValueError(f"Unsupported state shape: {state_shape}")
+        self.replay_buffer = ReplayBuffer(self.replay_buffer_length, shape, device=params["device"])
+
+    def _override_with_shared_replay_buffer(self, params: dict[str, Any]) -> None:
+        """
+        Override the local replay buffer with a shared buffer if provided.
+
+        Args:
+            params: The configuration dictionary.
+        """
+        if params.get("shared_replay_buffer"):
             self.replay_buffer = params["shared_replay_buffer"]
 
-        self.transformations: list[Any] = [
-            lambda x: x,  # type: ignore Identity
-            lambda x: np.fliplr(x),  # type: ignore Horizontal reflection
-            lambda x: np.flipud(x),  # type: ignore Vertical reflection
-            lambda x: np.flipud(np.fliplr(x)),  # type: ignore Vertical reflection
-            lambda x: np.transpose(x),  # type: ignore Diagonal reflection (TL-BR)
-            lambda x: np.fliplr(np.transpose(x)),  # type: ignore Horizontal reflection
-            lambda x: np.flipud(np.transpose(x)),  # type: ignore Vertical reflection
-            lambda x: np.flipud(np.fliplr(np.transpose(x))),  # type: ignore Vertical reflection
-        ]
+    def _init_symmetrized_loss(self, params: dict[str, Any]) -> None:
+        """
+        Initialize the symmetrized loss function based on reflection and rotation transformations.
 
+        Args:
+            params: The configuration dictionary.
+        """
+        self.transformations: list[Any] = [
+            lambda x: x,
+            lambda x: np.fliplr(x),
+            lambda x: np.flipud(x),
+            lambda x: np.flipud(np.fliplr(x)),
+            lambda x: np.transpose(x),
+            lambda x: np.fliplr(np.transpose(x)),
+            lambda x: np.flipud(np.transpose(x)),
+            lambda x: np.flipud(np.fliplr(np.transpose(x))),
+        ]
         if params.get("symmetrized_loss", True):
-            self.compute_symmetrized_loss = self.create_symmetrized_loss(self.compute_loss, self.transformations, self.rows)
+            self.compute_symmetrized_loss = self.create_symmetrized_loss(
+                self.compute_loss, self.transformations, self.rows
+            )
         else:
             self.compute_symmetrized_loss = self.compute_loss
-    
-        EvaluationMixin.__init__(self, wandb_enabled=params["wandb"], wandb_logging_frequency=params["wandb_logging_frequency"])
 
     def set_exploration_rate(self, epsilon: float) -> None:
         """

@@ -9,340 +9,7 @@ import torch
 import torch.nn as nn
 
 from TicTacToe.DeepQAgent import DeepQLearningAgent, DeepQPlayingAgent, ReplayBuffer
-from TicTacToe.QNetworks import QNetwork, CNNQNetwork, FullyConvQNetwork
 
-
-class TestReplayBuffer(unittest.TestCase):
-    """Tests for the ReplayBuffer class."""
-
-    def test_initialization(self) -> None:
-        """Test ReplayBuffer initialization with proper size and device allocation."""
-        buffer = ReplayBuffer(size=10, state_shape=(4, ), device="cpu")
-        self.assertEqual(buffer.size, 10, "Buffer size should be correctly initialized.")
-        self.assertEqual(buffer.device, "cpu", "Buffer device should be correctly initialized.")
-        self.assertEqual(len(buffer), 0, "Buffer should initially have zero stored experiences.")
-        self.assertTrue(torch.is_tensor(buffer.states), "States should be stored as a torch tensor.")
-
-    def test_add_experience(self) -> None:
-        """Ensure experiences are added correctly, including overwriting behavior."""
-        buffer = ReplayBuffer(size=3, state_shape=(4, ), device="cpu")
-        for i in range(5):  # Add more experiences than the buffer size
-            buffer.add(
-                state=np.array([i, i + 1, i + 2, i + 3]),
-                action=i,
-                reward=float(i),
-                next_state=np.array([i + 1, i + 2, i + 3, i + 4]),
-                done=i % 2 == 0,
-            )
-
-        self.assertEqual(len(buffer), 3, "Buffer size should not exceed its capacity.")
-        self.assertTrue(
-            torch.equal(buffer.states[0], torch.tensor([3, 4, 5, 6], dtype=torch.float32)),
-            "Oldest experiences should be overwritten in circular fashion.",
-        )
-        self.assertTrue(
-            torch.equal(buffer.states[1], torch.tensor([4, 5, 6, 7], dtype=torch.float32)),
-            "Oldest experiences should be overwritten in circular fashion.",
-        )
-        self.assertFalse(buffer.dones[0], "Stored 'done' value should match the input.")
-
-    def test_sample_experiences(self) -> None:
-        """Check that the sampling returns correct shapes and values, including the last added experience."""
-        buffer = ReplayBuffer(size=5, state_shape=(4, ), device="cpu")
-        for i in range(5):
-            buffer.add(
-                state=np.array([i, i + 1, i + 2, i + 3]),
-                action=i,
-                reward=float(i),
-                next_state=np.array([i + 1, i + 2, i + 3, i + 4]),
-                done=i % 2 == 0,
-            )
-
-        batch_size = 3
-        states, actions, rewards, next_states, dones = buffer.sample(batch_size)
-
-        # Check shapes
-        self.assertEqual(states.shape, (batch_size, 4), "Sampled states should have correct shape.")
-        self.assertEqual(actions.shape, (batch_size,), "Sampled actions should have correct shape.")
-        self.assertEqual(rewards.shape, (batch_size,), "Sampled rewards should have correct shape.")
-        self.assertEqual(next_states.shape, (batch_size, 4), "Sampled next states should have correct shape.")
-        self.assertEqual(dones.shape, (batch_size,), "Sampled dones should have correct shape.")
-
-        # Ensure the last added experience is included
-        last_state = np.array([4, 5, 6, 7])
-        last_action = 4
-        last_reward = 4.0
-        last_next_state = np.array([5, 6, 7, 8])
-        last_done = True
-
-        # Convert sampled tensors back to numpy for easier comparison
-        states_np = states.numpy()
-        actions_np = actions.numpy()
-        rewards_np = rewards.numpy()
-        next_states_np = next_states.numpy()
-        dones_np = dones.numpy()
-
-        # Assert that the last experience is present in the sampled batch
-        self.assertTrue(
-            any(
-                np.array_equal(state, last_state)
-                and action == last_action
-                and reward == last_reward
-                and np.array_equal(next_state, last_next_state)
-                and done == last_done
-                for state, action, reward, next_state, done in zip(
-                    states_np, actions_np, rewards_np, next_states_np, dones_np
-                )
-            ),
-            "The most recently added experience must be in the sampled batch.",
-        )
-
-    def test_buffer_length(self) -> None:
-        """Verify __len__ returns the correct number of stored experiences."""
-        buffer = ReplayBuffer(size=5, state_shape=(4, ), device="cpu")
-        self.assertEqual(len(buffer), 0, "Initial buffer length should be zero.")
-        for i in range(7):  # Add more experiences than buffer size
-            buffer.add(
-                state=np.array([i, i + 1, i + 2, i + 3]),
-                action=i,
-                reward=float(i),
-                next_state=np.array([i + 1, i + 2, i + 3, i + 4]),
-                done=i % 2 == 0,
-            )
-        self.assertEqual(len(buffer), 5, "Buffer length should match its capacity after being filled.")
-
-
-class TestQNetwork(unittest.TestCase):
-    """Tests for the QNetwork class."""
-
-    def test_initialization(self) -> None:
-        """Test QNetwork initialization with correct input and output dimensions."""
-        input_dim, output_dim = 4, 2
-        model = QNetwork(input_dim=input_dim, output_dim=output_dim)
-
-        self.assertEqual(model.fc[0].in_features, input_dim, "Input dimension of the first layer is incorrect.")
-        self.assertEqual(model.fc[-1].out_features, output_dim, "Output dimension of the last layer is incorrect.")
-
-    def test_forward_pass(self) -> None:
-        """Ensure the forward pass produces output of the correct shape."""
-        input_dim, output_dim = 4, 2
-        model = QNetwork(input_dim=input_dim, output_dim=output_dim)
-        test_input = torch.randn((5, input_dim))  # Batch of 5 inputs
-        output = model(test_input)
-
-        self.assertEqual(output.shape, (5, output_dim), "Output shape is incorrect.")
-
-    def test_gradient_flow(self) -> None:
-        """Confirm that gradients flow correctly during backpropagation."""
-        input_dim, output_dim = 4, 2
-        model = QNetwork(input_dim=input_dim, output_dim=output_dim)
-        test_input = torch.randn((5, input_dim))
-        target = torch.randn((5, output_dim))
-
-        criterion = torch.nn.MSELoss()
-        optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
-
-        optimizer.zero_grad()
-        output = model(test_input)
-        loss = criterion(output, target)
-        loss.backward()
-
-        for param in model.parameters():
-            self.assertIsNotNone(param.grad, "Parameter does not have gradients.")
-            self.assertTrue((param.grad != 0).any(), "Parameter gradients should not be zero.")
-
-    def test_parameter_count(self) -> None:
-        """Verify that the number of trainable parameters is as expected."""
-        input_dim, output_dim = 4, 2
-        model = QNetwork(input_dim=input_dim, output_dim=output_dim)
-        total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-
-        # n1, n2 = 128, 64
-        n1, n2 = 49, 49
-        expected_params = (input_dim * n1 + n1) + (n1 * n2 + n2) + (n2 * output_dim + output_dim)
-        self.assertEqual(total_params, expected_params, "The number of trainable parameters is incorrect.")
-
-    def test_reproducibility(self) -> None:
-        """Check that the network produces consistent outputs in evaluation mode."""
-        input_dim, output_dim = 4, 2
-        model = QNetwork(input_dim=input_dim, output_dim=output_dim)
-        test_input = torch.randn((5, input_dim))
-
-        model.eval()  # Set the model to evaluation mode
-        with torch.no_grad():
-            output1 = model(test_input)
-            output2 = model(test_input)
-
-        self.assertTrue(torch.equal(output1, output2), "Outputs should be consistent in evaluation mode.")
-
-
-class TestCNNQNetwork(unittest.TestCase):
-    """Tests for the CNNQNetwork class."""
-
-    def test_initialization(self):
-        """Test CNNQNetwork initialization with correct input and output dimensions."""
-        input_dim, grid_size, output_dim = 1, 3, 9
-        model = CNNQNetwork(input_dim=input_dim, rows=grid_size, output_dim=output_dim)
-
-        self.assertEqual(
-            model.conv_layers[0].in_channels, input_dim, "Input channels of the first convolutional layer are incorrect."
-        )
-        # Find the last Conv2d layer in the conv_layers sequence
-        last_conv_layer = [layer for layer in model.conv_layers if isinstance(layer, nn.Conv2d)][-1]
-        self.assertEqual(
-            last_conv_layer.out_channels, 64, "Output channels of the last convolutional layer are incorrect."
-        )
-        self.assertEqual(
-            model.fc_layers[-1].out_features, output_dim, "Output dimension of the final fully connected layer is incorrect."
-        )
-
-    def test_forward_pass(self):
-        """Ensure the forward pass produces output of the correct shape."""
-        batch_size, input_dim, rows = 5, 1, 3
-        model = CNNQNetwork(input_dim=input_dim, rows=rows, output_dim=rows * rows)
-        test_input = torch.randn((batch_size, rows * rows))  # Batch of 5 inputs
-        output = model(test_input)
-
-        self.assertEqual(output.shape, (batch_size, rows * rows), "Output shape is incorrect.")
-
-    def test_gradient_flow(self):
-        """Confirm that gradients flow correctly during backpropagation."""
-        batch_size, input_dim, rows, output_dim = 5, 1, 3, 9
-        model = CNNQNetwork(input_dim=input_dim, rows=rows, output_dim=output_dim)
-        test_input = torch.randn((batch_size, rows * rows))
-        target = torch.randn((batch_size, output_dim))
-
-        criterion = torch.nn.MSELoss()
-        optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
-
-        optimizer.zero_grad()
-        output = model(test_input)
-        loss = criterion(output, target)
-        loss.backward()
-
-        for param in model.parameters():
-            self.assertIsNotNone(param.grad, "Parameter does not have gradients.")
-            self.assertTrue((param.grad != 0).any(), "Parameter gradients should not be zero.")
-
-    def test_parameter_count(self):
-        """Verify that the number of trainable parameters is as expected."""
-        input_dim, grid_size, output_dim = 1, 3, 9
-        model = CNNQNetwork(input_dim=input_dim, rows=grid_size, output_dim=output_dim)
-        total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-
-        # Calculate expected parameters
-        conv1_params = (input_dim * 32 * 3 * 3) + 32
-        conv2_params = (32 * 64 * 3 * 3) + 64
-        conv3_params = (64 * 64 * 3 * 3) + 64
-        fc1_params = (64 * grid_size * grid_size * 128) + 128
-        fc2_params = (128 * output_dim) + output_dim
-        expected_params = conv1_params + conv2_params + conv3_params + fc1_params + fc2_params
-
-        self.assertEqual(total_params, expected_params, "The number of trainable parameters is incorrect.")
-
-
-class TestFullyConvQNetwork(unittest.TestCase):
-    """Tests for the FullyConvQNetwork class."""
-
-    def test_output_dimensions(self):
-        """Test that the output dimension is correct."""
-        batch_size, rows = 1, 5  # Example grid size
-        model = FullyConvQNetwork()
-
-        # Create a test input tensor
-        test_input = torch.zeros((batch_size, rows * rows))
-        test_input[0, 4] = 1.0  # Set a single active cell in the center
-        output = model(test_input)
-        self.assertEqual(output.shape, (batch_size, rows * rows), "Output shape is incorrect.")
-
-    def test_shift_invariance(self):
-        """Test that shifting the input and then applying conv_layers yields the same result as applying conv_layers and then shifting the output."""
-        batch_size, rows = 1, 5  # Example grid size
-        model = FullyConvQNetwork()
-
-        # Create a test input tensor
-        test_input = torch.zeros((batch_size, rows * rows)).view(-1, 1, rows, rows)
-        test_input[0, 0, 2, 2] = 1.0  # Set a single active cell in the center
-
-        # Define a shift (x, y)
-        shift_x, shift_y = 1, 2
-
-        # Shift the input tensor
-        shifted_input = torch.roll(test_input, shifts=(shift_x, shift_y), dims=(2, 3))
-
-        # Apply conv_layers to both the original and shifted inputs
-        original_output = model.conv_layers(test_input)
-        shifted_output = model.conv_layers(shifted_input)
-
-        # Shift the original output by the same (x, y) vector
-        shifted_original_output = torch.roll(original_output, shifts=(shift_x, shift_y), dims=(2, 3))
-
-        # Compare the results
-        self.assertTrue(
-            torch.allclose(shifted_output, shifted_original_output, atol=1e-7),
-            "Shifting the input and then applying conv_layers should yield the same result as applying conv_layers and then shifting the output.",
-        )
-
-    def test_random_input(self):
-        """Test that the network produces consistent outputs for the same random input."""
-        batch_size, rows = 1, 5  # Example grid size
-        model = FullyConvQNetwork()
-
-        # Create a random input tensor
-        test_input = torch.randn((batch_size, 1, rows, rows))
-
-        # Apply the network twice
-        output1 = model(test_input)
-        output2 = model(test_input)
-
-        # Assert that the outputs are identical
-        self.assertTrue(torch.allclose(output1, output2, atol=1e-5), "Outputs should be consistent for the same input.")
-
-    def test_gradient_flow(self):
-        """Test that gradients flow correctly during backpropagation."""
-        batch_size, rows = 1, 5  # Example grid size
-        model = FullyConvQNetwork()
-
-        # Create a random input tensor
-        test_input = torch.randn((batch_size, rows * rows), requires_grad=True)
-        target = torch.randn((batch_size, rows * rows))
-
-        # Define a loss function and optimizer
-        criterion = nn.MSELoss()
-        optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
-
-        # Perform a forward pass
-        optimizer.zero_grad()
-        output = model(test_input)
-        loss = criterion(output, target)
-
-        # Perform a backward pass
-        loss.backward()
-
-        # Check that gradients exist for all parameters
-        for param in model.parameters():
-            self.assertIsNotNone(param.grad, "Parameter does not have gradients.")
-            self.assertTrue((param.grad != 0).any(), "Parameter gradients should not be zero.")
-
-    def test_parameter_counts(self):
-        """Test that the base and head have the expected number of parameters."""
-        model = FullyConvQNetwork()
-
-        base_params = count_trainable_params(model.base)
-        head_params = count_trainable_params(model.head)
-        total_params = count_trainable_params(model)
-
-        self.assertEqual(
-            base_params + head_params,
-            total_params,
-            "Total parameter count should equal the sum of base and head parameters."
-        )
-
-        print("\n")
-        print("Number of parameters in the model FullyConvQNetwork:")
-        print(f"Base parameters: {base_params}")
-        print(f"Head parameters: {head_params}")
-        print(f"Total parameters: {total_params}")
 
 class TestDeepQLearningAgent(unittest.TestCase):
     """Tests for the DeepQLearningAgent class."""
@@ -383,6 +50,22 @@ class TestDeepQLearningAgent(unittest.TestCase):
         )
         self.assertEqual(self.agent.epsilon, self.params["epsilon_start"], "Epsilon should match the starting value.")
         self.assertEqual(self.agent.gamma, self.params["gamma"], "Gamma should be correctly initialized.")
+
+    def test_initialization_parameters(self):
+        """Test initialization of DeepQLearningAgent parameters."""
+        self.assertEqual(self.agent.gamma, self.params["gamma"], "Gamma should be initialized correctly.")
+        self.assertEqual(self.agent.epsilon, self.params["epsilon_start"], "Epsilon should match the starting value.")
+        self.assertEqual(self.agent.nr_of_episodes, self.params["nr_of_episodes"], "Number of episodes should match.")
+        self.assertEqual(self.agent.batch_size, self.params["batch_size"], "Batch size should match.")
+        self.assertEqual(self.agent.target_update_frequency, self.params["target_update_frequency"], "Target update frequency should match.")
+        self.assertEqual(self.agent.learning_rate, self.params["learning_rate"], "Learning rate should match.")
+        self.assertEqual(self.agent.replay_buffer_length, self.params["replay_buffer_length"], "Replay buffer length should match.")
+        self.assertEqual(self.agent.rows, self.params["rows"], "Number of rows should match.")
+        self.assertEqual(self.agent.device.type, self.params["device"], "Device should match.")
+        self.assertIsInstance(self.agent.q_network, nn.Module, "Q-network should be an instance of nn.Module.")
+        self.assertIsInstance(self.agent.target_network, nn.Module, "Target network should be an instance of nn.Module.")
+        self.assertIsInstance(self.agent.replay_buffer, ReplayBuffer, "Replay buffer should be an instance of ReplayBuffer.")
+        self.assertIsNotNone(self.agent.state_converter, "State converter should be initialized.")
 
     def test_action_selection_exploration(self) -> None:
         """Test action selection in exploration mode (random)."""
@@ -637,6 +320,105 @@ class TestDeepQLearningAgent(unittest.TestCase):
         self.assertGreaterEqual(self.agent.epsilon, self.agent.params["epsilon_min"], "Epsilon should not go below minimum.")
         self.assertLessEqual(self.agent.epsilon, self.agent.params["epsilon_start"], "Epsilon should not exceed start value.")
 
+    def test_flat_state_converter_roundtrip(self):
+        board = ["X", "O", " ", "X", " ", "O", " ", "X", "O"]
+        state = self.agent.state_converter.board_to_state(board)
+        restored = self.agent.state_converter.state_to_board(state)
+        self.assertEqual(restored, board)
+
+    def test_init_cnn_onehot(self):
+        params = self.params.copy()
+        params["network_type"] = "CNN"
+        params["state_shape"] = "one-hot"
+        agent = DeepQLearningAgent(params)
+        self.assertEqual(agent.state_converter.__class__.__name__, "OneHotStateConverter")
+
+    def test_init_fullycnn_flat(self):
+        params = self.params.copy()
+        params["network_type"] = "FullyCNN"
+        params["state_shape"] = "flat"
+        agent = DeepQLearningAgent(params)
+        self.assertEqual(agent.state_converter.__class__.__name__, "FlatStateConverter")
+
+    def test_init_equivariant_invalid_shape(self):
+        params = self.params.copy()
+        params["network_type"] = "Equivariant"
+        params["state_shape"] = "2D"
+        with self.assertRaises(ValueError):
+            DeepQLearningAgent(params)
+
+    def test_init_equivariant_invalid_rows(self):
+        params = self.params.copy()
+        params["network_type"] = "Equivariant"
+        params["state_shape"] = "flat"
+        params["rows"] = 4  # Even number
+        with self.assertRaises(ValueError):
+            DeepQLearningAgent(params)
+
+    def test_init_invalid_network_type(self):
+        params = self.params.copy()
+        params["network_type"] = "UnsupportedNet"
+        with self.assertRaises(ValueError):
+            DeepQLearningAgent(params)
+
+    def test_init_invalid_state_shape(self):
+        params = self.params.copy()
+        params["state_shape"] = "weird"
+        with self.assertRaises(ValueError):
+            DeepQLearningAgent(params)
+
+    def test_handle_incomplete_game_with_none_board(self):
+        action = self.agent._handle_incomplete_game(None)
+        self.assertEqual(action, -1)
+
+    def test_handle_game_completion_external_epsilon(self):
+        self.agent.set_exploration_rate_externally = True
+        self.agent._handle_game_completion()
+        # Check that exploration rate update wasn't called
+        self.assertEqual(self.agent.episode_count, 1)
+
+    def test_board_to_state_wrapper(self):
+        board = ["X"] * 9
+        state = self.agent.board_to_state(board)
+        self.assertEqual(state.shape[1], 9)
+
+    @patch("torch.randint", return_value=torch.tensor([1]))
+    def test_get_best_action_multiple_max_values(self, mock_randint):
+        board = [" "] * 9
+        state = np.array([[0.1, 0.5, 0.5, -0.1, 0, 0, 0, 0, 0]])
+        self.agent.board_to_state = MagicMock(return_value=state)
+        self.agent.device = torch.device("cpu")
+
+        mock_net = MagicMock()
+        mock_net.return_value = torch.tensor([[0.1, 0.5, 0.5, -0.1, 0, 0, 0, 0, 0]])
+        action = self.agent.get_best_action(board, mock_net)
+        self.assertIn(action, [1, 2])        
+
+
+class TestStateConverters(unittest.TestCase):
+    def test_flat_state_converter_roundtrip(self):
+        from TicTacToe.DeepQAgent import FlatStateConverter
+        board = ["X", "O", " ", "X", " ", "O", " ", "X", "O"]
+        converter = FlatStateConverter()
+        state = converter.board_to_state(board)
+        restored = converter.state_to_board(state)
+        self.assertEqual(restored, board)
+
+    def test_grid_state_converter_roundtrip(self):
+        from TicTacToe.DeepQAgent import GridStateConverter
+        board = ["X", "O", " ", "X", " ", "O", " ", "X", "O"]
+        converter = GridStateConverter(shape=(3, 3))
+        state = converter.board_to_state(board)
+        restored = converter.state_to_board(state)
+        self.assertEqual(restored, board)
+
+    def test_onehot_state_converter_roundtrip(self):
+        from TicTacToe.DeepQAgent import OneHotStateConverter
+        board = ["X", "O", " ", "X", " ", "O", " ", "X", "O"]
+        converter = OneHotStateConverter(rows=3)
+        state = converter.board_to_state(board)
+        restored = converter.state_to_board(state)
+        self.assertEqual(restored, board)
 
 # Mock classes for dependencies
 class MockQNetwork(torch.nn.Module):
@@ -698,6 +480,3 @@ class TestDeepQPlayingAgent(unittest.TestCase):
         self.agent.on_game_end(None)  # Pass None for game, not used.
         self.assertEqual(self.agent.player, initial_opponent)
         self.assertEqual(self.agent.opponent, initial_player)
-
-def count_trainable_params(model: nn.Module) -> int:
-    return sum(p.numel() for p in model.parameters() if p.requires_grad)

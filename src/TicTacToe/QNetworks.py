@@ -85,11 +85,18 @@ class CNNQNetwork(nn.Module):
         Returns:
             Output tensor of shape (batch_size, output_dim).
         """
+        if x.ndim == 2:  # (batch_size, rows*cols)
+            spatial_dim = int(x.size(1) ** 0.5)
+            x = x.view(x.size(0), 1, spatial_dim, spatial_dim)
+        elif x.ndim == 4:  # already (batch_size, 1, rows, cols)
+            pass
+        else:
+            raise ValueError(f"Unexpected input shape: {x.shape}")
+
         x = x.view(-1, 1, self.rows, self.rows)
         x = self.conv_layers(x)
         x = self.fc_layers(x)
-        x = x.view(-1, self.rows * self.rows)  # Flatten the output to (batch_size, rows*rows)
-        return x
+        return x.view(x.size(0), -1)  # shape: (batch_size, rows * cols)
 
 class PeriodicConvBase(nn.Module):
     def __init__(self, input_dim: int = 1):

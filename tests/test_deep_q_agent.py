@@ -367,6 +367,34 @@ class TestDeepQLearningAgent(unittest.TestCase):
         with self.assertRaises(ValueError):
             DeepQLearningAgent(params)
 
+    def test_handle_incomplete_game_with_none_board(self):
+        action = self.agent._handle_incomplete_game(None)
+        self.assertEqual(action, -1)
+
+    def test_handle_game_completion_external_epsilon(self):
+        self.agent.set_exploration_rate_externally = True
+        self.agent._handle_game_completion()
+        # Check that exploration rate update wasn't called
+        self.assertEqual(self.agent.episode_count, 1)
+
+    def test_board_to_state_wrapper(self):
+        board = ["X"] * 9
+        state = self.agent.board_to_state(board)
+        self.assertEqual(state.shape[1], 9)
+
+    @patch("torch.randint", return_value=torch.tensor([1]))
+    def test_get_best_action_multiple_max_values(self, mock_randint):
+        board = [" "] * 9
+        state = np.array([[0.1, 0.5, 0.5, -0.1, 0, 0, 0, 0, 0]])
+        self.agent.board_to_state = MagicMock(return_value=state)
+        self.agent.device = torch.device("cpu")
+
+        mock_net = MagicMock()
+        mock_net.return_value = torch.tensor([[0.1, 0.5, 0.5, -0.1, 0, 0, 0, 0, 0]])
+        action = self.agent.get_best_action(board, mock_net)
+        self.assertIn(action, [1, 2])        
+
+
 class TestStateConverters(unittest.TestCase):
     def test_flat_state_converter_roundtrip(self):
         from TicTacToe.DeepQAgent import FlatStateConverter

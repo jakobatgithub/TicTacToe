@@ -99,12 +99,12 @@ class CNNQNetwork(nn.Module):
         return x.view(x.size(0), -1)  # shape: (batch_size, rows * cols)
 
 class PeriodicConvBase(nn.Module):
-    def __init__(self, input_dim: int = 1):
+    def __init__(self, input_dim: int = 1, padding_mode: str = 'circular'):
         super().__init__()
         self.encoder = nn.Sequential(
-            nn.Conv2d(input_dim, 32, kernel_size=3, stride=1, padding=1, padding_mode='circular'),
+            nn.Conv2d(input_dim, 32, kernel_size=3, stride=1, padding=1, padding_mode=padding_mode),
             nn.ReLU(),
-            nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1, padding_mode='circular'),
+            nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1, padding_mode=padding_mode),
             nn.ReLU()
         )
 
@@ -113,9 +113,9 @@ class PeriodicConvBase(nn.Module):
 
 
 class PeriodicQHead(nn.Module):
-    def __init__(self):
+    def __init__(self, padding_mode: str = 'circular'):
         super().__init__()
-        self.head = nn.Conv2d(64, 1, kernel_size=3, stride=1, padding=1, padding_mode='circular')
+        self.head = nn.Conv2d(64, 1, kernel_size=3, stride=1, padding=1, padding_mode=padding_mode)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.head(x)  # shape: (batch_size, 1, rows, cols)
@@ -123,10 +123,10 @@ class PeriodicQHead(nn.Module):
 
 
 class FullyConvQNetwork(nn.Module):
-    def __init__(self, input_dim: int = 1):
+    def __init__(self, input_dim: int = 1, padding_mode: str = 'circular'):
         super().__init__()
-        self.base = PeriodicConvBase(input_dim=input_dim)
-        self.head = PeriodicQHead()
+        self.base = PeriodicConvBase(input_dim=input_dim, padding_mode=padding_mode)
+        self.head = PeriodicQHead(padding_mode=padding_mode)
 
         # ✅ For backward compatibility with tests
         self.conv_layers = nn.Sequential(

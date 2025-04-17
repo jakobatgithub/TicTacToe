@@ -18,6 +18,7 @@ from TicTacToe.Utils import (
     train_and_evaluate
 )
 
+
 # -------- get_param_sweep_combinations --------
 
 def test_get_param_sweep_combinations():
@@ -63,30 +64,51 @@ def dummy_agents():
     agent2.q_network = DummyNetwork()
     return agent1, agent2
 
-@patch("TicTacToe.Utils.Path")
-def test_save_model_artifacts(mock_path_class, dummy_agents, tmp_path):
+def test_save_model_artifacts(dummy_agents, tmp_path):
+    from TicTacToe.Utils import save_model_artifacts
+
     agent1, agent2 = dummy_agents
 
-    # Prepare mock paths
-    models_dir = tmp_path / "models" / "all_models"
-    models_dir.mkdir(parents=True)
+    # Set up models directory
+    models_dir = tmp_path / "models"
+    params = {
+        "save_models": models_dir,
+        "rows": 5,
+        "win_length": 5,
+        "shared_replay_buffer": False,
+    }
 
-    mock_script_dir = MagicMock()
-    mock_path_class.return_value.resolve.return_value.parent = mock_script_dir
-    mock_script_dir.__truediv__.return_value.resolve.return_value = models_dir
+    save_model_artifacts(agent1, agent2, params)
 
-    params = {"rows": 5, "win_length": 5, "shared_replay_buffer": False}
-    metadata = []
+    # Check that the index file was created
+    index_file = models_dir / "model_index.json"
+    assert index_file.exists()
 
-    save_model_artifacts(agent1, agent2, params, metadata)
+    with open(index_file) as f:
+        index = json.load(f)
 
-    saved_files = list(models_dir.glob("*.pth"))
-    assert len(saved_files) >= 4  # full + weights for each
-    assert (models_dir / "model_metadata.json").exists()
+    assert isinstance(index, list)
+    assert len(index) == 1
 
-    with open(models_dir / "model_metadata.json") as f:
-        loaded = json.load(f)
-        assert loaded[0]["parameters"] == params
+    entry = index[0]
+    model_subdir = models_dir / entry["folder"]
+    assert model_subdir.exists() and model_subdir.is_dir()
+
+    # Check that metadata.json exists in the subdir
+    metadata_file = model_subdir / "metadata.json"
+    assert metadata_file.exists()
+
+    with open(metadata_file) as f:
+        metadata = json.load(f)
+
+    assert metadata["parameters"]["rows"] == 5
+    assert metadata["parameters"]["win_length"] == 5
+    assert metadata["parameters"]["shared_replay_buffer"] is False
+
+    # Check model files exist
+    pth_files = list(model_subdir.glob("*.pth"))
+    assert any("X" in f.name and "weights" in f.name for f in pth_files)
+    assert any("O" in f.name and "weights" in f.name for f in pth_files)
 
 # -------- update_exploration_rate_smoothly --------
 

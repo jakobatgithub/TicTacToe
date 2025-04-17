@@ -91,15 +91,16 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         if self.current_size < batch_size:
             raise ValueError("Not enough samples to draw batch.")
 
-        prios = self.priorities[:self.current_size] ** self.alpha
+        prios = self.priorities[:self.current_size].cpu() ** self.alpha
         if prios.sum() == 0:
             probs = torch.ones_like(prios) / self.current_size
         else:
             probs = prios / prios.sum()
 
-        indices = torch.multinomial(probs, batch_size, replacement=True)
-        weights = (self.current_size * probs[indices]) ** (-self.beta)
-        weights /= weights.max()
+        indices = torch.multinomial(probs, batch_size, replacement=True).to(self.device)
+        weights = (self.current_size * probs[indices.cpu()]) ** (-self.beta)
+        weights = weights / weights.max()
+        weights = weights.to(self.device)
 
         samples = (
             self.states[indices],
@@ -111,6 +112,31 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         self.last_sampled_indices = indices
         self.last_sampled_weights = weights
         return samples
+
+    # def sample(self, batch_size):
+    #     if self.current_size < batch_size:
+    #         raise ValueError("Not enough samples to draw batch.")
+
+    #     prios = self.priorities[:self.current_size] ** self.alpha
+    #     if prios.sum() == 0:
+    #         probs = torch.ones_like(prios) / self.current_size
+    #     else:
+    #         probs = prios / prios.sum()
+
+    #     indices = torch.multinomial(probs, batch_size, replacement=True)
+    #     weights = (self.current_size * probs[indices]) ** (-self.beta)
+    #     weights /= weights.max()
+
+    #     samples = (
+    #         self.states[indices],
+    #         self.actions[indices],
+    #         self.rewards[indices],
+    #         self.next_states[indices],
+    #         self.dones[indices],
+    #     )
+    #     self.last_sampled_indices = indices
+    #     self.last_sampled_weights = weights
+    #     return samples
 
     def update_priorities(self, indices: torch.Tensor, td_errors: torch.Tensor):
         self.priorities[indices] = td_errors.abs() + 1e-5

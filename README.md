@@ -47,6 +47,47 @@ A major focus of this project is to explore methods to reduce the state space of
 
 These techniques significantly reduce computational complexity and memory requirements, making the reinforcement learning process more efficient.
 
+## 🧩 State Shapes
+
+The implementation supports multiple state representations for the game board:
+
+- **Flat**: A 1D array representing the board as a single vector.
+- **2D Grid**: A 2D array representing the board as a grid.
+- **One-Hot Encoding**: A 3D array with separate channels for 'X', 'O', and empty cells.
+
+These state shapes allow flexibility in how the game state is processed by different neural network architectures.
+
+## 🌐 Periodic and Non-Periodic Boundary Conditions
+
+The game supports both periodic and non-periodic boundary conditions:
+
+- **Periodic**: The board wraps around, allowing moves on one edge to connect with the opposite edge.
+- **Non-Periodic**: Standard Tic Tac Toe rules without wrapping.
+
+Periodic boundary conditions introduce additional complexity and are useful for exploring generalizations of the game.
+
+## 🧠 Neural Network Architectures
+
+The project includes several neural network architectures for approximating the Q-function:
+
+1. **Fully Connected Network (FCN)**:
+   - Suitable for flat state representations.
+   - Uses dense layers to process the state.
+
+2. **Convolutional Neural Network (CNN)**:
+   - Processes 2D or one-hot encoded states.
+   - Captures spatial relationships on the board.
+
+3. **Fully Convolutional Network (FullyCNN)**:
+   - Designed for periodic boundary conditions.
+   - Uses convolutional layers with circular padding to respect periodicity.
+
+4. **Equivariant Neural Network**:
+   - Leverages board symmetries to tie weights and biases.
+   - Requires flat state representations and an odd-sized board.
+
+These architectures provide flexibility for experimenting with different configurations and learning strategies.
+
 ## 📂 File Overview
 
 Here is a list of all files in the `src` folder and their purposes:
@@ -70,6 +111,8 @@ While the original game is designed for a 3x3 grid, this implementation allows f
 - **Symmetry Handling**: Enable or disable symmetry-based state space reduction.
 - **Learning Parameters**: Configure learning rates, exploration rates, and reward structures.
 - **Neural Network Architecture**: Customize the architecture of the equivariant neural networks.
+- **State Shape**: Choose between flat, 2D grid, or one-hot encoded state representations.
+- **Boundary Conditions**: Enable periodic or non-periodic boundary conditions.
 
 These options provide flexibility for experimenting with different configurations and exploring the impact of various parameters on learning performance.
 
@@ -96,8 +139,9 @@ These options provide flexibility for experimenting with different configuration
    ```
 5. **Train models for players 'X' and 'O' by having two computer agents play against each other**:
    ```bash
-   python train_and_play/train_model.py
+   python train_and_play/train_dqn_sweep.py
    ```
+   You likely have to change some parameters in `train_dqn_sweep.py`.
 6. **Play 'X' against the trained model**:
    ```bash
    python train_and_play/play_X_against_model.py

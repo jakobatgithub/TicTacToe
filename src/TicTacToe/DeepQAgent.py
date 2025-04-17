@@ -180,7 +180,7 @@ class DeepQLearningAgent(Agent, EvaluationMixin):
         """
         network_type = params["network_type"]
         state_shape = params["state_shape"]
-        periodic = params["periodic"]
+        periodic = params.get("periodic", False)
 
         if network_type == "Equivariant":
             if state_shape != "flat":

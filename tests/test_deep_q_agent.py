@@ -222,7 +222,7 @@ class TestDeepQLearningAgent(unittest.TestCase):
         expected_targets = rewards + (~dones) * self.agent.gamma * expected_next_q_values
 
         # Compute loss using the mocked function
-        loss = self.agent.compute_loss(samples)
+        loss = self.agent.compute_standard_loss(samples)
 
         # Assert correct computations
         self.assertAlmostEqual(
@@ -287,7 +287,7 @@ class TestDeepQLearningAgent(unittest.TestCase):
         next_state = torch.tensor(self.agent.board_to_state(next_board)[0], dtype=torch.float32).unsqueeze(0)
 
         samples = (state, action, reward, next_state, done)
-        symmetrized_loss = self.agent.compute_symmetrized_loss(samples)
+        symmetrized_loss = self.agent.compute_loss(samples)
 
         transformed_board = [" ", " ", "X", " ", " ", " ", " ", " ", " "]
         transformed_action = torch.tensor([5], dtype=torch.int64)
@@ -306,7 +306,7 @@ class TestDeepQLearningAgent(unittest.TestCase):
             transformed_done,
         )
 
-        transformed_symmetrized_loss = self.agent.compute_symmetrized_loss(transformed_samples)
+        transformed_symmetrized_loss = self.agent.compute_loss(transformed_samples)
         self.assertAlmostEqual(symmetrized_loss.item(), transformed_symmetrized_loss.item(), places=5)
 
     def test_set_exploration_rate(self):

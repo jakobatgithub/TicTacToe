@@ -280,11 +280,11 @@ class DeepQLearningAgent(Agent, EvaluationMixin):
             lambda x: np.flipud(np.fliplr(np.transpose(x))),
         ]
         if params.get("symmetrized_loss", True):
-            self.compute_symmetrized_loss = self.create_symmetrized_loss(
-                self.compute_loss, self.transformations, self.rows
+            self.compute_loss = self.create_symmetrized_loss(
+                self.compute_standard_loss, self.transformations, self.rows
             )
         else:
-            self.compute_symmetrized_loss = self.compute_loss
+            self.compute_loss = self.compute_standard_loss
 
     def set_exploration_rate(self, epsilon: float) -> None:
         """
@@ -364,7 +364,7 @@ class DeepQLearningAgent(Agent, EvaluationMixin):
 
         return symmetrized_loss
 
-    def compute_loss(
+    def compute_standard_loss(
         self, samples: tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]
     ) -> torch.Tensor:
         """
@@ -429,7 +429,7 @@ class DeepQLearningAgent(Agent, EvaluationMixin):
         Train the Q-network using samples from the replay buffer.
         """
         samples = self.replay_buffer.sample(self.batch_size)
-        loss = self.compute_symmetrized_loss(samples)
+        loss = self.compute_loss(samples)
         self.optimizer.zero_grad()
         loss.backward()  # type: ignore
         self.optimizer.step()  # type: ignore

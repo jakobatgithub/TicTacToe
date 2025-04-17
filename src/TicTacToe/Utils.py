@@ -68,7 +68,7 @@ def save_model_artifacts(agent1: Agent, agent2: Agent, params: dict):
         params (dict): Parameter configuration.
     """
     # Prepare folders
-    base_folder = params["save_models"].resolve()
+    base_folder = Path(params["save_models"]).resolve()
     base_folder.mkdir(parents=True, exist_ok=True)
 
     # Create unique model folder

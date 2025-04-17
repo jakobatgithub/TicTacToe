@@ -180,6 +180,7 @@ class DeepQLearningAgent(Agent, EvaluationMixin):
         """
         network_type = params["network_type"]
         state_shape = params["state_shape"]
+        periodic = params["periodic"]
 
         if network_type == "Equivariant":
             if state_shape != "flat":
@@ -205,8 +206,9 @@ class DeepQLearningAgent(Agent, EvaluationMixin):
 
         elif network_type == "FullyCNN":
             input_dim = 3 if state_shape == "one-hot" else 1
-            self.q_network = FullyConvQNetwork(input_dim=input_dim).to(self.device)
-            self.target_network = FullyConvQNetwork(input_dim=input_dim).to(self.device)
+            padding_mode = "circular" if periodic else "zeros"
+            self.q_network = FullyConvQNetwork(input_dim=input_dim, padding_mode=padding_mode).to(self.device)
+            self.target_network = FullyConvQNetwork(input_dim=input_dim, padding_mode=padding_mode).to(self.device)
 
         else:
             raise ValueError(f"Unsupported network type: {network_type}")

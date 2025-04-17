@@ -10,7 +10,7 @@ import wandb
 from TicTacToe.Agent import Agent
 from TicTacToe.QNetworks import QNetwork, CNNQNetwork, FullyConvQNetwork, EquivariantNN
 from TicTacToe.EvaluationMixin import EvaluationMixin
-from TicTacToe.ReplayBuffers import ReplayBuffer
+from TicTacToe.ReplayBuffers import ReplayBuffer, PrioritizedReplayBuffer
 
 if TYPE_CHECKING:
     from TicTacToe.TicTacToe import TwoPlayerBoardGame  # Import only for type hinting
@@ -250,7 +250,16 @@ class DeepQLearningAgent(Agent, EvaluationMixin):
             shape = (3, self.rows, self.rows)
         else:
             raise ValueError(f"Unsupported state shape: {state_shape}")
-        self.replay_buffer = ReplayBuffer(self.replay_buffer_length, shape, device=params["device"])
+
+        buffer_type = params.get("replay_buffer_type", "uniform")
+        if buffer_type == "prioritized":
+            self.replay_buffer = PrioritizedReplayBuffer(
+                self.replay_buffer_length, shape, device=params["device"],
+                alpha=params.get("priority_alpha", 0.6),
+                beta=params.get("priority_beta", 0.4),
+            )
+        else:
+            self.replay_buffer = ReplayBuffer(self.replay_buffer_length, shape, device=params["device"])
 
     def _override_with_shared_replay_buffer(self, params: dict[str, Any]) -> None:
         """
@@ -283,6 +292,8 @@ class DeepQLearningAgent(Agent, EvaluationMixin):
             self.compute_loss = self.create_symmetrized_loss(
                 self.compute_standard_loss, self.transformations, self.rows
             )
+        elif params.get("replay_buffer_type", "uniform") == "prioritized":
+            self.compute_loss = self.compute_prioritized_loss
         else:
             self.compute_loss = self.compute_standard_loss
 
@@ -382,6 +393,31 @@ class DeepQLearningAgent(Agent, EvaluationMixin):
         next_q_values = self.target_network(next_states).max(1, keepdim=True)[0].squeeze(1)
         targets = rewards + (~dones) * self.gamma * next_q_values
         return nn.MSELoss()(q_values, targets) / self.batch_size
+    
+    def _compute_td_errors(self, samples):
+        states, actions, rewards, next_states, dones = samples
+        q_values = self.q_network(states).gather(1, actions.unsqueeze(1)).squeeze(1)
+        next_q_values = self.target_network(next_states).max(1)[0]
+        targets = rewards + (~dones) * self.gamma * next_q_values
+        return targets - q_values
+    
+    def compute_prioritized_loss(
+        self, samples: tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]
+    ) -> torch.Tensor:
+        """
+        Compute the loss for a batch of samples using prioritized experience replay.
+
+        Args:
+            samples: A tuple of tensors (states, actions, rewards, next_states, dones).
+
+        Returns:
+            The computed loss.
+        """
+        weights = self.replay_buffer.last_sampled_weights
+        td_errors = self._compute_td_errors(samples)
+        loss = (weights * td_errors.pow(2)).mean()
+        self.replay_buffer.update_priorities(self.replay_buffer.last_sampled_indices, td_errors.detach())
+        return loss
 
     def get_action(self, state_transition: StateTransition, game: "TwoPlayerBoardGame") -> Action:
         """
@@ -425,14 +461,12 @@ class DeepQLearningAgent(Agent, EvaluationMixin):
         self.replay_buffer.add(state.squeeze(0), action, reward, next_state.squeeze(0), done)
 
     def _train_network(self) -> None:
-        """
-        Train the Q-network using samples from the replay buffer.
-        """
         samples = self.replay_buffer.sample(self.batch_size)
         loss = self.compute_loss(samples)
+
         self.optimizer.zero_grad()
-        loss.backward()  # type: ignore
-        self.optimizer.step()  # type: ignore
+        loss.backward()
+        self.optimizer.step()
         self.record_eval_data("loss", loss.item())
         self.maybe_log_metrics()
         self.train_step_count += 1
@@ -539,7 +573,7 @@ class DeepQLearningAgent(Agent, EvaluationMixin):
         # print(f"state_tensor.shape = {state_tensor.shape}")
         with torch.no_grad():
             q_values = q_network(state_tensor).squeeze()
-            max_q = torch.max(q_values)
+            max_q, _ = torch.max(q_values, dim=0)
 
             self.record_eval_data("action_value", max_q.item())
 
@@ -634,7 +668,7 @@ class DeepQPlayingAgent(Agent):
         state_tensor = torch.FloatTensor(state).to(self.device)
         with torch.no_grad():
             q_values = q_network(state_tensor).squeeze()
-            max_q = torch.max(q_values)
+            max_q, _ = torch.max(q_values, dim=0)
             max_q_indices = torch.nonzero(q_values == max_q, as_tuple=False)
             if max_q_indices.size(0) > 1:
                 action = int(max_q_indices[torch.randint(len(max_q_indices), (1,))].item())

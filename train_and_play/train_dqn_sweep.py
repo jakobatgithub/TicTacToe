@@ -30,22 +30,22 @@ from TicTacToe.Utils import get_param_sweep_combinations, load_pretrained_models
 
 # --- Training Parameters ---
 params: dict[str, Any] = {
-    "nr_of_episodes": 3500,  # Number of training games
+    "nr_of_episodes": 200000,  # Number of training games
     "rows": 3,  # Board size (rows x rows)
     "learning_rate": 0.0001,  # Optimizer learning rate
     "gamma": 0.95,  # Discount factor for future rewards
     "switching": True,  # Whether players switch turns
     "win_length": 3,  # Number of in-a-row needed to win
     "epsilon_start": 0.925,  # Initial exploration rate
-    "epsilon_min": 0.025,  # Minimum exploration rate
+    "epsilon_min": 0.05,  # Minimum exploration rate
     "set_exploration_rate_externally": True,  # Adaptive epsilon enabled
     "epsilon_update_threshold": 0.025,  # Epsilon adjustment sensitivity
     "epsilon_decay": 0.95,  # Decay rate for epsilon
     "win_rate_deque_length": 5,  # Length of win rate deques
     "batch_size": 256,  # Batch size for training updates
     "target_update_frequency": 25,  # Frequency to sync target network
-    "evaluation_frequency": 50,  # Episodes between evaluations
-    "evaluation_batch_size": 200,  # Games to evaluate per round
+    "evaluation_frequency": 1000,  # Episodes between evaluations
+    "evaluation_batch_size": 2000,  # Games to evaluate per round
     "device": "mps",  # Device: "cuda", "mps", or "cpu"
     "replay_buffer_length": 10000,  # Max length of replay buffer
     "wandb": False,  # Enable Weights & Biases logging
@@ -54,9 +54,9 @@ params: dict[str, Any] = {
     "shared_replay_buffer": False,  # Unused flag (placeholder)
     "network_type": "FullyCNN",  # Network architecture
     "periodic": True,  # Periodic boundary conditions
-    "save_models": True,  # Save weights after training
+    "save_models": "/Users/jakob/TicTacToe/models/",  # Save weights after training
     "symmetrized_loss": False,  # Use symmetrized loss
-    "state_shape": "flat",  # state representation: 'flat' with shape (batch_size, rows * rows), 
+    "state_shape": "2D",  # state representation: 'flat' with shape (batch_size, rows * rows), 
                             # '2D' with shape (batch_size, 1, rows, rows), 
                             # 'one-hot' with shape (batch_size, 3, rows, rows)
 }
@@ -64,7 +64,7 @@ params: dict[str, Any] = {
 # params["shared_replay_buffer"] = ReplayBuffer(params["replay_buffer_length"], (params["rows"]**2, ), device=params["device"])
 
 # --- Sweep Setup ---
-param_sweep = {"state_shape": ["one-hot", "flat", "2D"], "symmetrized_loss": [False, True]}
+param_sweep = {"state_shape": ["2D"], "symmetrized_loss": [False]}
 sweep_combinations, param_keys = get_param_sweep_combinations(param_sweep)
 model_metadata = []
 
@@ -101,7 +101,7 @@ for sweep_idx, combination in enumerate(sweep_combinations):
         train_and_evaluate(game, agent1, agent2, params, wandb_logging=paramsX["wandb"] or paramsO["wandb"])
 
     finally:
-        if params["save_models"]:
-            save_model_artifacts(agent1, agent2, params, model_metadata)
+        if params.get("save_models"):
+            save_model_artifacts(agent1, agent2, params)
 
     wandb.finish()

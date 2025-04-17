@@ -1,7 +1,9 @@
 import json
 import os
 import torch
+import uuid
 
+from datetime import datetime
 from collections import deque
 from itertools import product
 from pathlib import Path
@@ -55,53 +57,86 @@ def load_pretrained_models(paramsX: dict, paramsO: dict) -> tuple[dict, dict]:
     return paramsX, paramsO
 
 
-def save_model_artifacts(agent1: Agent, agent2: Agent, params: dict, model_metadata):
+def save_model_artifacts(agent1: Agent, agent2: Agent, params: dict):
     """
-    Save full models and weight components for both agents, and append metadata.
+    Save full models and weight components for both agents, store metadata in a dedicated folder,
+    and append summary to a central index.
 
     Args:
         agent1 (Agent): Agent playing as 'X'.
         agent2 (Agent): Agent playing as 'O'.
         params (dict): Parameter configuration.
-        model_metadata (list): List to append model metadata entries to.
     """
-    script_dir = Path(__file__).resolve().parent
-    all_models_folder = (script_dir / '../models/all_models').resolve()
-    all_models_folder.mkdir(parents=True, exist_ok=True)
-    metadata_file = all_models_folder / "model_metadata.json"
+    # Prepare folders
+    base_folder = params["save_models"].resolve()
+    base_folder.mkdir(parents=True, exist_ok=True)
+
+    # Create unique model folder
+    unique_id = datetime.now().strftime("%Y%m%d_%H%M%S") + "_" + uuid.uuid4().hex[:8]
+    model_folder = base_folder / unique_id
+    model_folder.mkdir()
 
     def save_agent(agent, player):
-        model_name = f"q_network_{params['rows']}x{params['rows']}x{params['win_length']}_{player}"
-        torch.save(agent.q_network, all_models_folder / f"{model_name}.pth")  # full model
-        torch.save(agent.q_network.state_dict(), all_models_folder / f"{model_name}_weights.pth")  # state dict
+        base_name = f"{params['rows']}x{params['rows']}x{params['win_length']}_{player}"
+        full_model_file = f"q_network_{base_name}.pth"
+        weights_file = f"q_network_{base_name}_weights.pth"
+
+        torch.save(agent.q_network, model_folder / full_model_file)
+        torch.save(agent.q_network.state_dict(), model_folder / weights_file)
 
         base, head = None, None
         if isinstance(agent.q_network, FullyConvQNetwork):
-            base = f"{model_name}_periodic_base_weights.pth"
-            head = f"{model_name}_periodic_head_weights.pth"
-            torch.save(agent.q_network.base.state_dict(), all_models_folder / base)
-            torch.save(agent.q_network.head.state_dict(), all_models_folder / head)
-        return model_name, f"{model_name}_weights.pth", base, head
+            base = f"q_network_{base_name}_periodic_base_weights.pth"
+            head = f"q_network_{base_name}_periodic_head_weights.pth"
+            torch.save(agent.q_network.base.state_dict(), model_folder / base)
+            torch.save(agent.q_network.head.state_dict(), model_folder / head)
 
-    model_X, weights_X, base_X, head_X = save_agent(agent1, "X")
-    model_O, weights_O, base_O, head_O = save_agent(agent2, "O")
-    if params["shared_replay_buffer"]:
-        params["shared_replay_buffer"] = True
+        return full_model_file, weights_file, base, head
 
-    model_metadata.append({
-        "full_model_X": f"{model_X}.pth",
-        "full_model_O": f"{model_O}.pth",
+    full_X, weights_X, base_X, head_X = save_agent(agent1, "X")
+    full_O, weights_O, base_O, head_O = save_agent(agent2, "O")
+
+    metadata = {
+        "id": unique_id,
+        "timestamp": datetime.now().isoformat(),
+        "model_folder": unique_id,
+        "full_model_X": full_X,
+        "full_model_O": full_O,
         "weights_X": weights_X,
         "weights_O": weights_O,
         "base_X": base_X,
         "head_X": head_X,
         "base_O": base_O,
         "head_O": head_O,
-        "parameters": params.copy(),
+        "parameters": {
+            k: str(v) if isinstance(v, Path) else v
+            for k, v in params.items()
+            }
+        }
+
+    # Save per-model metadata
+    with open(model_folder / "metadata.json", "w") as f:
+        json.dump(metadata, f, indent=4)
+
+    # Update central index
+    index_file = base_folder / "model_index.json"
+    if index_file.exists():
+        with open(index_file, "r") as f:
+            index_data = json.load(f)
+    else:
+        index_data = []
+
+    # Append a summary entry (you can include more fields if needed)
+    index_data.append({
+        "id": unique_id,
+        "timestamp": metadata["timestamp"],
+        "folder": unique_id,
+        "rows": params["rows"],
+        "win_length": params["win_length"],
     })
 
-    with open(metadata_file, "w") as f:
-        json.dump(model_metadata, f, indent=4)
+    with open(index_file, "w") as f:
+        json.dump(index_data, f, indent=4)
 
 def update_exploration_rate_smoothly(agent1: DeepQLearningAgent, agent2: DeepQLearningAgent, params: dict, eval_data: dict, exploration_rate: float, win_rate_deques: tuple[deque, deque]):
     """

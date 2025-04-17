@@ -51,6 +51,22 @@ class TestDeepQLearningAgent(unittest.TestCase):
         self.assertEqual(self.agent.epsilon, self.params["epsilon_start"], "Epsilon should match the starting value.")
         self.assertEqual(self.agent.gamma, self.params["gamma"], "Gamma should be correctly initialized.")
 
+    def test_initialization_parameters(self):
+        """Test initialization of DeepQLearningAgent parameters."""
+        self.assertEqual(self.agent.gamma, self.params["gamma"], "Gamma should be initialized correctly.")
+        self.assertEqual(self.agent.epsilon, self.params["epsilon_start"], "Epsilon should match the starting value.")
+        self.assertEqual(self.agent.nr_of_episodes, self.params["nr_of_episodes"], "Number of episodes should match.")
+        self.assertEqual(self.agent.batch_size, self.params["batch_size"], "Batch size should match.")
+        self.assertEqual(self.agent.target_update_frequency, self.params["target_update_frequency"], "Target update frequency should match.")
+        self.assertEqual(self.agent.learning_rate, self.params["learning_rate"], "Learning rate should match.")
+        self.assertEqual(self.agent.replay_buffer_length, self.params["replay_buffer_length"], "Replay buffer length should match.")
+        self.assertEqual(self.agent.rows, self.params["rows"], "Number of rows should match.")
+        self.assertEqual(self.agent.device.type, self.params["device"], "Device should match.")
+        self.assertIsInstance(self.agent.q_network, nn.Module, "Q-network should be an instance of nn.Module.")
+        self.assertIsInstance(self.agent.target_network, nn.Module, "Target network should be an instance of nn.Module.")
+        self.assertIsInstance(self.agent.replay_buffer, ReplayBuffer, "Replay buffer should be an instance of ReplayBuffer.")
+        self.assertIsNotNone(self.agent.state_converter, "State converter should be initialized.")
+
     def test_action_selection_exploration(self) -> None:
         """Test action selection in exploration mode (random)."""
         self.agent.epsilon = 1.0  # Force exploration
@@ -304,6 +320,77 @@ class TestDeepQLearningAgent(unittest.TestCase):
         self.assertGreaterEqual(self.agent.epsilon, self.agent.params["epsilon_min"], "Epsilon should not go below minimum.")
         self.assertLessEqual(self.agent.epsilon, self.agent.params["epsilon_start"], "Epsilon should not exceed start value.")
 
+    def test_flat_state_converter_roundtrip(self):
+        board = ["X", "O", " ", "X", " ", "O", " ", "X", "O"]
+        state = self.agent.state_converter.board_to_state(board)
+        restored = self.agent.state_converter.state_to_board(state)
+        self.assertEqual(restored, board)
+
+    def test_init_cnn_onehot(self):
+        params = self.params.copy()
+        params["network_type"] = "CNN"
+        params["state_shape"] = "one-hot"
+        agent = DeepQLearningAgent(params)
+        self.assertEqual(agent.state_converter.__class__.__name__, "OneHotStateConverter")
+
+    def test_init_fullycnn_flat(self):
+        params = self.params.copy()
+        params["network_type"] = "FullyCNN"
+        params["state_shape"] = "flat"
+        agent = DeepQLearningAgent(params)
+        self.assertEqual(agent.state_converter.__class__.__name__, "FlatStateConverter")
+
+    def test_init_equivariant_invalid_shape(self):
+        params = self.params.copy()
+        params["network_type"] = "Equivariant"
+        params["state_shape"] = "2D"
+        with self.assertRaises(ValueError):
+            DeepQLearningAgent(params)
+
+    def test_init_equivariant_invalid_rows(self):
+        params = self.params.copy()
+        params["network_type"] = "Equivariant"
+        params["state_shape"] = "flat"
+        params["rows"] = 4  # Even number
+        with self.assertRaises(ValueError):
+            DeepQLearningAgent(params)
+
+    def test_init_invalid_network_type(self):
+        params = self.params.copy()
+        params["network_type"] = "UnsupportedNet"
+        with self.assertRaises(ValueError):
+            DeepQLearningAgent(params)
+
+    def test_init_invalid_state_shape(self):
+        params = self.params.copy()
+        params["state_shape"] = "weird"
+        with self.assertRaises(ValueError):
+            DeepQLearningAgent(params)
+
+class TestStateConverters(unittest.TestCase):
+    def test_flat_state_converter_roundtrip(self):
+        from TicTacToe.DeepQAgent import FlatStateConverter
+        board = ["X", "O", " ", "X", " ", "O", " ", "X", "O"]
+        converter = FlatStateConverter()
+        state = converter.board_to_state(board)
+        restored = converter.state_to_board(state)
+        self.assertEqual(restored, board)
+
+    def test_grid_state_converter_roundtrip(self):
+        from TicTacToe.DeepQAgent import GridStateConverter
+        board = ["X", "O", " ", "X", " ", "O", " ", "X", "O"]
+        converter = GridStateConverter(shape=(3, 3))
+        state = converter.board_to_state(board)
+        restored = converter.state_to_board(state)
+        self.assertEqual(restored, board)
+
+    def test_onehot_state_converter_roundtrip(self):
+        from TicTacToe.DeepQAgent import OneHotStateConverter
+        board = ["X", "O", " ", "X", " ", "O", " ", "X", "O"]
+        converter = OneHotStateConverter(rows=3)
+        state = converter.board_to_state(board)
+        restored = converter.state_to_board(state)
+        self.assertEqual(restored, board)
 
 # Mock classes for dependencies
 class MockQNetwork(torch.nn.Module):

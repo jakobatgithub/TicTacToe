@@ -222,11 +222,11 @@ class TestDeepQLearningAgent(unittest.TestCase):
         expected_targets = rewards + (~dones) * self.agent.gamma * expected_next_q_values
 
         # Compute loss using the mocked function
-        loss = self.agent.compute_loss(samples)
+        loss = self.agent.compute_standard_loss(samples)
 
         # Assert correct computations
         self.assertAlmostEqual(
-            loss.item(), nn.MSELoss()(expected_q_values, expected_targets).item() / self.agent.batch_size, places=5
+            loss.item(), nn.MSELoss()(expected_q_values, expected_targets).item(), places=5
         )
 
     @patch("torch.randint", wraps=torch.randint)
@@ -287,7 +287,7 @@ class TestDeepQLearningAgent(unittest.TestCase):
         next_state = torch.tensor(self.agent.board_to_state(next_board)[0], dtype=torch.float32).unsqueeze(0)
 
         samples = (state, action, reward, next_state, done)
-        symmetrized_loss = self.agent.compute_symmetrized_loss(samples)
+        symmetrized_loss = self.agent.compute_loss(samples)
 
         transformed_board = [" ", " ", "X", " ", " ", " ", " ", " ", " "]
         transformed_action = torch.tensor([5], dtype=torch.int64)
@@ -306,7 +306,7 @@ class TestDeepQLearningAgent(unittest.TestCase):
             transformed_done,
         )
 
-        transformed_symmetrized_loss = self.agent.compute_symmetrized_loss(transformed_samples)
+        transformed_symmetrized_loss = self.agent.compute_loss(transformed_samples)
         self.assertAlmostEqual(symmetrized_loss.item(), transformed_symmetrized_loss.item(), places=5)
 
     def test_set_exploration_rate(self):
@@ -392,7 +392,42 @@ class TestDeepQLearningAgent(unittest.TestCase):
         mock_net = MagicMock()
         mock_net.return_value = torch.tensor([[0.1, 0.5, 0.5, -0.1, 0, 0, 0, 0, 0]])
         action = self.agent.get_best_action(board, mock_net)
-        self.assertIn(action, [1, 2])        
+        self.assertIn(action, [1, 2])      
+
+    def test_prioritized_and_standard_loss_shapes_and_values(self):
+        batch_size = self.agent.batch_size
+        state_dim = 9  # Assuming flat state
+
+        # Set dummy linear networks for q_network and target_network
+        self.agent.q_network = nn.Linear(state_dim, 9)
+        self.agent.target_network = nn.Linear(state_dim, 9)
+
+        # Generate dummy sample data
+        states = torch.randn(batch_size, state_dim)
+        actions = torch.randint(0, 9, (batch_size,))
+        rewards = torch.randn(batch_size)
+        next_states = torch.randn(batch_size, state_dim)
+        dones = torch.randint(0, 2, (batch_size,), dtype=torch.bool)
+
+        samples = (states, actions, rewards, next_states, dones)
+
+        # Set dummy weights and indices in replay buffer
+        self.agent.replay_buffer.last_sampled_weights = torch.ones(batch_size)
+        self.agent.replay_buffer.last_sampled_indices = list(range(batch_size))
+        self.agent.replay_buffer.update_priorities = MagicMock()
+
+        # Compute losses
+        prioritized_loss = self.agent.compute_prioritized_loss(samples)
+        standard_loss = self.agent.compute_standard_loss(samples)
+
+        self.assertEqual(prioritized_loss.shape, torch.Size([]), "Prioritized loss should be a scalar.")
+        self.assertEqual(standard_loss.shape, torch.Size([]), "Standard loss should be a scalar.")
+        self.assertIsInstance(prioritized_loss.item(), float, "Prioritized loss should be a float.")
+        self.assertIsInstance(standard_loss.item(), float, "Standard loss should be a float.")
+
+        # Print for manual inspection if needed
+        print(f"Prioritized Loss: {prioritized_loss.item():.6f}")
+        print(f"Standard Loss: {standard_loss.item():.6f}")
 
 
 class TestStateConverters(unittest.TestCase):

@@ -1,5 +1,5 @@
 import random
-from typing import TYPE_CHECKING, Any, Callable, Protocol, List
+from typing import TYPE_CHECKING, Any, Callable, Protocol
 
 import numpy as np
 import torch
@@ -22,7 +22,6 @@ from TicTacToe.game_types import (
     History,
     Player,
     Reward,
-    State,
     StateTransition,
     StateTransitions2,
 )
@@ -149,6 +148,8 @@ class DeepQLearningAgent(Agent, EvaluationMixin):
 
         # Instantiate the model architecture
         if params["network_type"] == "Equivariant":
+            if params["state_shape"] != "flat":
+                raise ValueError("Equivariant network only works for flat state representation, i.e., 'state_shape' must be 'flat'.")
             if self.rows % 2 != 1:
                 raise ValueError("Equivariant network only works for odd number of rows")
             ms0 = (self.rows - 1) / 2
@@ -156,10 +157,17 @@ class DeepQLearningAgent(Agent, EvaluationMixin):
             self.q_network = EquivariantNN(self.groupMatrices, ms=ms).to(self.device)
             self.target_network = EquivariantNN(self.groupMatrices, ms=ms).to(self.device)
         elif params["network_type"] == "CNN":
-            (state_size, action_size) = (1, self.rows**2)
-            self.q_network = CNNQNetwork(input_dim=state_size, rows=self.rows, output_dim=action_size).to(self.device)
-            self.target_network = CNNQNetwork(input_dim=state_size, rows=self.rows, output_dim=action_size).to(self.device)
+            if params["state_shape"] == "one-hot":
+                (state_size, action_size) = (3, self.rows**2)
+                self.q_network = CNNQNetwork(input_dim=state_size, rows=self.rows, output_dim=action_size).to(self.device)
+                self.target_network = CNNQNetwork(input_dim=state_size, rows=self.rows, output_dim=action_size).to(self.device)
+            else:
+                (state_size, action_size) = (1, self.rows**2)
+                self.q_network = CNNQNetwork(input_dim=state_size, rows=self.rows, output_dim=action_size).to(self.device)
+                self.target_network = CNNQNetwork(input_dim=state_size, rows=self.rows, output_dim=action_size).to(self.device)
         elif params["network_type"] == "FCN":
+            if params["state_shape"] != "flat":
+                raise ValueError("Fully connected network only works for flat state representation, i.e., 'state_shape' must be 'flat'.")
             (state_size, action_size) = (self.rows**2, self.rows**2)
             self.q_network = QNetwork(state_size, output_dim=action_size).to(self.device)
             self.target_network = QNetwork(state_size, output_dim=action_size).to(self.device)

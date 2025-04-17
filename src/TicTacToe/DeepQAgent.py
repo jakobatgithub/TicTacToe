@@ -269,8 +269,8 @@ class DeepQLearningAgent(Agent, EvaluationMixin):
             A symmetrized loss function.
         """
         permutations, inverse_permutations = self.generate_permutations(transformations, rows)
-        permutations = [torch.tensor(p, device=self.device) for p in permutations]
-        inverse_permutations = [torch.tensor(ip, device=self.device) for ip in inverse_permutations]
+        permutations = [p.clone().detach().to(self.device) for p in permutations]
+        inverse_permutations = [ip.clone().detach().to(self.device) for ip in inverse_permutations]
 
         def apply_permutation(x: torch.Tensor, perm: torch.Tensor) -> torch.Tensor:
             B = x.shape[0]

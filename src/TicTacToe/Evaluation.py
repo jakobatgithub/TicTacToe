@@ -1,9 +1,10 @@
+import wandb
+
 from typing import Any, Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
 
-import wandb
 from TicTacToe.Agent import RandomAgent
 from TicTacToe.DeepQAgent import DeepQLearningAgent, DeepQPlayingAgent
 from TicTacToe.game_types import Player
@@ -299,14 +300,14 @@ def evaluate_performance(
             outcomes[outcome] += 1
 
     mode = "X_against_random:"
+    data = {
+            f"{mode} X wins": outcomes["X"] / evaluation_batch_size,
+            f"{mode} O wins": outcomes["O"] / evaluation_batch_size,
+            f"{mode} draws": outcomes["D"] / evaluation_batch_size,
+        }
+    all_data = all_data | data
     if wandb_logging:
-        data = {
-                f"{mode} X wins": outcomes["X"] / evaluation_batch_size,
-                f"{mode} O wins": outcomes["O"] / evaluation_batch_size,
-                f"{mode} draws": outcomes["D"] / evaluation_batch_size,
-            }
         wandb.log(data)
-        all_data = all_data | data
 
     q_network2 = learning_agent2.q_network
     playing_agent2 = DeepQPlayingAgent(q_network2, player="O", switching=False, device=device, state_shape=state_shape)
@@ -321,14 +322,14 @@ def evaluate_performance(
             outcomes[outcome] += 1
 
     mode = "O_against_random:"
+    data = {
+            f"{mode} X wins": outcomes["X"] / evaluation_batch_size,
+            f"{mode} O wins": outcomes["O"] / evaluation_batch_size,
+            f"{mode} draws": outcomes["D"] / evaluation_batch_size,
+        }
+    all_data = all_data | data
     if wandb_logging:
-        data = {
-                f"{mode} X wins": outcomes["X"] / evaluation_batch_size,
-                f"{mode} O wins": outcomes["O"] / evaluation_batch_size,
-                f"{mode} draws": outcomes["D"] / evaluation_batch_size,
-            }
         wandb.log(data)
-        all_data = all_data | data
 
     game = TicTacToe(playing_agent1, playing_agent2, display=None, rows=rows, cols=rows, win_length=win_length)
     evaluation_batch_size = evaluation_batch_size
@@ -339,13 +340,13 @@ def evaluate_performance(
             outcomes[outcome] += 1
 
     mode = "X_against_O:"
+    data = {
+            f"{mode} X wins": outcomes["X"] / evaluation_batch_size,
+            f"{mode} O wins": outcomes["O"] / evaluation_batch_size,
+            f"{mode} draws": outcomes["D"] / evaluation_batch_size,
+        }
+    all_data = all_data | data
     if wandb_logging:
-        data = {
-                f"{mode} X wins": outcomes["X"] / evaluation_batch_size,
-                f"{mode} O wins": outcomes["O"] / evaluation_batch_size,
-                f"{mode} draws": outcomes["D"] / evaluation_batch_size,
-            }
         wandb.log(data)
-        all_data = all_data | data
 
     return all_data

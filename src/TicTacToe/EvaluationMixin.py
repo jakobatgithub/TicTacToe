@@ -14,8 +14,8 @@ class EvaluationMixin:
         episode_count (int): Counter for episodes.
         evaluation_data (dict): Dictionary for storing evaluation metrics.
     """
-    def __init__(self, wandb_enabled: bool, wandb_logging_frequency: int):
-        self.wandb = wandb_enabled
+    def __init__(self, wandb_logging: bool, wandb_logging_frequency: int):
+        self.wandb_logging = wandb_logging
         self.wandb_logging_frequency = wandb_logging_frequency
         self.train_step_count = 0
         self.episode_count = 0
@@ -40,7 +40,7 @@ class EvaluationMixin:
         if self.train_step_count % self.wandb_logging_frequency != 0:
             return
 
-        if self.wandb:
+        if self.wandb_logging:
             wandb.log({
                 "loss": self.safe_mean(self.evaluation_data["loss"]),
                 "action_value": self.safe_mean(self.evaluation_data["action_value"]),

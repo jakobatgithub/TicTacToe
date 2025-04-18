@@ -30,7 +30,7 @@ class TestDeepQLearningAgent(unittest.TestCase):
             "wandb_logging_frequency": 5,
             "rows": 3,
             "device": "cpu",
-            "wandb": False,
+            "wandb_logging": False,
             "load_network": False,
             "shared_replay_buffer": False,
             "network_type": "FCN",

@@ -121,7 +121,7 @@ class DeepQLearningAgent(Agent, EvaluationMixin):
         self._override_with_shared_replay_buffer(params)
         self._init_symmetrized_loss(params)
         EvaluationMixin.__init__(
-            self, wandb_enabled=params["wandb"], wandb_logging_frequency=params["wandb_logging_frequency"]
+            self, wandb_enabled=params["wandb_logging"], wandb_logging_frequency=params["wandb_logging_frequency"]
         )
 
     def _init_config(self, params: dict[str, Any]) -> None:
@@ -140,7 +140,7 @@ class DeepQLearningAgent(Agent, EvaluationMixin):
         self.learning_rate = params["learning_rate"]
         self.replay_buffer_length = params["replay_buffer_length"]
         self.wandb_logging_frequency = params["wandb_logging_frequency"]
-        self.wandb = params["wandb"]
+        self.wandb = params["wandb_logging"]
         self.episode_count = 0
         self.games_moves_count = 0
         self.train_step_count = 0

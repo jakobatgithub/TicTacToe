@@ -11,10 +11,20 @@ from TicTacToe.TicTacToe import TicTacToe
 class TestTicTacToe(unittest.TestCase):
     def setUp(self) -> None:
         """Set up the common test environment."""
+        self.params = {
+            "rows": 3,
+            "win_length": 3,
+            "periodic": False,
+            "rewards": {
+                "W": 1.0,  # Reward for a win
+                "L": -1.0,  # Reward for a loss
+                "D": 0.0,  # Reward for a draw
+            },
+        }
         self.agent1 = RandomAgent(player="X")
         self.agent2 = RandomAgent(player="O")
         self.display = MagicMock(spec=ScreenDisplay)
-        self.game = TicTacToe(self.agent1, self.agent2)
+        self.game = TicTacToe(self.agent1, self.agent2, params=self.params)
 
     def test_initialize_board(self) -> None:
         """Test board initialization."""
@@ -30,7 +40,17 @@ class TestTicTacToe(unittest.TestCase):
 
     def test_win_conditions(self) -> None:
         """Test win condition generation."""
-        game = TicTacToe(self.agent1, self.agent2, rows=3, cols=3, win_length=3)
+        test_params = {
+            "rows": 3,
+            "win_length": 3,
+            "periodic": False,
+            "rewards": {
+                "W": 1.0,  # Reward for a win
+                "L": -1.0,  # Reward for a loss
+                "D": 0.5,  # Reward for a draw
+            },
+        }
+        game = TicTacToe(self.agent1, self.agent2, params=test_params)
         self.assertIn([0, 1, 2], game.win_conditions)  # Horizontal win
         self.assertIn([0, 3, 6], game.win_conditions)  # Vertical win
         self.assertIn([0, 4, 8], game.win_conditions)  # Diagonal win
@@ -110,16 +130,21 @@ class TestTicTacToe(unittest.TestCase):
         agent1 = MouseAgent(player="X")
         display = ConsoleDisplay(rows=3, cols=3, waiting_time=0.25)
         with self.assertRaises(ValueError):
-            TicTacToe(agent1, self.agent2, display=display)
-
-    def test_non_quadratic_board(self) -> None:
-        """Test non-quadratic board raises an error."""
-        with self.assertRaises(ValueError):
-            TicTacToe(self.agent1, self.agent2, rows=3, cols=4)
+            TicTacToe(agent1, self.agent2, display=display, params=self.params)
 
     def test_generate_periodic_win_conditions(self) -> None:
         """Test periodic win condition generation."""
-        game = TicTacToe(self.agent1, self.agent2, rows=3, cols=3, win_length=3)
+        test_params = {
+            "rows": 3,
+            "win_length": 3,
+            "periodic": False,
+            "rewards": {
+                "W": 1.0,  # Reward for a win
+                "L": -1.0,  # Reward for a loss
+                "D": 0.5,  # Reward for a draw
+            },
+        }
+        game = TicTacToe(self.agent1, self.agent2, params=test_params)
         periodic_conditions = game._generate_periodic_win_conditions()
 
         # Horizontal periodic win condition
@@ -144,8 +169,18 @@ class TestTicTacToe(unittest.TestCase):
 
     def test_4_in_row_on_5x5_board(self) -> None:
         """Test if 4 in a row on a 5x5 board with win length 3 is a win."""
+        test_params = {
+            "rows": 5,
+            "win_length": 3,
+            "periodic": False,
+            "rewards": {
+                "W": 1.0,  # Reward for a win
+                "L": -1.0,  # Reward for a loss
+                "D": 0.5,  # Reward for a draw
+            },
+        }
         # Standard boundary conditions
-        game = TicTacToe(self.agent1, self.agent2, rows=5, cols=5, win_length=3)
+        game = TicTacToe(self.agent1, self.agent2,params=test_params)
         game.board = ["X", "X", "X", "X", " ",  # Row 0
                       " ", " ", " ", " ", " ",  # Row 1
                       " ", " ", " ", " ", " ",  # Row 2
@@ -154,7 +189,17 @@ class TestTicTacToe(unittest.TestCase):
         self.assertTrue(game.is_won("X"))
 
         # Periodic boundary conditions
-        game = TicTacToe(self.agent1, self.agent2, rows=5, cols=5, win_length=3, periodic=True)
+        test_params = {
+            "rows": 5,
+            "win_length": 3,
+            "periodic": True,
+            "rewards": {
+                "W": 1.0,  # Reward for a win
+                "L": -1.0,  # Reward for a loss
+                "D": 0.5,  # Reward for a draw
+            },
+        }
+        game = TicTacToe(self.agent1, self.agent2, params=test_params)
         game.board = ["X", "X", " ", "X", "X",  # Row 0
                       " ", " ", " ", " ", " ",  # Row 1
                       " ", " ", " ", " ", " ",  # Row 2

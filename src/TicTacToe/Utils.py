@@ -195,7 +195,7 @@ def update_exploration_rate_smoothly(agent1: DeepQLearningAgent, agent2: DeepQLe
 
     return exploration_rate
 
-def train_and_evaluate(game: TwoPlayerBoardGame, agent1: DeepQLearningAgent, agent2: DeepQLearningAgent, params: dict, wandb_logging: bool = True):
+def train_and_evaluate(game: TwoPlayerBoardGame, agent1: DeepQLearningAgent, agent2: DeepQLearningAgent, params: dict):
     """
     Train and evaluate two agents in a Tic Tac Toe game.
 
@@ -206,6 +206,8 @@ def train_and_evaluate(game: TwoPlayerBoardGame, agent1: DeepQLearningAgent, age
         params (dict): Parameter configuration.
         wandb_logging (bool): Whether to log to Weights & Biases.
     """
+
+    wandb_logging = params["wandb_logging"]
 
     outcomes = {"X": 0, "O": 0, "D": 0}
     X_win_rates, O_win_rates = deque(maxlen=params["win_rate_deque_length"]), deque(maxlen=params["win_rate_deque_length"])
@@ -220,14 +222,7 @@ def train_and_evaluate(game: TwoPlayerBoardGame, agent1: DeepQLearningAgent, age
             eval_data = evaluate_performance(
                 agent1,
                 agent2,
-                evaluation_batch_size=params["evaluation_batch_size"],
-                rows=params["rows"],
-                win_length=params["win_length"],
-                wandb_logging=wandb_logging,
-                device=params["device"],
-                periodic=params["periodic"],
-                state_shape=params["state_shape"],
-                rewards=params["rewards"],
+                params
             )
             if params["set_exploration_rate_externally"]:
                 exploration_rate = update_exploration_rate_smoothly(agent1, agent2, params, eval_data, exploration_rate, (X_win_rates, O_win_rates), wandb_logging=wandb_logging)

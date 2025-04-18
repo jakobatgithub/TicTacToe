@@ -93,7 +93,6 @@ class CNNQNetwork(nn.Module):
         else:
             raise ValueError(f"Unexpected input shape: {x.shape}")
 
-        x = x.view(-1, 1, self.rows, self.rows)
         x = self.conv_layers(x)
         x = self.fc_layers(x)
         return x.view(x.size(0), -1)  # shape: (batch_size, rows * cols)

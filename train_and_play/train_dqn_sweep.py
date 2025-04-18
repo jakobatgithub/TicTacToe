@@ -31,6 +31,7 @@ from TicTacToe.Utils import get_param_sweep_combinations, load_pretrained_models
 # --- Training Parameters ---
 params: dict[str, Any] = {
     # Game settings
+    "player": "X",  # Player symbol for the agent
     "rows": 3,  # Board size (rows x rows)
     "win_length": 3,  # Number of in-a-row needed to win
     "rewards": {
@@ -49,7 +50,7 @@ params: dict[str, Any] = {
     # Evaluation settings
     "evaluation_frequency": 100,  # Episodes between evaluations
     "evaluation_batch_size": 300,  # Games to evaluate per round
-    "wandb": False,  # Enable Weights & Biases logging
+    "wandb_logging": False,  # Enable Weights & Biases logging
     "wandb_logging_frequency": 25,  # Logging frequency (in episodes)
 
     # Exploration rate settings
@@ -123,8 +124,9 @@ for sweep_idx, combination in enumerate(sweep_combinations):
     paramsO = copy.deepcopy(params)
     paramsX["player"] = "X"  # Player symbol for Agent 1
     paramsO["player"] = "O"  # Player symbol for Agent 2
-    paramsX["wandb"] = True  # Log Agent 1 with wandb
-    paramsO["wandb"] = False  # Do not log Agent 2
+    paramsX["wandb_logging"] = True  # Log Agent 1 with wandb
+    paramsO["wandb_logging"] = False  # Do not log Agent 2
+    params["wandb_logging"] = paramsX["wandb_logging"] or paramsO["wandb_logging"]
 
     if params["load_network"]:
         paramsX, paramsO = load_pretrained_models(paramsX, paramsO)
@@ -136,15 +138,11 @@ for sweep_idx, combination in enumerate(sweep_combinations):
         agent1,
         agent2,
         display=None,
-        rows=params["rows"],
-        cols=params["rows"],
-        win_length=params["win_length"],
-        periodic=params["periodic"],
-        rewards=params["rewards"],
+        params=params
     )
 
     try:
-        train_and_evaluate(game, agent1, agent2, params, wandb_logging=paramsX["wandb"] or paramsO["wandb"])
+        train_and_evaluate(game, agent1, agent2, params)
 
     finally:
         if params.get("save_models"):

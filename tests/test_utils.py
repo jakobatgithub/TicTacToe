@@ -159,6 +159,7 @@ def test_train_and_evaluate(mock_tqdm, mock_eval_perf):
         "set_exploration_rate_externally": True,
         "device": "cpu",
         "periodic": False,
+        "wandb_logging": False,
         "win_rate_deque_length": 3,
         "state_shape": "flat",
         "rewards": {
@@ -173,7 +174,7 @@ def test_train_and_evaluate(mock_tqdm, mock_eval_perf):
         "O_against_random: O wins": 0.5
     }
 
-    train_and_evaluate(game, agent1, agent2, params, wandb_logging=False)
+    train_and_evaluate(game, agent1, agent2, params)
 
     assert game.play.call_count == params["nr_of_episodes"]  # which is 11
     assert mock_eval_perf.call_count == 2

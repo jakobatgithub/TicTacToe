@@ -187,10 +187,7 @@ def evaluate_and_plot_Q(learning_agent: QLearningAgent, player: Player) -> None:
 def QAgent_plays_against_RandomAgent(
     Q: FullySymmetricMatrix,
     player: Player,
-    nr_of_episodes: int = 5000,
-    rows: int = 3,
-    cols: int = 3,
-    win_length: int = 3,
+    params: dict,
 ) -> None:
     """
     Simulate games where a Q-learning agent plays against a random agent.
@@ -203,10 +200,11 @@ def QAgent_plays_against_RandomAgent(
         cols (int): Number of columns in the TicTacToe board.
         win_length (int): Number of consecutive marks needed to win.
     """
+    nr_of_episodes = params["nr_of_episodes"]
     playing_agent1 = QPlayingAgent(Q, player=player, switching=False)
     opponent = "O" if player == "X" else "X"
     random_agent1 = RandomAgent(player=opponent, switching=False)
-    game = TicTacToe(playing_agent1, random_agent1, display=None, rows=rows, cols=cols, win_length=win_length)
+    game = TicTacToe(playing_agent1, random_agent1, display=None, params=params)
     outcomes = {"X": 0, "O": 0, "D": 0}
     for _ in range(nr_of_episodes):
         outcome = game.play()
@@ -223,11 +221,8 @@ def QAgent_plays_against_QAgent(
     Q1: FullySymmetricMatrix,
     player1: Player,
     Q2: FullySymmetricMatrix,
+    params: dict,
     player2: Player | None = None,
-    nr_of_episodes: int = 5000,
-    rows: int = 3,
-    cols: int = 3,
-    win_length: int = 3,
 ) -> None:
     """
     Simulate games where two Q-learning agents play against each other.
@@ -246,8 +241,9 @@ def QAgent_plays_against_QAgent(
     if not player2:
         player2 = "O" if player1 == "X" else "X"
 
+    nr_of_episodes = params["nr_of_episodes"]
     playing_agent2 = QPlayingAgent(Q2, player=player2, switching=False)
-    game = TicTacToe(playing_agent1, playing_agent2, display=None, rows=rows, cols=cols, win_length=win_length)
+    game = TicTacToe(playing_agent1, playing_agent2, display=None, params=params)
     outcomes = {"X": 0, "O": 0, "D": 0}
     for _ in range(nr_of_episodes):
         outcome = game.play()
@@ -263,14 +259,7 @@ def QAgent_plays_against_QAgent(
 def evaluate_performance(
     learning_agent1: DeepQLearningAgent,
     learning_agent2: DeepQLearningAgent,
-    evaluation_batch_size: int = 1000,
-    rows: int = 3,
-    win_length: int = 3,
-    wandb_logging: bool = True,
-    device: str = "cpu",
-    periodic: bool = False,
-    state_shape: str = "flat",
-    rewards: dict[str, float] = {"W": 1.0, "L": -1.0, "D": 0.0},
+    params: dict
 ) -> dict[str, float]:
     """
     Evaluate the performance of two Deep Q-learning agents against random agents and each other.
@@ -288,12 +277,17 @@ def evaluate_performance(
     Returns:
         dict[str, float]: A dictionary containing evaluation metrics.
     """
+    wandb_logging = params["wandb_logging"]
+    device = params["device"]
+    state_shape = params["state_shape"]
+    evaluation_batch_size = params["evaluation_batch_size"]
+
     q_network1 = learning_agent1.q_network
     playing_agent1 = DeepQPlayingAgent(q_network1, player="X", switching=False, device=device, state_shape=state_shape)
     random_agent2 = RandomAgent(player="O", switching=False)
     all_data = {}
 
-    game = TicTacToe(playing_agent1, random_agent2, display=None, rows=rows, cols=rows, win_length=win_length, periodic=periodic, rewards=rewards)
+    game = TicTacToe(playing_agent1, random_agent2, display=None, params=params)
     outcomes = {"X": 0, "O": 0, "D": 0}
     for _ in range(evaluation_batch_size):
         outcome = game.play()
@@ -314,7 +308,7 @@ def evaluate_performance(
     playing_agent2 = DeepQPlayingAgent(q_network2, player="O", switching=False, device=device, state_shape=state_shape)
     random_agent1 = RandomAgent(player="X", switching=False)
 
-    game = TicTacToe(random_agent1, playing_agent2, display=None, rows=rows, cols=rows, win_length=win_length, periodic=periodic, rewards=rewards)
+    game = TicTacToe(random_agent1, playing_agent2, display=None, params=params)
     evaluation_batch_size = evaluation_batch_size
     outcomes = {"X": 0, "O": 0, "D": 0}
     for _ in range(evaluation_batch_size):
@@ -332,7 +326,7 @@ def evaluate_performance(
     if wandb_logging:
         wandb.log(data)
 
-    game = TicTacToe(playing_agent1, playing_agent2, display=None, rows=rows, cols=rows, win_length=win_length, rewards=rewards)
+    game = TicTacToe(playing_agent1, playing_agent2, display=None, params=params)
     evaluation_batch_size = evaluation_batch_size
     outcomes = {"X": 0, "O": 0, "D": 0}
     for _ in range(evaluation_batch_size):

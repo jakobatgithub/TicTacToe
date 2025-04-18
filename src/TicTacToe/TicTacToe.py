@@ -112,19 +112,17 @@ class TicTacToe(TwoPlayerBoardGame):
         self,
         agent1: Agent,
         agent2: Agent,
+        params: dict,
         display: Optional[Display] = None,
-        waiting_time: float = 1.0,
-        rows: int = 3,
-        cols: int = 3,
-        win_length: int = 3,
-        periodic: bool = False,
-        rewards: Dict[str, Any] = {"W": 1.0, "L": -1.0, "D": 0.0},
+        waiting_time: float = 1.0
     ) -> None:
+        rows = params["rows"]
+        cols = params["rows"]
         if rows != cols:
             raise ValueError("Tic Tac Toe board must be square")
-        self._win_length = win_length
-        self.periodic = periodic
-        self.rewards = rewards
+        self._win_length = params["win_length"]
+        self.periodic = params["periodic"]
+        self.rewards = params["rewards"]
         super().__init__(agent1, agent2, display, waiting_time, rows, cols)
 
     def _initialize(self) -> None:

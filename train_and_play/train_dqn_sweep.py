@@ -22,6 +22,7 @@ import copy
 import wandb
 
 from typing import Any
+from datetime import datetime
 
 from TicTacToe.TicTacToe import TicTacToe
 from TicTacToe.DeepQAgent import DeepQLearningAgent
@@ -41,7 +42,7 @@ params: dict[str, Any] = {
     },
 
     # Training settings
-    "nr_of_episodes": 15000,  # Number of training games
+    "nr_of_episodes": 500,  # Number of training games
     "learning_rate": 0.0001,  # Optimizer learning rate
     "gamma": 0.95,  # Discount factor for future rewards
     "switching": True,  # Whether players switch turns
@@ -49,7 +50,7 @@ params: dict[str, Any] = {
 
     # Evaluation settings
     "evaluation_frequency": 100,  # Episodes between evaluations
-    "evaluation_batch_size": 300,  # Games to evaluate per round
+    "evaluation_batch_size": 200,  # Games to evaluate per round
     "wandb_logging": False,  # Enable Weights & Biases logging
     "wandb_logging_frequency": 25,  # Logging frequency (in episodes)
 
@@ -73,9 +74,11 @@ params: dict[str, Any] = {
     "shared_replay_buffer": False,  # Share replay buffer between agents
 
     # Q Network settings
-    "network_type": "FullyCNN",  # Network architecture: 'Equivariant', 'FullyCNN', 'FCN', 'CNN'
+    "network_type": "CNN",  # Network architecture: 'Equivariant', 'FullyCNN', 'FCN', 'CNN'
     "periodic": False,  # Periodic boundary conditions
     "load_network": False,  # Whether to load pretrained weights
+    "project_name": "TicTacToe",  # Weights & Biases project name
+    "wandb_run_name": "TicTacToe",  # Weights & Biases run name
     "save_models": "/Users/jakob/TicTacToe/models/",  # Save weights after training
     "symmetrized_loss": False,  # Use symmetrized loss
     "state_shape": "one-hot",  # state representation: 'flat' with shape (batch_size, rows * rows), 
@@ -84,7 +87,8 @@ params: dict[str, Any] = {
 }
 
 # --- Sweep Setup ---
-param_sweep = {"replay_buffer_type": ["prioritized", "uniform"], "periodic": [True, False], "state_shape": ["one-hot", "flat"]}
+# param_sweep = {"replay_buffer_type": ["prioritized", "uniform"], "periodic": [True, False], "state_shape": ["one-hot", "flat"]}
+param_sweep = {"periodic": [True, False], "state_shape": ["one-hot", "2D", "flat"], "network_type": ["CNN", "FullyCNN"]}
 sweep_combinations, param_keys = get_param_sweep_combinations(param_sweep)
 
 # --- Shared Replay Buffer Setup ---
@@ -120,6 +124,7 @@ for sweep_idx, combination in enumerate(sweep_combinations):
     for key, value in zip(param_keys, combination):
         params[key] = value
 
+    params["wandb_run_name"] = f"{datetime.now().strftime("%Y%m%d_%H%M%S")}_{params['rows']}x{params['rows']}x{params['win_length']}_{params['network_type']}_{params['state_shape']}"
     paramsX = copy.deepcopy(params)
     paramsO = copy.deepcopy(params)
     paramsX["player"] = "X"  # Player symbol for Agent 1

@@ -131,7 +131,7 @@ def test_update_exploration_rate_smoothly():
     O_win_rates = deque([0.5, 0.51], maxlen=3)
     current_epsilon = 0.5
 
-    new_epsilon = update_exploration_rate_smoothly(agent1, agent2, params, eval_data, current_epsilon, (X_win_rates, O_win_rates))
+    new_epsilon = update_exploration_rate_smoothly(agent1, agent2, params, eval_data, current_epsilon, (X_win_rates, O_win_rates), wandb_logging = False)
     assert new_epsilon < current_epsilon
     agent1.set_exploration_rate.assert_called()
     agent2.set_exploration_rate.assert_called()
@@ -161,6 +161,11 @@ def test_train_and_evaluate(mock_tqdm, mock_eval_perf):
         "periodic": False,
         "win_rate_deque_length": 3,
         "state_shape": "flat",
+        "rewards": {
+            "W": 1.0,  # Reward for a win
+            "L": -1.0,  # Reward for a loss
+            "D": 0.5,  # Reward for a draw
+        },
     }
 
     mock_eval_perf.return_value = {

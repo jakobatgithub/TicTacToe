@@ -230,7 +230,7 @@ def train_and_evaluate(game: TwoPlayerBoardGame, agent1: DeepQLearningAgent, age
                 rewards=params["rewards"],
             )
             if params["set_exploration_rate_externally"]:
-                exploration_rate = update_exploration_rate_smoothly(agent1, agent2, params, eval_data, exploration_rate, (X_win_rates, O_win_rates))
+                exploration_rate = update_exploration_rate_smoothly(agent1, agent2, params, eval_data, exploration_rate, (X_win_rates, O_win_rates), wandb_logging=wandb_logging)
 
     print("Outcomes during learning:")
     print(f"X wins: {outcomes['X'] / params['nr_of_episodes']}, O wins: {outcomes['O'] / params['nr_of_episodes']}, draws: {outcomes['D'] / params['nr_of_episodes']}")

@@ -303,9 +303,13 @@ class DeepQLearningAgent(Agent, EvaluationMixin):
             lambda x: np.flipud(np.transpose(x)),
             lambda x: np.flipud(np.fliplr(np.transpose(x))),
         ]
-        if params.get("symmetrized_loss", True):
+        if params.get("symmetrized_loss", True) and params.get("replay_buffer_type", "uniform") == "uniform":
             self.compute_loss = self.create_symmetrized_loss(
                 self.compute_standard_loss, self.transformations, self.rows
+            )
+        elif params.get("symmetrized_loss", True) and params.get("replay_buffer_type", "uniform") == "prioritized":
+            self.compute_loss = self.create_symmetrized_loss(
+                self.compute_prioritized_loss, self.transformations, self.rows
             )
         elif params.get("replay_buffer_type", "uniform") == "prioritized":
             self.compute_loss = self.compute_prioritized_loss

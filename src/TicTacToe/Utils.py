@@ -2,6 +2,7 @@ import json
 import os
 import torch
 import uuid
+import wandb
 
 from datetime import datetime
 from collections import deque
@@ -138,7 +139,7 @@ def save_model_artifacts(agent1: Agent, agent2: Agent, params: dict):
     with open(index_file, "w") as f:
         json.dump(index_data, f, indent=4)
 
-def update_exploration_rate_smoothly(agent1: DeepQLearningAgent, agent2: DeepQLearningAgent, params: dict, eval_data: dict, exploration_rate: float, win_rate_deques: tuple[deque, deque]):
+def update_exploration_rate_smoothly(agent1: DeepQLearningAgent, agent2: DeepQLearningAgent, params: dict, eval_data: dict, exploration_rate: float, win_rate_deques: tuple[deque, deque], wandb_logging = True):
     """
     Update the exploration rate based on smoothed averages of recent win rates.
 
@@ -183,6 +184,15 @@ def update_exploration_rate_smoothly(agent1: DeepQLearningAgent, agent2: DeepQLe
             print(f"delta_X = {delta_X:.3f}, delta_O = {delta_X:.3f}")
             print(f"New exploration rate: {exploration_rate:.4f}")
 
+        data = {
+            "smoothed_X_win_rate": smoothed_X,
+            "smoothed_O_win_rate": smoothed_O,
+            "delta_X": delta_X,
+            "delta_O": delta_O,
+        }
+        if wandb_logging:
+            wandb.log(data)
+
     return exploration_rate
 
 def train_and_evaluate(game: TwoPlayerBoardGame, agent1: DeepQLearningAgent, agent2: DeepQLearningAgent, params: dict, wandb_logging: bool = True):
@@ -217,6 +227,7 @@ def train_and_evaluate(game: TwoPlayerBoardGame, agent1: DeepQLearningAgent, age
                 device=params["device"],
                 periodic=params["periodic"],
                 state_shape=params["state_shape"],
+                rewards=params["rewards"],
             )
             if params["set_exploration_rate_externally"]:
                 exploration_rate = update_exploration_rate_smoothly(agent1, agent2, params, eval_data, exploration_rate, (X_win_rates, O_win_rates))

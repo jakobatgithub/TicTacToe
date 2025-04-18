@@ -130,6 +130,97 @@ class TestIntegration(unittest.TestCase):
 
         self.assertGreater(len(agent1.replay_buffer), 0, "Replay buffer should contain experiences after training.")
 
+    def test_deep_q_agent_training_CNN_2D_state(self) -> None:
+        """Simulate training of a DeepQLearningAgent during gameplay."""
+        self.params["network_type"] = "CNN"
+        self.params["periodic"] = False
+        self.params["state_shape"] = "2D"
+        self.params["rows"] = 3
+
+        agent1 = DeepQLearningAgent(params=self.params)
+        agent2 = RandomAgent(player="O")
+        game = TicTacToe(agent1, agent2, params=self.params)
+
+        # Simulate multiple episodes to test training
+        for episode in range(10):
+            outcome = game.play()
+            self.assertIn(outcome, ["X", "O", "D"], f"Game outcome in episode {episode} should be valid.")
+
+        self.assertGreater(len(agent1.replay_buffer), 0, "Replay buffer should contain experiences after training.")
+
+    def test_deep_q_agent_training_CNN_one_hot_state(self) -> None:
+        """Simulate training of a DeepQLearningAgent during gameplay."""
+        self.params["network_type"] = "CNN"
+        self.params["periodic"] = False
+        self.params["state_shape"] = "one-hot"
+        self.params["rows"] = 3
+
+        agent1 = DeepQLearningAgent(params=self.params)
+        agent2 = RandomAgent(player="O")
+        game = TicTacToe(agent1, agent2, params=self.params)
+
+        # Simulate multiple episodes to test training
+        for episode in range(10):
+            outcome = game.play()
+            self.assertIn(outcome, ["X", "O", "D"], f"Game outcome in episode {episode} should be valid.")
+
+        self.assertGreater(len(agent1.replay_buffer), 0, "Replay buffer should contain experiences after training.")
+
+    def test_deep_q_agent_training_CNN_more_rows(self) -> None:
+        """Simulate training of a DeepQLearningAgent during gameplay."""
+        self.params["network_type"] = "CNN"
+        self.params["periodic"] = False
+        self.params["state_shape"] = "flat"
+        self.params["rows"] = 5
+
+        agent1 = DeepQLearningAgent(params=self.params)
+        agent2 = RandomAgent(player="O")
+        game = TicTacToe(agent1, agent2, params=self.params)
+
+        # Simulate multiple episodes to test training
+        for episode in range(10):
+            outcome = game.play()
+            self.assertIn(outcome, ["X", "O", "D"], f"Game outcome in episode {episode} should be valid.")
+
+        self.assertGreater(len(agent1.replay_buffer), 0, "Replay buffer should contain experiences after training.")
+
+    def test_deep_q_agent_training_CNN_periodic(self) -> None:
+        """Simulate training of a DeepQLearningAgent during gameplay."""
+        self.params["network_type"] = "CNN"
+        self.params["periodic"] = True
+        self.params["state_shape"] = "flat"
+        self.params["rows"] = 3
+
+        agent1 = DeepQLearningAgent(params=self.params)
+        agent2 = RandomAgent(player="O")
+        game = TicTacToe(agent1, agent2, params=self.params)
+
+
+        # Simulate multiple episodes to test training
+        for episode in range(10):
+            outcome = game.play()
+            self.assertIn(outcome, ["X", "O", "D"], f"Game outcome in episode {episode} should be valid.")
+
+        self.assertGreater(len(agent1.replay_buffer), 0, "Replay buffer should contain experiences after training.")
+
+    def test_deep_q_agent_training_FullyCNN(self) -> None:
+        """Simulate training of a DeepQLearningAgent during gameplay."""
+        self.params["network_type"] = "FullyCNN"
+        self.params["periodic"] = False
+        self.params["state_shape"] = "flat"
+        self.params["rows"] = 3
+
+        agent1 = DeepQLearningAgent(params=self.params)
+        agent2 = RandomAgent(player="O")
+        game = TicTacToe(agent1, agent2, params=self.params)
+
+        # Simulate multiple episodes to test training
+        for episode in range(10):
+            outcome = game.play()
+            self.assertIn(outcome, ["X", "O", "D"], f"Game outcome in episode {episode} should be valid.")
+
+        self.assertGreater(len(agent1.replay_buffer), 0, "Replay buffer should contain experiences after training.")
+
     def test_deep_q_agent_training_FullyCNN_periodic(self) -> None:
         """Simulate training of a DeepQLearningAgent during gameplay."""
         self.params["network_type"] = "FullyCNN"
@@ -166,17 +257,16 @@ class TestIntegration(unittest.TestCase):
 
         self.assertGreater(len(agent1.replay_buffer), 0, "Replay buffer should contain experiences after training.")
 
-    def test_deep_q_agent_training_CNN_periodic(self) -> None:
+    def test_deep_q_agent_training_FullyCNN_periodic_one_hot_state(self) -> None:
         """Simulate training of a DeepQLearningAgent during gameplay."""
-        self.params["network_type"] = "CNN"
+        self.params["network_type"] = "FullyCNN"
         self.params["periodic"] = True
-        self.params["state_shape"] = "flat"
+        self.params["state_shape"] = "one-hot"
         self.params["rows"] = 3
 
         agent1 = DeepQLearningAgent(params=self.params)
         agent2 = RandomAgent(player="O")
         game = TicTacToe(agent1, agent2, params=self.params)
-
 
         # Simulate multiple episodes to test training
         for episode in range(10):

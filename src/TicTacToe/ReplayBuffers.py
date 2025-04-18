@@ -5,7 +5,9 @@ from TicTacToe.game_types import Action, Reward, State
 
 class BaseReplayBuffer:
     """
-    Base class interface for all replay buffers.
+    Abstract base class for replay buffers.
+
+    Defines the interface for adding experiences, sampling batches, and retrieving buffer size.
     """
     def add(self, state: State, action: Action, reward: Reward, next_state: State, done: bool) -> None:
         raise NotImplementedError
@@ -19,7 +21,7 @@ class BaseReplayBuffer:
 
 class ReplayBuffer(BaseReplayBuffer):
     """
-    Standard uniform sampling replay buffer.
+    A standard replay buffer with uniform sampling.
     """
     def __init__(self, size: int, state_shape: Tuple[int, ...], device: str = "cpu") -> None:
         self.size = size
@@ -74,7 +76,7 @@ class ReplayBuffer(BaseReplayBuffer):
 
 class PrioritizedReplayBuffer(ReplayBuffer):
     """
-    Prioritized Experience Replay buffer.
+    A replay buffer that implements prioritized experience replay.
     """
     def __init__(self, size, state_shape, device="cpu", alpha=0.6, beta=0.4):
         super().__init__(size, state_shape, device)

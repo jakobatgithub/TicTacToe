@@ -9,7 +9,7 @@ import torch.nn as nn
 
 class QNetwork(nn.Module):
     """
-    A neural network for approximating the Q-function.
+    A fully connected neural network for approximating the Q-function.
     """
 
     def __init__(self, input_dim: int, output_dim: int) -> None:
@@ -31,7 +31,7 @@ class QNetwork(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
-        Forward pass of the QNetwork.
+        Perform a forward pass through the QNetwork.
 
         Args:
             x: Input tensor.
@@ -77,7 +77,7 @@ class CNNQNetwork(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
-        Forward pass of the CNNQNetwork.
+        Perform a forward pass through the CNNQNetwork.
 
         Args:
             x: Input tensor of shape (batch_size, input_dim, grid_size, grid_size).
@@ -93,13 +93,23 @@ class CNNQNetwork(nn.Module):
         else:
             raise ValueError(f"Unexpected input shape: {x.shape}")
 
-        x = x.view(-1, 1, self.rows, self.rows)
         x = self.conv_layers(x)
         x = self.fc_layers(x)
         return x.view(x.size(0), -1)  # shape: (batch_size, rows * cols)
 
 class PeriodicConvBase(nn.Module):
+    """
+    A base convolutional module with periodic padding for symmetry handling.
+    """
+
     def __init__(self, input_dim: int = 1, padding_mode: str = 'circular'):
+        """
+        Initialize the PeriodicConvBase.
+
+        Args:
+            input_dim: Number of input channels.
+            padding_mode: Padding mode for convolutional layers.
+        """
         super().__init__()
         self.encoder = nn.Sequential(
             nn.Conv2d(input_dim, 32, kernel_size=3, stride=1, padding=1, padding_mode=padding_mode),
@@ -109,21 +119,60 @@ class PeriodicConvBase(nn.Module):
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Perform a forward pass through the PeriodicConvBase.
+
+        Args:
+            x: Input tensor.
+
+        Returns:
+            Output tensor after applying the convolutional layers.
+        """
         return self.encoder(x)
 
 
 class PeriodicQHead(nn.Module):
+    """
+    A convolutional head for generating Q-values with periodic padding.
+    """
+
     def __init__(self, padding_mode: str = 'circular'):
+        """
+        Initialize the PeriodicQHead.
+
+        Args:
+            padding_mode: Padding mode for the convolutional layer.
+        """
         super().__init__()
         self.head = nn.Conv2d(64, 1, kernel_size=3, stride=1, padding=1, padding_mode=padding_mode)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Perform a forward pass through the PeriodicQHead.
+
+        Args:
+            x: Input tensor.
+
+        Returns:
+            Output tensor with Q-values.
+        """
         x = self.head(x)  # shape: (batch_size, 1, rows, cols)
         return x.squeeze(1)  # shape: (batch_size, rows, cols)
 
 
 class FullyConvQNetwork(nn.Module):
+    """
+    A fully convolutional Q-network with periodic padding for symmetry handling.
+    """
+
     def __init__(self, input_dim: int = 1, padding_mode: str = 'circular'):
+        """
+        Initialize the FullyConvQNetwork.
+
+        Args:
+            input_dim: Number of input channels.
+            padding_mode: Padding mode for convolutional layers.
+        """
         super().__init__()
         self.base = PeriodicConvBase(input_dim=input_dim, padding_mode=padding_mode)
         self.head = PeriodicQHead(padding_mode=padding_mode)
@@ -138,6 +187,15 @@ class FullyConvQNetwork(nn.Module):
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Perform a forward pass through the FullyConvQNetwork.
+
+        Args:
+            x: Input tensor.
+
+        Returns:
+            Output tensor with Q-values.
+        """
         if x.ndim == 2:  # (batch_size, rows*cols)
             spatial_dim = int(x.size(1) ** 0.5)
             x = x.view(x.size(0), 1, spatial_dim, spatial_dim)
@@ -289,8 +347,8 @@ class EquivariantLayer(nn.Module):
         Initialize the EquivariantLayer.
 
         Args:
-            weight_pattern (torch.Tensor): Tensor defining the weight tying pattern.
-            bias_pattern (torch.Tensor): Tensor defining the bias tying pattern.
+            weight_pattern: Tensor defining the weight tying pattern.
+            bias_pattern: Tensor defining the bias tying pattern.
         """
         super(EquivariantLayer, self).__init__()  # type: ignore
 
@@ -321,10 +379,10 @@ class EquivariantLayer(nn.Module):
         Get the number of unique non-zero elements in a pattern.
 
         Args:
-            pattern (torch.Tensor): The input pattern.
+            pattern: The input pattern.
 
         Returns:
-            int: The number of unique non-zero elements.
+            The number of unique non-zero elements.
         """
         unique_elements = list(set(pattern.detach().numpy().flatten()))  # type: ignore
         if 0 in unique_elements:
@@ -337,10 +395,10 @@ class EquivariantLayer(nn.Module):
         Perform a forward pass through the layer.
 
         Args:
-            x (torch.Tensor): Input tensor.
+            x: Input tensor.
 
         Returns:
-            torch.Tensor: Output tensor after applying the layer.
+            Output tensor after applying the layer.
         """
         weight = torch.zeros_like(self.weight_mask, dtype=torch.float32)
         bias = torch.zeros_like(self.bias_mask, dtype=torch.float32)
@@ -353,7 +411,7 @@ class EquivariantLayer(nn.Module):
 
 class EquivariantNN(nn.Module):
     """
-    A neural network with multiple equivariant layers.
+    A neural network with multiple equivariant layers for symmetry-aware learning.
     """
 
     def __init__(self, groupMatrices: list[Any], ms: Tuple[int, int, int, int] = (1, 5, 5, 1)) -> None:
@@ -361,8 +419,8 @@ class EquivariantNN(nn.Module):
         Initialize the EquivariantNN.
 
         Args:
-            groupMatrices (list[Any]): List of transformation matrices.
-            ms (Tuple[int, int, int, int]): Dimensions for each layer.
+            groupMatrices: List of transformation matrices.
+            ms: Dimensions for each layer.
         """
         super(EquivariantNN, self).__init__()  # type: ignore
 
@@ -391,9 +449,9 @@ class EquivariantNN(nn.Module):
         Perform a forward pass through the network.
 
         Args:
-            x (torch.Tensor): Input tensor.
+            x: Input tensor.
 
         Returns:
-            torch.Tensor: Output tensor after applying the network.
+            Output tensor after applying the network.
         """
         return self.fc_equivariant(x)

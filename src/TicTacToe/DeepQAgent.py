@@ -35,6 +35,9 @@ class StateConverter(Protocol):
         ...
 
 class FlatStateConverter:
+    """
+    Converts board states to flat numpy arrays for neural network input.
+    """
     def __init__(self, state_to_board_translation=None):
         self.state_to_board_translation = state_to_board_translation or {"X": 1, "O": -1, " ": 0}
         self.board_to_state_translation = {v: k for k, v in self.state_to_board_translation.items()}
@@ -47,6 +50,9 @@ class FlatStateConverter:
         return [self.board_to_state_translation[cell] for cell in flat_state]
     
 class GridStateConverter:
+    """
+    Converts board states to 2D grid numpy arrays for neural network input.
+    """
     def __init__(self, shape: tuple[int, int], state_to_board_translation=None):
         self.shape = shape
         self.state_to_board_translation = state_to_board_translation or {"X": 1, "O": -1, " ": 0}
@@ -62,8 +68,7 @@ class GridStateConverter:
 
 class OneHotStateConverter:
     """
-    Converts board states to one-hot encoded numpy arrays of shape (1, 3, rows, rows),
-    where channels represent 'X', 'O', and empty respectively.
+    Converts board states to one-hot encoded numpy arrays for neural network input.
     """
 
     def __init__(self, rows: int):
@@ -100,6 +105,12 @@ class OneHotStateConverter:
 class DeepQLearningAgent(Agent, EvaluationMixin):
     """
     A Deep Q-Learning agent for playing Tic Tac Toe.
+
+    Attributes:
+        params (dict): Configuration parameters for the agent.
+        q_network (nn.Module): The Q-network for action-value estimation.
+        target_network (nn.Module): The target Q-network for stable training.
+        replay_buffer (ReplayBuffer): The replay buffer for storing experiences.
     """
 
     def __init__(self, params: dict[str, Any]) -> None:
@@ -121,7 +132,7 @@ class DeepQLearningAgent(Agent, EvaluationMixin):
         self._override_with_shared_replay_buffer(params)
         self._init_symmetrized_loss(params)
         EvaluationMixin.__init__(
-            self, wandb_enabled=params["wandb_logging"], wandb_logging_frequency=params["wandb_logging_frequency"]
+            self, wandb_logging=params["wandb_logging"], wandb_logging_frequency=params["wandb_logging_frequency"]
         )
 
     def _init_config(self, params: dict[str, Any]) -> None:
@@ -140,7 +151,7 @@ class DeepQLearningAgent(Agent, EvaluationMixin):
         self.learning_rate = params["learning_rate"]
         self.replay_buffer_length = params["replay_buffer_length"]
         self.wandb_logging_frequency = params["wandb_logging_frequency"]
-        self.wandb = params["wandb_logging"]
+        self.wandb_logging = params["wandb_logging"]
         self.episode_count = 0
         self.games_moves_count = 0
         self.train_step_count = 0
@@ -158,7 +169,7 @@ class DeepQLearningAgent(Agent, EvaluationMixin):
         Args:
             params: The configuration dictionary.
         """
-        if self.wandb:
+        if self.wandb_logging:
             wandb.init(config=params)  # type: ignore
 
     def _init_group_matrices(self) -> None:
@@ -587,7 +598,7 @@ class DeepQLearningAgent(Agent, EvaluationMixin):
 
 class DeepQPlayingAgent(Agent):
     """
-    A Deep Q-Playing agent for playing Tic Tac Toe.
+    A Deep Q-Playing agent for playing Tic Tac Toe using a pretrained Q-network.
     """
 
     def __init__(self, 

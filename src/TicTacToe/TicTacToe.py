@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List, Optional, Tuple, Dict, Any
+from typing import List, Optional, Tuple
 
 from TicTacToe.Agent import Agent, MouseAgent
 from TicTacToe.Display import Display, ScreenDisplay

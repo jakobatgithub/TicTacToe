@@ -13,7 +13,6 @@ from TicTacToe.DeepQAgent import DeepQLearningAgent
 from TicTacToe.Utils import (
     get_param_sweep_combinations,
     load_pretrained_models,
-    save_model_artifacts,
     update_exploration_rate_smoothly,
     train_and_evaluate
 )

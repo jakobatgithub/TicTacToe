@@ -33,8 +33,8 @@ from TicTacToe.Utils import get_param_sweep_combinations, load_pretrained_models
 params: dict[str, Any] = {
     # Game settings
     "player": "X",  # Player symbol for the agent
-    "rows": 3,  # Board size (rows x rows)
-    "win_length": 3,  # Number of in-a-row needed to win
+    "rows": 5,  # Board size (rows x rows)
+    "win_length": 5,  # Number of in-a-row needed to win
     "rewards": {
         "W": 1.0,  # Reward for a win
         "L": -1.0,  # Reward for a loss
@@ -113,10 +113,6 @@ if params["shared_replay_buffer"]:
         )
     else:
         params["shared_replay_buffer"] = ReplayBuffer(params["replay_buffer_length"], shape, device=params["device"])
-
-
-    params["shared_replay_buffer"] = ReplayBuffer(params["replay_buffer_length"], (params["rows"]**2, ), device=params["device"])
-
 
 # --- Sweep Loop ---
 for sweep_idx, combination in enumerate(sweep_combinations):

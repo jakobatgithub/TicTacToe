@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "tictactoe"
-version = "0.5.20"
+version = "0.5.21"
 description = "Teach the computer to play Tic Tac Toe using reinforcement learning."
 authors = ["Jakob Löber <jakob@physik.tu-berlin.de>"]
 packages = [

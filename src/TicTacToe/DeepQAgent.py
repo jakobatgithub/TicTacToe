@@ -403,7 +403,6 @@ class DeepQLearningAgent(Agent, EvaluationMixin):
             The computed loss.
         """
         states, actions, rewards, next_states, dones = samples
-        # print(f"states.shape = {states.shape}")
         q_values = self.q_network(states).gather(1, actions.unsqueeze(1)).squeeze(1)
         next_q_values = self.target_network(next_states).max(1, keepdim=True)[0].squeeze(1)
         targets = rewards + (~dones) * self.gamma * next_q_values
@@ -585,7 +584,6 @@ class DeepQLearningAgent(Agent, EvaluationMixin):
         """
         state = self.board_to_state(board)
         state_tensor = torch.FloatTensor(state).to(self.device)
-        # print(f"state_tensor.shape = {state_tensor.shape}")
         with torch.no_grad():
             q_values = q_network(state_tensor).squeeze()
             max_q, _ = torch.max(q_values, dim=0)

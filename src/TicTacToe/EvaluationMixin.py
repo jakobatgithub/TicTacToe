@@ -4,6 +4,16 @@ import numpy as np
 import wandb
 
 class EvaluationMixin:
+    """
+    A mixin class for logging and evaluating training metrics.
+
+    Attributes:
+        wandb (bool): Whether Weights & Biases logging is enabled.
+        wandb_logging_frequency (int): Frequency of logging metrics to Weights & Biases.
+        train_step_count (int): Counter for training steps.
+        episode_count (int): Counter for episodes.
+        evaluation_data (dict): Dictionary for storing evaluation metrics.
+    """
     def __init__(self, wandb_enabled: bool, wandb_logging_frequency: int):
         self.wandb = wandb_enabled
         self.wandb_logging_frequency = wandb_logging_frequency

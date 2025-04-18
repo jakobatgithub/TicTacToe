@@ -19,7 +19,7 @@ def average_array(array: list[float] | list[int], chunk_size: Optional[int] = No
 
     Args:
         array (list[float] | list[int]): The input array of numbers.
-        chunk_size (Optional[int]): The size of each chunk. If None, it defaults to 1% of the array length.
+        chunk_size (Optional[int]): The size of each chunk. Defaults to 1% of the array length.
 
     Returns:
         list[float]: A list of averaged values for each chunk.
@@ -195,10 +195,7 @@ def QAgent_plays_against_RandomAgent(
     Args:
         Q (FullySymmetricMatrix): The Q-matrix of the agent.
         player (Player): The player ('X' or 'O') for the Q-learning agent.
-        nr_of_episodes (int): Number of episodes to simulate.
-        rows (int): Number of rows in the TicTacToe board.
-        cols (int): Number of columns in the TicTacToe board.
-        win_length (int): Number of consecutive marks needed to win.
+        params (dict): Configuration parameters for the simulation.
     """
     nr_of_episodes = params["nr_of_episodes"]
     playing_agent1 = QPlayingAgent(Q, player=player, switching=False)
@@ -232,10 +229,7 @@ def QAgent_plays_against_QAgent(
         player1 (Player): The player ('X' or 'O') for the first agent.
         Q2 (FullySymmetricMatrix): The Q-matrix of the second agent.
         player2 (Player | None): The player ('X' or 'O') for the second agent. Defaults to the opposite of player1.
-        nr_of_episodes (int): Number of episodes to simulate.
-        rows (int): Number of rows in the TicTacToe board.
-        cols (int): Number of columns in the TicTacToe board.
-        win_length (int): Number of consecutive marks needed to win.
+        params (dict): Configuration parameters for the simulation.
     """
     playing_agent1 = QPlayingAgent(Q1, player=player1, switching=False)
     if not player2:
@@ -267,12 +261,7 @@ def evaluate_performance(
     Args:
         learning_agent1 (DeepQLearningAgent): The first learning agent.
         learning_agent2 (DeepQLearningAgent): The second learning agent.
-        evaluation_batch_size (int): Number of games to simulate for evaluation.
-        rows (int): Number of rows in the TicTacToe board.
-        win_length (int): Number of consecutive marks needed to win.
-        wandb_logging (bool): Whether to log results to Weights & Biases.
-        device (str): The device ('cpu' or 'cuda') for computation.
-        periodic (bool): Whether the board has periodic boundaries.
+        params (dict): Configuration parameters for evaluation.
 
     Returns:
         dict[str, float]: A dictionary containing evaluation metrics.

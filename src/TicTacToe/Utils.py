@@ -23,26 +23,26 @@ def get_param_sweep_combinations(param_sweep: dict) -> tuple[list[tuple[Any, ...
     Generate all combinations of hyperparameter values for parameter sweeping.
 
     Args:
-        param_sweep (dict): Dictionary mapping parameter names to lists of values.
+        param_sweep (dict): A dictionary where keys are parameter names and values are lists of possible values.
 
     Returns:
         tuple: A tuple containing:
-            - List of all combinations of parameter values as tuples.
-            - List of parameter keys in the same order as the combinations.
+            - A list of all combinations of parameter values as tuples.
+            - A list of parameter keys in the same order as the combinations.
     """
     return list(product(*param_sweep.values())), list(param_sweep.keys())
 
 
 def load_pretrained_models(paramsX: dict, paramsO: dict) -> tuple[dict, dict]:
     """
-    Load pretrained models from disk and update parameter dictionaries with model paths.
+    Load pretrained models for players X and O from disk and update their parameter dictionaries.
 
     Args:
-        paramsX (dict): Parameters for player X.
-        paramsO (dict): Parameters for player O.
+        paramsX (dict): Parameter dictionary for player X.
+        paramsO (dict): Parameter dictionary for player O.
 
     Returns:
-        tuple: Updated (paramsX, paramsO) with paths to pretrained models.
+        tuple: A tuple containing updated parameter dictionaries for players X and O.
     """
     script_dir = Path(__file__).resolve().parent
     relative_folder = (script_dir / '../models/foundational').resolve()
@@ -60,13 +60,12 @@ def load_pretrained_models(paramsX: dict, paramsO: dict) -> tuple[dict, dict]:
 
 def save_model_artifacts(agent1: Agent, agent2: Agent, params: dict):
     """
-    Save full models and weight components for both agents, store metadata in a dedicated folder,
-    and append summary to a central index.
+    Save model artifacts for both agents, including full models, weights, and metadata.
 
     Args:
-        agent1 (Agent): Agent playing as 'X'.
-        agent2 (Agent): Agent playing as 'O'.
-        params (dict): Parameter configuration.
+        agent1 (Agent): The agent playing as 'X'.
+        agent2 (Agent): The agent playing as 'O'.
+        params (dict): Configuration parameters for saving models.
     """
     # Prepare folders
     base_folder = Path(params["save_models"]).resolve()
@@ -139,20 +138,21 @@ def save_model_artifacts(agent1: Agent, agent2: Agent, params: dict):
     with open(index_file, "w") as f:
         json.dump(index_data, f, indent=4)
 
-def update_exploration_rate_smoothly(agent1: DeepQLearningAgent, agent2: DeepQLearningAgent, params: dict, eval_data: dict, exploration_rate: float, win_rate_deques: tuple[deque, deque], wandb_logging = True):
+def update_exploration_rate_smoothly(agent1: DeepQLearningAgent, agent2: DeepQLearningAgent, params: dict, eval_data: dict, exploration_rate: float, win_rate_deques: tuple[deque, deque], wandb_logging=True):
     """
-    Update the exploration rate based on smoothed averages of recent win rates.
+    Smoothly update the exploration rate based on recent win rates.
 
     Args:
-        agent1 (DeepQLearningAgent): Agent playing as 'X'.
-        agent2 (DeepQLearningAgent): Agent playing as 'O'.
-        params (dict): Parameter configuration.
+        agent1 (DeepQLearningAgent): The agent playing as 'X'.
+        agent2 (DeepQLearningAgent): The agent playing as 'O'.
+        params (dict): Configuration parameters.
         eval_data (dict): Evaluation data containing win rates.
         exploration_rate (float): Current exploration rate.
-        win_rate_deques (tuple): Two deques storing recent win rates for 'X' and 'O'.
+        win_rate_deques (tuple): Deques storing recent win rates for 'X' and 'O'.
+        wandb_logging (bool): Whether to log metrics to Weights & Biases.
 
     Returns:
-        float: Updated exploration rate.
+        float: The updated exploration rate.
     """
 
     X_win_rates, O_win_rates = win_rate_deques
@@ -197,14 +197,13 @@ def update_exploration_rate_smoothly(agent1: DeepQLearningAgent, agent2: DeepQLe
 
 def train_and_evaluate(game: TwoPlayerBoardGame, agent1: DeepQLearningAgent, agent2: DeepQLearningAgent, params: dict):
     """
-    Train and evaluate two agents in a Tic Tac Toe game.
+    Train and evaluate two agents in a Tic Tac Toe game environment.
 
     Args:
-        game (TwoPlayerBoardGame): The game environment.
-        agent1 (DeepQLearningAgent): Agent playing as 'X'.
-        agent2 (DeepQLearningAgent): Agent playing as 'O'.
-        params (dict): Parameter configuration.
-        wandb_logging (bool): Whether to log to Weights & Biases.
+        game (TwoPlayerBoardGame): The game environment instance.
+        agent1 (DeepQLearningAgent): The agent playing as 'X'.
+        agent2 (DeepQLearningAgent): The agent playing as 'O'.
+        params (dict): Configuration parameters for training and evaluation.
     """
 
     wandb_logging = params["wandb_logging"]

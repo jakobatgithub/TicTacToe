@@ -13,7 +13,10 @@ Board = Tuple[str, ...]
 
 class LazyComputeDict(dict[Any, Any]):
     """
-    A dictionary that computes and stores values lazily using a provided function.
+    A dictionary that computes missing values lazily using a provided function.
+
+    Attributes:
+        compute_func (Callable): A function to compute values for missing keys.
     """
 
     def __init__(self, compute_func: Callable[..., Any], *args: Any, **kwargs: Any) -> None:
@@ -45,6 +48,7 @@ class LazyComputeDict(dict[Any, Any]):
 class BaseMatrix(ABC):
     """
     Abstract base class for Q-value matrices.
+
     Defines the shared interface and enforces implementation of key methods.
     """
 
@@ -101,7 +105,7 @@ class BaseMatrix(ABC):
 
 class Matrix(BaseMatrix):
     """
-    A concrete implementation of BaseMatrix for storing Q-values in a standard matrix.
+    A standard implementation of BaseMatrix for storing Q-values in a dictionary.
     """
 
     def __init__(self, file: str | None = None, default_value: float | None = None) -> None:
@@ -489,7 +493,7 @@ class SymmetricMatrix(BaseMatrix):
 
 class FullySymmetricMatrix(SymmetricMatrix):
     """
-    A matrix that leverages full board symmetries, including next states, to reduce the number of stored Q-values.
+    A matrix that leverages full board symmetries, including next states, for Q-value storage.
     """
 
     def __init__(

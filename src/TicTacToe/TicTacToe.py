@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Dict, Any
 
 from TicTacToe.Agent import Agent, MouseAgent
 from TicTacToe.Display import Display, ScreenDisplay
@@ -118,11 +118,13 @@ class TicTacToe(TwoPlayerBoardGame):
         cols: int = 3,
         win_length: int = 3,
         periodic: bool = False,
+        rewards: Dict[str, Any] = {"W": 1.0, "L": -1.0, "D": 0.0},
     ) -> None:
         if rows != cols:
             raise ValueError("Tic Tac Toe board must be square")
         self._win_length = win_length
         self.periodic = periodic
+        self.rewards = rewards
         super().__init__(agent1, agent2, display, waiting_time, rows, cols)
 
     def _initialize(self) -> None:
@@ -225,11 +227,11 @@ class TicTacToe(TwoPlayerBoardGame):
 
     def get_terminal_rewards(self, outcome: Outcome) -> Tuple[Reward, Reward]:
         if outcome == "D":
-            return 0.0, 0.0
+            return self.rewards["D"], self.rewards["D"]
         elif outcome == self._agent1.player:
-            return 1.0, -1.0
+            return self.rewards["W"], self.rewards["L"]
         elif outcome == self._agent2.player:
-            return -1.0, 1.0
+            return self.rewards["L"], self.rewards["W"]
         return 0.0, 0.0
 
     def get_valid_actions(self) -> Actions:

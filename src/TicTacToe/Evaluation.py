@@ -270,6 +270,7 @@ def evaluate_performance(
     device: str = "cpu",
     periodic: bool = False,
     state_shape: str = "flat",
+    rewards: dict[str, float] = {"W": 1.0, "L": -1.0, "D": 0.0},
 ) -> dict[str, float]:
     """
     Evaluate the performance of two Deep Q-learning agents against random agents and each other.
@@ -292,7 +293,7 @@ def evaluate_performance(
     random_agent2 = RandomAgent(player="O", switching=False)
     all_data = {}
 
-    game = TicTacToe(playing_agent1, random_agent2, display=None, rows=rows, cols=rows, win_length=win_length, periodic=periodic)
+    game = TicTacToe(playing_agent1, random_agent2, display=None, rows=rows, cols=rows, win_length=win_length, periodic=periodic, rewards=rewards)
     outcomes = {"X": 0, "O": 0, "D": 0}
     for _ in range(evaluation_batch_size):
         outcome = game.play()
@@ -313,7 +314,7 @@ def evaluate_performance(
     playing_agent2 = DeepQPlayingAgent(q_network2, player="O", switching=False, device=device, state_shape=state_shape)
     random_agent1 = RandomAgent(player="X", switching=False)
 
-    game = TicTacToe(random_agent1, playing_agent2, display=None, rows=rows, cols=rows, win_length=win_length, periodic=periodic)
+    game = TicTacToe(random_agent1, playing_agent2, display=None, rows=rows, cols=rows, win_length=win_length, periodic=periodic, rewards=rewards)
     evaluation_batch_size = evaluation_batch_size
     outcomes = {"X": 0, "O": 0, "D": 0}
     for _ in range(evaluation_batch_size):
@@ -331,7 +332,7 @@ def evaluate_performance(
     if wandb_logging:
         wandb.log(data)
 
-    game = TicTacToe(playing_agent1, playing_agent2, display=None, rows=rows, cols=rows, win_length=win_length)
+    game = TicTacToe(playing_agent1, playing_agent2, display=None, rows=rows, cols=rows, win_length=win_length, rewards=rewards)
     evaluation_batch_size = evaluation_batch_size
     outcomes = {"X": 0, "O": 0, "D": 0}
     for _ in range(evaluation_batch_size):

@@ -81,5 +81,4 @@ exclude = ["**/*.ipynb"]
 omit = [
     # omit this single file
     "src/TicTacToe/Evaluation.py",
-    "src/TicTacToe/DisplayTest.py",
     ]

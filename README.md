@@ -95,7 +95,6 @@ Here is a list of all files in the `src` folder and their purposes:
 - **`TicTacToe/Agent.py`**: Defines the base agent class for the game.
 - **`TicTacToe/DeepQAgent.py`**: Implements a deep Q-learning agent.
 - **`TicTacToe/Display.py`**: Handles the display of the game board.
-- **`TicTacToe/DisplayTest.py`**: Contains tests for the display module.
 - **`TicTacToe/EquivariantNN.py`**: Implements equivariant neural networks for symmetry-aware learning.
 - **`TicTacToe/Evaluation.py`**: Provides evaluation metrics for agents.
 - **`TicTacToe/game_types.py`**: Defines types and constants used in the game.

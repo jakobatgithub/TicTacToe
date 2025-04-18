@@ -23,14 +23,23 @@ script_dir = Path(__file__).resolve().parent
 relative_folder = (script_dir / '../models/all_models').resolve()
 model_path = f"{relative_folder}/q_network_3x3x3_X.pth"  # Change this path to the desired model
 
-# Set up the game
-rows = 3
-win_length = 3
-agent1 = DeepQPlayingAgent(q_network=model_path, player="O")
-agent2 = MouseAgent(player="X")
-display = ScreenDisplay(rows=rows, cols=rows, waiting_time=0.5)
+params = {
+    "player": "O", # Player symbol for the agent
+    "rows": 3,  # Board size (rows x rows)
+    "win_length": 3,  # Number of in-a-row needed to win
+    "rewards": {
+        "W": 1.0,  # Reward for a win
+        "L": -1.0,  # Reward for a loss
+        "D": 0.5,  # Reward for a draw
+    },
+}
 
-game = TicTacToe(agent1, agent2, display=display, rows=rows, cols=rows, win_length=win_length, periodic=True)
+# Set up the game
+agent1 = DeepQPlayingAgent(q_network=model_path, params=params)
+agent2 = MouseAgent(player="X")
+display = ScreenDisplay(rows=params["rows"], cols=params["rows"], waiting_time=0.5)
+
+game = TicTacToe(agent1, agent2, display=display, params=params)
 
 # Play the game
 game.play()

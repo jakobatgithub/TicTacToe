@@ -74,7 +74,7 @@ params: dict[str, Any] = {
     "shared_replay_buffer": False,  # Share replay buffer between agents
 
     # Q Network settings
-    "network_type": "CNN",  # Network architecture: 'Equivariant', 'FullyCNN', 'FCN', 'CNN'
+    "network_type": "FullyCNN",  # Network architecture: 'Equivariant', 'FullyCNN', 'FCN', 'CNN'
     "periodic": False,  # Periodic boundary conditions
     "load_network": False,  # Whether to load pretrained weights
     "project_name": "TicTacToe",  # Weights & Biases project name
@@ -88,7 +88,7 @@ params: dict[str, Any] = {
 
 # --- Sweep Setup ---
 # param_sweep = {"replay_buffer_type": ["prioritized", "uniform"], "periodic": [True, False], "state_shape": ["one-hot", "flat"]}
-param_sweep = {"periodic": [True, False], "state_shape": ["one-hot", "2D", "flat"], "network_type": ["CNN", "FullyCNN"]}
+param_sweep = {"replay_buffer_type": ["prioritized", "uniform"], "symmetrized_loss": [True, False], "state_shape": ["one-hot", "flat"]}
 sweep_combinations, param_keys = get_param_sweep_combinations(param_sweep)
 
 # --- Shared Replay Buffer Setup ---

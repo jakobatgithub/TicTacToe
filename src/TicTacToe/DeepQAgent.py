@@ -303,9 +303,13 @@ class DeepQLearningAgent(Agent, EvaluationMixin):
             lambda x: np.flipud(np.transpose(x)),
             lambda x: np.flipud(np.fliplr(np.transpose(x))),
         ]
-        if params.get("symmetrized_loss", True):
+        if params.get("symmetrized_loss", True) and params.get("replay_buffer_type", "uniform") == "uniform":
             self.compute_loss = self.create_symmetrized_loss(
                 self.compute_standard_loss, self.transformations, self.rows
+            )
+        elif params.get("symmetrized_loss", True) and params.get("replay_buffer_type", "uniform") == "prioritized":
+            self.compute_loss = self.create_symmetrized_loss(
+                self.compute_prioritized_loss, self.transformations, self.rows
             )
         elif params.get("replay_buffer_type", "uniform") == "prioritized":
             self.compute_loss = self.compute_prioritized_loss
@@ -403,7 +407,6 @@ class DeepQLearningAgent(Agent, EvaluationMixin):
             The computed loss.
         """
         states, actions, rewards, next_states, dones = samples
-        # print(f"states.shape = {states.shape}")
         q_values = self.q_network(states).gather(1, actions.unsqueeze(1)).squeeze(1)
         next_q_values = self.target_network(next_states).max(1, keepdim=True)[0].squeeze(1)
         targets = rewards + (~dones) * self.gamma * next_q_values
@@ -585,7 +588,6 @@ class DeepQLearningAgent(Agent, EvaluationMixin):
         """
         state = self.board_to_state(board)
         state_tensor = torch.FloatTensor(state).to(self.device)
-        # print(f"state_tensor.shape = {state_tensor.shape}")
         with torch.no_grad():
             q_values = q_network(state_tensor).squeeze()
             max_q, _ = torch.max(q_values, dim=0)
@@ -607,10 +609,8 @@ class DeepQPlayingAgent(Agent):
 
     def __init__(self, 
                 q_network: nn.Module | str,
-                player: Player = "X",
-                switching: bool = False,
-                device : str = "cpu",
-                state_shape: str = "flat") -> None:
+                params: dict
+                ) -> None:
         """
         Initialize the DeepQPlayingAgent.
 
@@ -619,6 +619,12 @@ class DeepQPlayingAgent(Agent):
             player: The player symbol ("X" or "O").
             switching: Whether to switch players after each game.
         """
+        player = params["player"]
+        switching = params["switching"]
+        device = params["device"]
+        state_shape = params["state_shape"]
+        rows = params["rows"]
+
         super().__init__(player=player, switching=switching)
         self.device = torch.device(device)
 
@@ -631,9 +637,9 @@ class DeepQPlayingAgent(Agent):
         if state_shape == "flat":
             self.state_converter = FlatStateConverter()
         elif state_shape == "2D":
-            self.state_converter = GridStateConverter(shape=(3, 3))  # Assuming a 3x3 grid
+            self.state_converter = GridStateConverter(shape=(rows, rows))
         elif state_shape == "one-hot":
-            self.state_converter = OneHotStateConverter(rows=3)  # Assuming a 3x3 grid
+            self.state_converter = OneHotStateConverter(rows=rows)
         else:
             raise ValueError(f"Unsupported state shape: {state_shape}")
 

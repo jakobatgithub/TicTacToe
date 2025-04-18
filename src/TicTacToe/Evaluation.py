@@ -1,4 +1,5 @@
 import wandb
+import copy
 
 from typing import Any, Optional
 
@@ -267,12 +268,13 @@ def evaluate_performance(
         dict[str, float]: A dictionary containing evaluation metrics.
     """
     wandb_logging = params["wandb_logging"]
-    device = params["device"]
-    state_shape = params["state_shape"]
     evaluation_batch_size = params["evaluation_batch_size"]
 
+    playing_params = copy.deepcopy(params)
+
     q_network1 = learning_agent1.q_network
-    playing_agent1 = DeepQPlayingAgent(q_network1, player="X", switching=False, device=device, state_shape=state_shape)
+    playing_params["player"] = "X"
+    playing_agent1 = DeepQPlayingAgent(q_network1, params=playing_params)
     random_agent2 = RandomAgent(player="O", switching=False)
     all_data = {}
 
@@ -294,7 +296,8 @@ def evaluate_performance(
         wandb.log(data)
 
     q_network2 = learning_agent2.q_network
-    playing_agent2 = DeepQPlayingAgent(q_network2, player="O", switching=False, device=device, state_shape=state_shape)
+    playing_params["player"] = "O"
+    playing_agent2 = DeepQPlayingAgent(q_network2, params=playing_params)
     random_agent1 = RandomAgent(player="X", switching=False)
 
     game = TicTacToe(random_agent1, playing_agent2, display=None, params=params)

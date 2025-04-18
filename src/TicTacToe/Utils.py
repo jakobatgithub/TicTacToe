@@ -1,7 +1,6 @@
 import json
 import os
 import torch
-import uuid
 import wandb
 
 from datetime import datetime
@@ -72,8 +71,8 @@ def save_model_artifacts(agent1: Agent, agent2: Agent, params: dict):
     base_folder.mkdir(parents=True, exist_ok=True)
 
     # Create unique model folder
-    unique_id = datetime.now().strftime("%Y%m%d_%H%M%S") + "_" + uuid.uuid4().hex[:8]
-    model_folder = base_folder / unique_id
+    wandb_run_name = params["wandb_run_name"]
+    model_folder = base_folder / wandb_run_name
     model_folder.mkdir()
 
     def save_agent(agent, player):
@@ -97,9 +96,9 @@ def save_model_artifacts(agent1: Agent, agent2: Agent, params: dict):
     full_O, weights_O, base_O, head_O = save_agent(agent2, "O")
 
     metadata = {
-        "id": unique_id,
+        "id": wandb_run_name,
         "timestamp": datetime.now().isoformat(),
-        "model_folder": unique_id,
+        "model_folder": wandb_run_name,
         "full_model_X": full_X,
         "full_model_O": full_O,
         "weights_X": weights_X,
@@ -128,9 +127,9 @@ def save_model_artifacts(agent1: Agent, agent2: Agent, params: dict):
 
     # Append a summary entry (you can include more fields if needed)
     index_data.append({
-        "id": unique_id,
+        "id": wandb_run_name,
         "timestamp": metadata["timestamp"],
-        "folder": unique_id,
+        "folder": wandb_run_name,
         "rows": params["rows"],
         "win_length": params["win_length"],
     })

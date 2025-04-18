@@ -170,7 +170,11 @@ class DeepQLearningAgent(Agent, EvaluationMixin):
             params: The configuration dictionary.
         """
         if self.wandb_logging:
-            wandb.init(config=params)  # type: ignore
+            wandb.init(
+                project=params["project_name"],  # This sets the project name
+                name=params["wandb_run_name"],  # This sets the run name
+                config=params  # This logs the parameters
+                )
 
     def _init_group_matrices(self) -> None:
         """

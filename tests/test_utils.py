@@ -75,6 +75,7 @@ def test_save_model_artifacts(dummy_agents, tmp_path):
         "rows": 5,
         "win_length": 5,
         "shared_replay_buffer": False,
+        "wandb_run_name": "test_run",
     }
 
     save_model_artifacts(agent1, agent2, params)

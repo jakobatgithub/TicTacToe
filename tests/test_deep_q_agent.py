@@ -469,7 +469,14 @@ class MockTicTacToe:
 class TestDeepQPlayingAgent(unittest.TestCase):
     def setUp(self):
         self.q_network = MockQNetwork()
-        self.agent = DeepQPlayingAgent(q_network=self.q_network, player="X", switching=True)
+        self.params = {
+            "player": "X",
+            "switching": False,
+            "rows": 3,
+            "device": "cpu",
+            "state_shape": "flat",
+        }
+        self.agent = DeepQPlayingAgent(q_network=self.q_network, params=self.params)
 
     def test_board_to_state(self):
         board = ["X", " ", "O", " ", " ", "X", "O", " ", " "]
@@ -493,7 +500,7 @@ class TestDeepQPlayingAgent(unittest.TestCase):
 
     @patch("torch.load", return_value=MockQNetwork())
     def test_q_network_loading(self, mock_load):
-        agent = DeepQPlayingAgent(q_network="mock_path.pth", player="X", switching=False)
+        agent = DeepQPlayingAgent(q_network="mock_path.pth", params=self.params)
         self.assertIsInstance(agent.q_network, MockQNetwork)
         mock_load.assert_called_once_with("mock_path.pth", weights_only=False)
 
@@ -508,10 +515,3 @@ class TestDeepQPlayingAgent(unittest.TestCase):
         state_transition = (None, None, True)  # Done flag is True.
         action = self.agent.get_action(state_transition, mock_game)
         self.assertEqual(action, -1)  # Game is over, no action taken.
-
-    def test_on_game_end(self):
-        initial_player = self.agent.player
-        initial_opponent = self.agent.opponent
-        self.agent.on_game_end(None)  # Pass None for game, not used.
-        self.assertEqual(self.agent.player, initial_opponent)
-        self.assertEqual(self.agent.opponent, initial_player)

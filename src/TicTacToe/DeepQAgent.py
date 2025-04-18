@@ -609,10 +609,8 @@ class DeepQPlayingAgent(Agent):
 
     def __init__(self, 
                 q_network: nn.Module | str,
-                player: Player = "X",
-                switching: bool = False,
-                device : str = "cpu",
-                state_shape: str = "flat") -> None:
+                params: dict
+                ) -> None:
         """
         Initialize the DeepQPlayingAgent.
 
@@ -621,6 +619,12 @@ class DeepQPlayingAgent(Agent):
             player: The player symbol ("X" or "O").
             switching: Whether to switch players after each game.
         """
+        player = params["player"]
+        switching = params["switching"]
+        device = params["device"]
+        state_shape = params["state_shape"]
+        rows = params["rows"]
+
         super().__init__(player=player, switching=switching)
         self.device = torch.device(device)
 
@@ -633,9 +637,9 @@ class DeepQPlayingAgent(Agent):
         if state_shape == "flat":
             self.state_converter = FlatStateConverter()
         elif state_shape == "2D":
-            self.state_converter = GridStateConverter(shape=(3, 3))  # Assuming a 3x3 grid
+            self.state_converter = GridStateConverter(shape=(rows, rows))
         elif state_shape == "one-hot":
-            self.state_converter = OneHotStateConverter(rows=3)  # Assuming a 3x3 grid
+            self.state_converter = OneHotStateConverter(rows=rows)
         else:
             raise ValueError(f"Unsupported state shape: {state_shape}")
 
